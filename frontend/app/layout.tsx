@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
@@ -9,17 +9,18 @@ export const metadata: Metadata = {
   title: 'NutriBuddy - Seu Assistente Nutricional',
   description: 'Gerencie sua nutrição, exercícios e saúde com inteligência artificial',
   manifest: '/manifest.json',
-  themeColor: '#10b981',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'NutriBuddy',
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#10b981',
 };
 
 export default function RootLayout({
