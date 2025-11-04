@@ -1,5 +1,5 @@
 // User Types and Roles
-export type UserRole = 'patient' | 'prescriber';
+export type UserRole = 'patient' | 'prescriber' | 'admin';
 
 export interface User {
   uid: string;

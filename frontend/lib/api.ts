@@ -130,5 +130,47 @@ export const whatsappAPI = {
     api.get('/api/whatsapp/messages', { params }),
 };
 
+export const prescriberAPI = {
+  getPatients: () => api.get('/api/prescriber/patients'),
+  addPatient: (data: { patientEmail?: string; patientId?: string }) =>
+    api.post('/api/prescriber/patients', data),
+  getPatientDetails: (patientId: string) =>
+    api.get(`/api/prescriber/patients/${patientId}`),
+  getRequests: () => api.get('/api/prescriber/requests'),
+  approveRequest: (requestId: string) =>
+    api.post(`/api/prescriber/requests/${requestId}/approve`),
+  rejectRequest: (requestId: string) =>
+    api.post(`/api/prescriber/requests/${requestId}/reject`),
+};
+
+export const n8nAPI = {
+  getStatus: () => api.get('/api/n8n/status'),
+  getWebhooks: (params?: { limit?: number; offset?: number }) =>
+    api.get('/api/n8n/webhooks', { params }),
+  getWebhook: (id: string) => api.get(`/api/n8n/webhooks/${id}`),
+  triggerWorkflow: (data: { workflowId?: string; data?: any }) =>
+    api.post('/api/n8n/trigger', data),
+  getWorkflows: () => api.get('/api/n8n/workflows'),
+  getExecutions: (params?: { workflowId?: string; limit?: number }) =>
+    api.get('/api/n8n/executions', { params }),
+  testConnection: () => api.get('/api/n8n/test'),
+};
+
+export const adminAPI = {
+  getStatus: () => api.get('/api/admin/status'),
+  getStats: (params?: { days?: number }) => api.get('/api/admin/stats', { params }),
+  getUsers: (params?: { role?: string; limit?: number }) => api.get('/api/admin/users', { params }),
+  createPrescriber: (data: {
+    email: string;
+    password: string;
+    displayName?: string;
+    specialty?: string;
+    registrationNumber?: string;
+    clinicName?: string;
+  }) => api.post('/api/admin/prescribers', data),
+  updateUserRole: (userId: string, role: 'patient' | 'prescriber' | 'admin') =>
+    api.put(`/api/admin/users/${userId}/role`, { role }),
+};
+
 export default api;
 

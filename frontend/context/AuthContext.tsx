@@ -26,6 +26,7 @@ interface AuthContextType {
   updateUserRole: (role: UserRole) => Promise<void>;
   isPrescrber: boolean;
   isPatient: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -270,6 +271,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateUserRole,
     isPrescrber: user?.role === 'prescriber',
     isPatient: user?.role === 'patient',
+    isAdmin: user?.role === 'admin',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

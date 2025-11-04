@@ -127,6 +127,11 @@ const requirePrescriber = requireRole('prescriber');
 const requirePatient = requireRole('patient');
 
 /**
+ * Middleware to check if user is an admin
+ */
+const requireAdmin = requireRole('admin');
+
+/**
  * Middleware to check ownership of resource
  * Ensures user can only access their own data
  * Prescribers can access their patients' data
@@ -213,6 +218,7 @@ module.exports = {
   requireRole,
   requirePrescriber,
   requirePatient,
+  requireAdmin,
   requireOwnership,
   verifyWebhook
 };
