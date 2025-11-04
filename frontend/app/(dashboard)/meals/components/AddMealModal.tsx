@@ -134,6 +134,11 @@ export default function AddMealModal({
 
     // Upload image if new file selected
     if (uploadedFile) {
+      if (!storage) {
+        toast.error('Firebase Storage não está disponível');
+        return;
+      }
+      
       try {
         const storageRef = ref(
           storage,
