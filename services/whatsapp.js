@@ -1,4 +1,3 @@
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs');
@@ -20,6 +19,17 @@ class WhatsAppService {
     this.qrCode = null;
     this.connectionStatus = 'disconnected';
     this.messageHandlers = [];
+    this.baileys = null; // Cache do módulo Baileys importado dinamicamente
+  }
+
+  /**
+   * Carrega o módulo Baileys dinamicamente (ESM)
+   */
+  async loadBaileys() {
+    if (!this.baileys) {
+      this.baileys = await import('@whiskeysockets/baileys');
+    }
+    return this.baileys;
   }
 
   /**
@@ -28,6 +38,10 @@ class WhatsAppService {
   async connect() {
     try {
       console.log('🔄 Iniciando conexão WhatsApp...');
+
+      // Carregar módulo Baileys dinamicamente
+      const baileys = await this.loadBaileys();
+      const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = baileys;
 
       // Obter versão mais recente do Baileys
       const { version } = await fetchLatestBaileysVersion();
