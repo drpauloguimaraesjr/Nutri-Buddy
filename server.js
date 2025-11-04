@@ -119,9 +119,10 @@ app.listen(PORT, () => {
 // Inicializar WhatsApp Message Handler
 async function initializeWhatsAppHandler() {
   try {
-    const whatsappService = require('./services/whatsapp');
+    const { getWhatsAppService } = require('./services/whatsapp');
     const WhatsAppMessageHandler = require('./services/whatsappHandler');
     
+    const whatsappService = getWhatsAppService();
     const handler = new WhatsAppMessageHandler(whatsappService);
     handler.register();
     
