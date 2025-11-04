@@ -45,6 +45,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Helper function to get user data from Firestore
   const getUserData = async (firebaseUser: FirebaseUser): Promise<User | null> => {
+    if (!db) return null;
+    
     try {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       
@@ -90,6 +92,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     role: UserRole,
     additionalData?: Partial<User>
   ) => {
+    if (!db) {
+      throw new Error('Firebase Firestore não está disponível');
+    }
+    
     try {
       const userRef = doc(db, 'users', firebaseUser.uid);
       const userDoc = await getDoc(userRef);
@@ -144,6 +150,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const register = async (email: string, password: string, name: string, role: UserRole) => {
+    if (!auth || !db) {
+      throw new Error('Firebase não está disponível');
+    }
+    
     try {
       const { user: firebaseUser } = await createUserWithEmailAndPassword(
         auth,
@@ -167,6 +177,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const login = async (email: string, password: string) => {
+    if (!auth || !db) {
+      throw new Error('Firebase não está disponível');
+    }
+    
     try {
       const { user: firebaseUser } = await signInWithEmailAndPassword(
         auth,
@@ -184,6 +198,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const loginWithGoogle = async (role: UserRole = 'patient') => {
+    if (!auth || !db) {
+      throw new Error('Firebase não está disponível');
+    }
+    
     try {
       const provider = new GoogleAuthProvider();
       const { user: firebaseUser } = await signInWithPopup(auth, provider);
@@ -206,6 +224,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = async () => {
+    if (!auth) {
+      throw new Error('Firebase não está disponível');
+    }
+    
     try {
       await signOut(auth);
       setUser(null);
@@ -219,6 +241,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateUserRole = async (role: UserRole) => {
     if (!firebaseUser) {
       throw new Error('No user logged in');
+    }
+    
+    if (!db) {
+      throw new Error('Firebase não está disponível');
     }
 
     try {
