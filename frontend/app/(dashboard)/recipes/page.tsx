@@ -289,6 +289,8 @@ export default function RecipesPage() {
 
 // Add Recipe Modal
 function AddRecipeModal({ onClose, onSuccess, userId }: any) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -533,6 +535,8 @@ function AddRecipeModal({ onClose, onSuccess, userId }: any) {
 
 // Recipe Detail Modal
 function RecipeDetailModal({ recipe, onClose, userId }: any) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  
   const [servingsToUse, setServingsToUse] = useState('1');
   const queryClient = useQueryClient();
 
