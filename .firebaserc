@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "nutribuddy-2fc9c",
+    "firebase deploy --only firestore:rules": "nutribuddy-2fc9c"
+  },
+  "targets": {},
+  "etags": {}
+}

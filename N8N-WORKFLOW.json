@@ -1,0 +1,278 @@
+{
+  "name": "NutriBuddy API Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "webhook-nutribuddy",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-receive",
+      "name": "Webhook - Receber Dados",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/webhook",
+        "authentication": "headerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "={{$env.WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"event\": $json.event,\n  \"data\": $json.data,\n  \"timestamp\": new Date().toISOString()\n} }}",
+        "options": {}
+      },
+      "id": "http-request",
+      "name": "HTTP Request - NutriBuddy API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": true,\n  \"message\": \"Nutrição processada com sucesso\",\n  \"data\": $json\n} }}"
+      },
+      "id": "webhook-respond",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.event}}",
+              "operation": "equals",
+              "value2": "nutrition_update"
+            }
+          ]
+        }
+      },
+      "id": "if-nutrition",
+      "name": "IF - Nutrition Event",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [550, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/nutrition",
+        "authentication": "headerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.FIREBASE_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.data }}",
+        "options": {}
+      },
+      "id": "save-nutrition",
+      "name": "Salvar Nutrição",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [750, 150]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/meals",
+        "authentication": "headerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.FIREBASE_TOKEN}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.data }}",
+        "options": {}
+      },
+      "id": "save-meal",
+      "name": "Salvar Refeição",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [750, 250]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/health",
+        "options": {}
+      },
+      "id": "health-check",
+      "name": "Health Check - NutriBuddy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/nutrition",
+        "authentication": "headerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.FIREBASE_TOKEN}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-nutrition",
+      "name": "Buscar Nutrição",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Processar dados de nutrição\ntry {\n  const nutrition = $input.item.json;\n  \n  // Calcular totais\n  const dailyTotal = {\n    calories: 0,\n    protein: 0,\n    carbs: 0,\n    fats: 0\n  };\n  \n  if (Array.isArray(nutrition.data)) {\n    nutrition.data.forEach(item => {\n      dailyTotal.calories += item.calories || 0;\n      dailyTotal.protein += item.protein || 0;\n      dailyTotal.carbs += item.carbs || 0;\n      dailyTotal.fats += item.fats || 0;\n    });\n  }\n  \n  return {\n    ...nutrition,\n    dailyTotal,\n    processed: true\n  };\n} catch (error) {\n  return {\n    error: error.message\n  };\n}"
+      },
+      "id": "process-data",
+      "name": "Processar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "mode": "webhook",
+        "webhook": "nutribuddy-main",
+        "path": "trigger",
+        "options": {}
+      },
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Receber Dados": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - NutriBuddy API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - NutriBuddy API": {
+      "main": [
+        [
+          {
+            "node": "IF - Nutrition Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Nutrition Event": {
+      "main": [
+        [
+          {
+            "node": "Salvar Nutrição",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salvar Refeição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Health Check - NutriBuddy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Check - NutriBuddy": {
+      "main": [
+        [
+          {
+            "node": "Buscar Nutrição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Nutrição": {
+      "main": [
+        [
+          {
+            "node": "Processar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-11-02T00:00:00.000Z",
+      "updatedAt": "2024-11-02T00:00:00.000Z",
+      "id": "1",
+      "name": "NutriBuddy"
+    }
+  ],
+  "triggerCount": 3,
+  "updatedAt": "2024-11-02T00:00:00.000Z",
+  "versionId": "1"
+}
+

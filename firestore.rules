@@ -1,0 +1,230 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isPrescriber() {
+      return isAuthenticated() && getUserData().role == 'prescriber';
+    }
+    
+    function isPatient() {
+      return isAuthenticated() && getUserData().role == 'patient';
+    }
+    
+    function hasActiveConnection(prescriberId, patientId) {
+      return exists(/databases/$(database)/documents/connections/$(prescriberId + '_' + patientId)) &&
+             get(/databases/$(database)/documents/connections/$(prescriberId + '_' + patientId)).data.status == 'active';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone authenticated can read their own user document
+      allow read: if isOwner(userId);
+      
+      // Users can create their own document during registration
+      allow create: if isAuthenticated() && isOwner(userId) &&
+                       request.resource.data.role in ['patient', 'prescriber'];
+      
+      // Users can update their own document (but not change role after creation)
+      allow update: if isOwner(userId) &&
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      
+      // Prescribers can read their patients' basic info
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, userId);
+    }
+    
+    // Connections collection (prescriber-patient relationships)
+    match /connections/{connectionId} {
+      // Prescribers can create connections (send invites)
+      allow create: if isPrescriber() && 
+                       request.resource.data.prescriberId == request.auth.uid &&
+                       request.resource.data.status == 'pending';
+      
+      // Both prescriber and patient can read their own connections
+      allow read: if isAuthenticated() && (
+        resource.data.prescriberId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      );
+      
+      // Prescriber can update (approve/reject)
+      allow update: if isPrescriber() && 
+                       resource.data.prescriberId == request.auth.uid;
+      
+      // Patient can update (accept/reject)
+      allow update: if isPatient() && 
+                       resource.data.patientId == request.auth.uid;
+      
+      // List connections for prescribers and patients
+      allow list: if isAuthenticated() && (
+        request.auth.uid == resource.data.prescriberId ||
+        request.auth.uid == resource.data.patientId
+      );
+    }
+    
+    // Diet Plans collection (created by prescribers)
+    match /dietPlans/{planId} {
+      // Prescribers can create plans for their patients
+      allow create: if isPrescriber() && 
+                       request.resource.data.prescriberId == request.auth.uid &&
+                       hasActiveConnection(request.auth.uid, request.resource.data.patientId);
+      
+      // Prescriber can read/update their own plans
+      allow read, update: if isPrescriber() && 
+                             resource.data.prescriberId == request.auth.uid;
+      
+      // Patient can read plans assigned to them
+      allow read: if isPatient() && 
+                     resource.data.patientId == request.auth.uid;
+      
+      // List plans for prescribers and their patients
+      allow list: if isAuthenticated() && (
+        resource.data.prescriberId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      );
+    }
+    
+    // Meals collection
+    match /meals/{mealId} {
+      // Users can create their own meals
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Users can read/update/delete their own meals
+      allow read, update, delete: if isOwner(resource.data.userId);
+      
+      // Prescribers can read their patients' meals
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, resource.data.userId);
+      
+      // List meals
+      allow list: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (isPrescriber() && hasActiveConnection(request.auth.uid, resource.data.userId))
+      );
+    }
+    
+    // Exercises collection
+    match /exercises/{exerciseId} {
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, resource.data.userId);
+      allow list: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (isPrescriber() && hasActiveConnection(request.auth.uid, resource.data.userId))
+      );
+    }
+    
+    // Water intake collection
+    match /waterIntake/{intakeId} {
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, resource.data.userId);
+      allow list: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (isPrescriber() && hasActiveConnection(request.auth.uid, resource.data.userId))
+      );
+    }
+    
+    // Fasting sessions collection
+    match /fastingSessions/{sessionId} {
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, resource.data.userId);
+      allow list: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (isPrescriber() && hasActiveConnection(request.auth.uid, resource.data.userId))
+      );
+    }
+    
+    // Measurements collection
+    match /measurements/{measurementId} {
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, resource.data.userId);
+      allow list: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (isPrescriber() && hasActiveConnection(request.auth.uid, resource.data.userId))
+      );
+    }
+    
+    // Glucose readings collection
+    match /glucoseReadings/{readingId} {
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, resource.data.userId);
+      allow list: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (isPrescriber() && hasActiveConnection(request.auth.uid, resource.data.userId))
+      );
+    }
+    
+    // Goals collection
+    match /goals/{goalId} {
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if isPrescriber() && 
+                     hasActiveConnection(request.auth.uid, resource.data.userId);
+      allow list: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (isPrescriber() && hasActiveConnection(request.auth.uid, resource.data.userId))
+      );
+    }
+    
+    // Recipes collection (can be public or private)
+    match /recipes/{recipeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                       request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+                               resource.data.createdBy == request.auth.uid;
+    }
+    
+    // Chat messages collection
+    match /chatMessages/{messageId} {
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isOwner(resource.data.userId);
+      allow list: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read, update: if isAuthenticated() && 
+                             resource.data.userId == request.auth.uid;
+      allow list: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+    }
+    
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
