@@ -261,6 +261,8 @@ export default function MeasurementsPage() {
 
 // Add Measurement Modal
 function AddMeasurementModal({ onClose, onSuccess, userId }: any) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  
   const [formData, setFormData] = useState({
     weight: '',
     height: '',
