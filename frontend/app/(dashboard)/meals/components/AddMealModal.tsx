@@ -96,8 +96,9 @@ export default function AddMealModal({
     setIsAnalyzing(true);
     try {
       // Upload image to Firebase Storage
+      // TypeScript knows storage is not null here
       const storageRef = ref(
-        storage,
+        storage as NonNullable<typeof storage>,
         `meals/${Date.now()}-${uploadedFile.name}`
       );
       await uploadBytes(storageRef, uploadedFile);
@@ -140,8 +141,9 @@ export default function AddMealModal({
       }
       
       try {
+        // TypeScript knows storage is not null here
         const storageRef = ref(
-          storage,
+          storage as NonNullable<typeof storage>,
           `meals/${Date.now()}-${uploadedFile.name}`
         );
         await uploadBytes(storageRef, uploadedFile);
