@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriBuddy - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            color: #333;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .nav button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .nav button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .content {
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .stat {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .action-btn {
+            padding: 30px 20px;
+            border: none;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .action-btn:active {
+            transform: translateY(-1px);
+        }
+
+        form {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .meals-list {
+            margin-top: 20px;
+        }
+
+        .meal-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-info strong {
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .meal-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .meal-stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .meal-stat {
+            text-align: center;
+        }
+
+        .meal-stat .value {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .meal-stat .label {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🥗 NutriBuddy</h1>
+            <p>Seu Assistente Nutricional Inteligente</p>
+        </div>
+
+        <!-- Navegação -->
+        <div class="nav">
+            <button onclick="showPage('dashboard')" class="active" id="nav-dashboard">Dashboard</button>
+            <button onclick="showPage('meals')" id="nav-meals">Refeições</button>
+            <button onclick="showPage('nutrition')" id="nav-nutrition">Nutrição</button>
+            <button onclick="showPage('water')" id="nav-water">Água</button>
+            <button onclick="showPage('exercises')" id="nav-exercises">Exercícios</button>
+            <button onclick="showPage('fasting')" id="nav-fasting">Jejum</button>
+        </div>
+
+        <!-- Alertas -->
+        <div id="alertContainer"></div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="content active">
+            <h2 style="color: white; margin-bottom: 20px;">Dashboard</h2>
+            
+            <div class="quick-actions">
+                <button class="action-btn" onclick="showPage('meals')">
+                    🍽️<br>Adicionar<br>Refeição
+                </button>
+                <button class="action-btn" onclick="showPage('water')">
+                    💧<br>Registrar<br>Água
+                </button>
+                <button class="action-btn" onclick="showPage('exercises')">
+                    🏋️<br>Adicionar<br>Exercício
+                </button>
+                <button class="action-btn" onclick="showPage('fasting')">
+                    ⏱️<br>Jejum<br>Intermitente
+                </button>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h2>🔥 Calorias Hoje</h2>
+                    <div class="stat" id="totalCalories">0</div>
+                    <p>kcal consumidas</p>
+                </div>
+                <div class="card">
+                    <h2>💪 Proteínas</h2>
+                    <div class="stat" id="totalProtein">0</div>
+                    <p>gramas</p>
+                </div>
+                <div class="card">
+                    <h2>🍞 Carboidratos</h2>
+                    <div class="stat" id="totalCarbs">0</div>
+                    <p>gramas</p>
+                </div>
+                <div class="card">
+                    <h2>🥑 Gorduras</h2>
+                    <div class="stat" id="totalFats">0</div>
+                    <p>gramas</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📋 Últimas Refeições</h2>
+                <div id="mealsList" class="meals-list">
+                    <p style="text-align: center; color: #999;">Carregando...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refeições -->
+        <div id="meals" class="content">
+            <form id="mealForm" onsubmit="submitMeal(event)">
+                <h2 style="margin-bottom: 20px;">Adicionar Refeição</h2>
+                
+                <div class="form-group">
+                    <label>Tipo de Refeição</label>
+                    <select id="mealType" required>
+                        <option value="breakfast">☕ Café da Manhã</option>
+                        <option value="lunch">🍽️ Almoço</option>
+                        <option value="snack">🥤 Lanche</option>
+                        <option value="dinner">🍜 Jantar</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Nome da Refeição</label>
+                    <input type="text" id="mealName" placeholder="Ex: Frango grelhado com arroz" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Calorias (kcal)</label>
+                    <input type="number" id="calories" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Proteínas (g)</label>
+                    <input type="number" id="protein" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Carboidratos (g)</label>
+                    <input type="number" id="carbs" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Gorduras (g)</label>
+                    <input type="number" id="fats" step="0.1" required>
+                </div>
+
+                <button type="submit" class="btn">✅ Adicionar Refeição</button>
+            </form>
+        </div>
+
+        <!-- Nutrição -->
+        <div id="nutrition" class="content">
+            <form id="nutritionForm" onsubmit="submitNutrition(event)">
+                <h2 style="margin-bottom: 20px;">Registrar Nutrição Diária</h2>
+                
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="nutritionDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Calorias Totais (kcal)</label>
+                    <input type="number" id="nutritionCalories" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Proteínas Totais (g)</label>
+                    <input type="number" id="nutritionProtein" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Carboidratos Totais (g)</label>
+                    <input type="number" id="nutritionCarbs" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Gorduras Totais (g)</label>
+                    <input type="number" id="nutritionFats" step="0.1" required>
+                </div>
+
+                <button type="submit" class="btn">💾 Salvar Nutrição</button>
+            </form>
+        </div>
+
+        <!-- Água -->
+        <div id="water" class="content">
+            <div class="card">
+                <h2>💧 Registro de Água</h2>
+                <div class="stat" id="waterToday">0</div>
+                <p style="margin-bottom: 20px;">ml consumidos hoje</p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                    <button class="btn" onclick="addWater(250)">+ 250ml</button>
+                    <button class="btn" onclick="addWater(500)">+ 500ml</button>
+                    <button class="btn" onclick="addWater(750)">+ 750ml</button>
+                    <button class="btn" onclick="addWater(1000)">+ 1000ml</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercícios -->
+        <div id="exercises" class="content">
+            <form id="exerciseForm" onsubmit="submitExercise(event)">
+                <h2 style="margin-bottom: 20px;">Adicionar Exercício</h2>
+                
+                <div class="form-group">
+                    <label>Tipo de Exercício</label>
+                    <select id="exerciseType" required>
+                        <option value="cardio">🏃 Cardio</option>
+                        <option value="strength">💪 Musculação</option>
+                        <option value="flexibility">🧘 Flexibilidade</option>
+                        <option value="sports">⚽ Esportes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Nome do Exercício</label>
+                    <input type="text" id="exerciseName" placeholder="Ex: Corrida" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Duração (minutos)</label>
+                    <input type="number" id="exerciseDuration" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Calorias Queimadas (estimativa)</label>
+                    <input type="number" id="exerciseCalories" step="0.1" required>
+                </div>
+
+                <button type="submit" class="btn">🏃 Adicionar Exercício</button>
+            </form>
+        </div>
+
+        <!-- Jejum -->
+        <div id="fasting" class="content">
+            <div class="card">
+                <h2>⏱️ Jejum Intermitente</h2>
+                <div id="fastingStatus">
+                    <p style="margin-bottom: 20px; color: #666;">Nenhum jejum ativo</p>
+                    <button class="btn" onclick="startFasting()">▶️ Iniciar Jejum</button>
+                </div>
+                <div id="fastingActive" style="display: none;">
+                    <div class="stat" id="fastingTime">0h 0m</div>
+                    <p style="margin-bottom: 20px;">Tempo de jejum</p>
+                    <button class="btn btn-secondary" onclick="stopFasting()">⏹️ Parar Jejum</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração da API
+        const API_BASE = 'https://web-production-c9eaf.up.railway.app';
+        const WEBHOOK_SECRET = 'nutribuddy-secret-2024';
+
+        // Navegação entre páginas
+        function showPage(pageName) {
+            // Esconder todas as páginas
+            document.querySelectorAll('.content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remover active de todos os botões
+            document.querySelectorAll('.nav button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Mostrar página selecionada
+            document.getElementById(pageName).classList.add('active');
+            document.getElementById('nav-' + pageName).classList.add('active');
+
+            console.log('✅ Navegação funcionou! Página:', pageName);
+        }
+
+        // Mostrar alertas
+        function showAlert(message, type = 'success') {
+            const alert = document.createElement('div');
+            alert.className = `alert ${type} show`;
+            alert.textContent = message;
+            
+            const container = document.getElementById('alertContainer');
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Fazer requisição à API
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-webhook-secret': WEBHOOK_SECRET
+                    }
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro na requisição');
+                }
+
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                showAlert(error.message, 'error');
+                throw error;
+            }
+        }
+
+        // Adicionar refeição
+        async function submitMeal(event) {
+            event.preventDefault();
+
+            const mealData = {
+                type: document.getElementById('mealType').value,
+                name: document.getElementById('mealName').value,
+                calories: parseFloat(document.getElementById('calories').value),
+                protein: parseFloat(document.getElementById('protein').value),
+                carbs: parseFloat(document.getElementById('carbs').value),
+                fats: parseFloat(document.getElementById('fats').value),
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().split(' ')[0]
+            };
+
+            try {
+                await apiRequest('/api/meals', 'POST', mealData);
+                showAlert('✅ Refeição adicionada com sucesso!');
+                document.getElementById('mealForm').reset();
+                updateDashboard();
+                showPage('dashboard');
+            } catch (error) {
+                showAlert('❌ Erro ao adicionar refeição', 'error');
+            }
+        }
+
+        // Adicionar nutrição
+        async function submitNutrition(event) {
+            event.preventDefault();
+
+            const nutritionData = {
+                date: document.getElementById('nutritionDate').value,
+                calories: parseFloat(document.getElementById('nutritionCalories').value),
+                protein: parseFloat(document.getElementById('nutritionProtein').value),
+                carbs: parseFloat(document.getElementById('nutritionCarbs').value),
+                fats: parseFloat(document.getElementById('nutritionFats').value)
+            };
+
+            try {
+                await apiRequest('/api/nutrition', 'POST', nutritionData);
+                showAlert('✅ Nutrição registrada com sucesso!');
+                document.getElementById('nutritionForm').reset();
+                document.getElementById('nutritionDate').valueAsDate = new Date();
+            } catch (error) {
+                showAlert('❌ Erro ao registrar nutrição', 'error');
+            }
+        }
+
+        // Adicionar água
+        async function addWater(amount) {
+            try {
+                await apiRequest('/api/water', 'POST', { amount });
+                showAlert(`✅ ${amount}ml de água adicionados!`);
+                updateWater();
+            } catch (error) {
+                showAlert('❌ Erro ao adicionar água', 'error');
+            }
+        }
+
+        // Adicionar exercício
+        async function submitExercise(event) {
+            event.preventDefault();
+
+            const exerciseData = {
+                type: document.getElementById('exerciseType').value,
+                name: document.getElementById('exerciseName').value,
+                duration: parseInt(document.getElementById('exerciseDuration').value),
+                caloriesBurned: parseFloat(document.getElementById('exerciseCalories').value),
+                date: new Date().toISOString().split('T')[0]
+            };
+
+            try {
+                await apiRequest('/api/exercises', 'POST', exerciseData);
+                showAlert('✅ Exercício adicionado com sucesso!');
+                document.getElementById('exerciseForm').reset();
+                showPage('dashboard');
+            } catch (error) {
+                showAlert('❌ Erro ao adicionar exercício', 'error');
+            }
+        }
+
+        // Jejum
+        let fastingInterval = null;
+
+        async function startFasting() {
+            try {
+                await apiRequest('/api/fasting/start', 'POST');
+                showAlert('✅ Jejum iniciado!');
+                document.getElementById('fastingStatus').style.display = 'none';
+                document.getElementById('fastingActive').style.display = 'block';
+                updateFastingTime();
+            } catch (error) {
+                showAlert('❌ Erro ao iniciar jejum', 'error');
+            }
+        }
+
+        async function stopFasting() {
+            try {
+                await apiRequest('/api/fasting/stop', 'POST');
+                showAlert('✅ Jejum finalizado!');
+                document.getElementById('fastingStatus').style.display = 'block';
+                document.getElementById('fastingActive').style.display = 'none';
+                if (fastingInterval) clearInterval(fastingInterval);
+            } catch (error) {
+                showAlert('❌ Erro ao parar jejum', 'error');
+            }
+        }
+
+        function updateFastingTime() {
+            // Atualizar a cada segundo
+            if (fastingInterval) clearInterval(fastingInterval);
+            
+            fastingInterval = setInterval(async () => {
+                try {
+                    const response = await apiRequest('/api/fasting/active');
+                    if (response.data) {
+                        const start = new Date(response.data.startTime);
+                        const now = new Date();
+                        const diff = now - start;
+                        const hours = Math.floor(diff / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        document.getElementById('fastingTime').textContent = `${hours}h ${minutes}m`;
+                    }
+                } catch (error) {
+                    console.error('Erro ao atualizar jejum:', error);
+                }
+            }, 1000);
+        }
+
+        // Atualizar Dashboard
+        async function updateDashboard() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const response = await apiRequest(`/api/meals?date=${today}`);
+
+                let totalCalories = 0;
+                let totalProtein = 0;
+                let totalCarbs = 0;
+                let totalFats = 0;
+
+                const meals = response.data || [];
+                
+                meals.forEach(meal => {
+                    totalCalories += meal.calories || 0;
+                    totalProtein += meal.protein || 0;
+                    totalCarbs += meal.carbs || 0;
+                    totalFats += meal.fats || 0;
+                });
+
+                document.getElementById('totalCalories').textContent = totalCalories.toFixed(0);
+                document.getElementById('totalProtein').textContent = totalProtein.toFixed(1);
+                document.getElementById('totalCarbs').textContent = totalCarbs.toFixed(1);
+                document.getElementById('totalFats').textContent = totalFats.toFixed(1);
+
+                // Atualizar lista de refeições
+                updateMealsList(meals);
+            } catch (error) {
+                console.error('Erro ao atualizar dashboard:', error);
+            }
+        }
+
+        // Atualizar lista de refeições
+        function updateMealsList(meals) {
+            const mealsList = document.getElementById('mealsList');
+
+            if (!meals || meals.length === 0) {
+                mealsList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Nenhuma refeição registrada hoje</p>';
+                return;
+            }
+
+            mealsList.innerHTML = meals.map(meal => `
+                <div class="meal-item">
+                    <div class="meal-info">
+                        <strong>${getMealTypeName(meal.type)} - ${meal.name || 'Sem nome'}</strong>
+                        <div class="meal-time">${meal.time || ''}</div>
+                    </div>
+                    <div class="meal-stats">
+                        <div class="meal-stat">
+                            <div class="value">${meal.calories || 0}</div>
+                            <div class="label">kcal</div>
+                        </div>
+                        <div class="meal-stat">
+                            <div class="value">${meal.protein || 0}g</div>
+                            <div class="label">Prot</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Nome do tipo de refeição
+        function getMealTypeName(type) {
+            const names = {
+                'breakfast': '☕ Café da Manhã',
+                'lunch': '🍽️ Almoço',
+                'snack': '🥤 Lanche',
+                'dinner': '🍜 Jantar'
+            };
+            return names[type] || type;
+        }
+
+        // Atualizar água
+        async function updateWater() {
+            try {
+                const response = await apiRequest('/api/water/today');
+                const total = response.data?.total || 0;
+                document.getElementById('waterToday').textContent = total;
+            } catch (error) {
+                console.error('Erro ao atualizar água:', error);
+            }
+        }
+
+        // Verificar saúde da API
+        async function checkHealth() {
+            try {
+                const response = await apiRequest('/api/health');
+                console.log('✅ API conectada:', response);
+                showAlert('✅ Conectado à API com sucesso!');
+            } catch (error) {
+                console.error('❌ API não está respondendo');
+                showAlert('⚠️ Erro ao conectar com a API. Verifique o console.', 'error');
+            }
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('=== NutriBuddy Iniciado ===');
+            console.log('API:', API_BASE);
+            
+            // Configurar data de hoje
+            document.getElementById('nutritionDate').valueAsDate = new Date();
+            
+            // Verificar saúde da API
+            checkHealth();
+            
+            // Atualizar dashboard
+            updateDashboard();
+            updateWater();
+            
+            // Atualizar a cada 30 segundos
+            setInterval(updateDashboard, 30000);
+            
+            console.log('✅ Sistema iniciado!');
+            console.log('✅ Botões funcionando!');
+            console.log('👉 Clique nos botões para testar!');
+        });
+    </script>
+</body>
+</html>
+
