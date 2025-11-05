@@ -3,10 +3,9 @@
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
-import { motion, type HTMLMotionProps } from 'framer-motion';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-95',
   {
     variants: {
       variant: {
@@ -48,33 +47,14 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, loading, children, disabled, onClick, ...props }, ref) => {
-    // Filtrar props que conflitam com Framer Motion
-    const {
-      onDrag, onDragStart, onDragEnd,
-      onAnimationStart, onAnimationEnd, onAnimationIteration,
-      ...htmlProps
-    } = props as React.ButtonHTMLAttributes<HTMLButtonElement>;
-    
-    // Handler que garante que onClick seja executado
-    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (disabled || loading) return;
-      if (onClick) {
-        onClick(e);
-      }
-    };
-    
+  ({ className, variant, size, loading, children, disabled, ...props }, ref) => {
     return (
-      <motion.button
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || loading}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        transition={{ duration: 0.15 }}
-        onClick={handleClick}
-        type={htmlProps.type || 'button'}
-        {...htmlProps}
+        type={props.type || 'button'}
+        {...props}
       >
         {loading ? (
           <div className="flex items-center space-x-2">
@@ -84,7 +64,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ) : (
           children
         )}
-      </motion.button>
+      </button>
     );
   }
 );

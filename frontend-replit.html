@@ -374,9 +374,12 @@
     </div>
 
     <script>
-        // Configuração
-        const API_BASE = 'http://localhost:3000';
+        // Configuração - API do Railway (Backend em produção)
+        const API_BASE = 'https://web-production-c9eaf.up.railway.app';
         let firebaseToken = '';
+        
+        // Configurar autenticação com webhook secret (para N8N/testes)
+        const WEBHOOK_SECRET = 'nutribuddy-secret-2024'; // Use o mesmo do .env do backend
 
         // Elementos DOM
         const alertContainer = document.getElementById('alertContainer');
@@ -420,7 +423,13 @@
                     }
                 };
 
-                if (firebaseToken) {
+                // Usar webhook secret para autenticação (mais simples que Firebase)
+                if (WEBHOOK_SECRET) {
+                    options.headers['x-webhook-secret'] = WEBHOOK_SECRET;
+                }
+
+                // Ou usar Firebase token se configurado
+                if (firebaseToken && !WEBHOOK_SECRET) {
                     options.headers['Authorization'] = `Bearer ${firebaseToken}`;
                 }
 
