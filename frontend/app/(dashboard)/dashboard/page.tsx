@@ -19,6 +19,8 @@ import {
   Award,
   ChevronRight,
   Activity,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
@@ -27,6 +29,7 @@ import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { mealsAPI, waterAPI, exercisesAPI } from '@/lib/api';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -34,38 +37,135 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const router = useRouter();
 
-  // Mock data - será substituído por dados reais da API
+  // Estado para dados reais da API
   const [dailyStats, setDailyStats] = useState({
     calories: {
-      consumed: 1450,
+      consumed: 0,
       goal: 2000,
     },
     protein: {
-      consumed: 85,
+      consumed: 0,
       goal: 150,
     },
     carbs: {
-      consumed: 180,
+      consumed: 0,
       goal: 250,
     },
     fats: {
-      consumed: 45,
+      consumed: 0,
       goal: 65,
     },
     water: {
-      consumed: waterIntakeToday || 1200,
+      consumed: waterIntakeToday || 0,
       goal: 2500,
     },
     exercise: {
-      burned: 320,
+      burned: 0,
       goal: 400,
     },
   });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiConnected, setApiConnected] = useState(false);
+  const [recentMeals, setRecentMeals] = useState<any[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Carregar dados reais da API
+  useEffect(() => {
+    loadDashboardData();
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(loadDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Verificar saúde da API
+      try {
+        const healthResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/health`);
+        setApiConnected(healthResponse.ok);
+      } catch {
+        setApiConnected(false);
+      }
+
+      // Carregar refeições do dia
+      const today = new Date().toISOString().split('T')[0];
+      const mealsResponse = await mealsAPI.getAll({ date: today });
+      const meals = mealsResponse.data?.data || [];
+      
+      // Calcular totais de macronutrientes
+      let totalCalories = 0;
+      let totalProtein = 0;
+      let totalCarbs = 0;
+      let totalFats = 0;
+
+      meals.forEach((meal: any) => {
+        totalCalories += parseFloat(meal.calories || 0);
+        totalProtein += parseFloat(meal.protein || 0);
+        totalCarbs += parseFloat(meal.carbs || 0);
+        totalFats += parseFloat(meal.fats || 0);
+      });
+
+      // Carregar água
+      const waterResponse = await waterAPI.getToday();
+      const waterConsumed = waterResponse.data?.data?.total || 0;
+
+      // Carregar exercícios (calorias queimadas)
+      const exercisesResponse = await exercisesAPI.getAll({ date: today });
+      const exercises = exercisesResponse.data?.data || [];
+      let totalBurned = 0;
+      exercises.forEach((ex: any) => {
+        totalBurned += parseFloat(ex.caloriesBurned || 0);
+      });
+
+      // Atualizar estado
+      setDailyStats({
+        calories: {
+          consumed: totalCalories,
+          goal: 2000,
+        },
+        protein: {
+          consumed: totalProtein,
+          goal: 150,
+        },
+        carbs: {
+          consumed: totalCarbs,
+          goal: 250,
+        },
+        fats: {
+          consumed: totalFats,
+          goal: 65,
+        },
+        water: {
+          consumed: waterConsumed,
+          goal: 2500,
+        },
+        exercise: {
+          burned: totalBurned,
+          goal: 400,
+        },
+      });
+
+      // Ordenar refeições por hora (mais recente primeiro)
+      const sortedMeals = [...meals].sort((a: any, b: any) => {
+        const timeA = a.time || '00:00:00';
+        const timeB = b.time || '00:00:00';
+        return timeB.localeCompare(timeA);
+      });
+      setRecentMeals(sortedMeals.slice(0, 3)); // Últimas 3 refeições
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error);
+      setIsLoading(false);
+    }
+  };
 
   const calculateFastingTime = () => {
     if (!fastingActive || !fastingStartTime) return '0h 0m';
@@ -105,9 +205,19 @@ export default function DashboardPage() {
       <motion.div variants={itemVariants} className="glass-card p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              Olá, {user?.displayName || 'Usuário'}! 👋
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                Olá, {user?.displayName || 'Usuário'}! 👋
+              </h1>
+              {/* Indicador de conexão */}
+              <div className="flex items-center gap-2">
+                {apiConnected ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-500" title="API Conectada" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500" title="API Desconectada" />
+                )}
+              </div>
+            </div>
             <p className="text-gray-600">
               {format(currentTime, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </p>
@@ -426,31 +536,48 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[
-                { name: 'Café da Manhã', time: '08:30', cal: 450, macros: '25g P | 50g C | 15g G' },
-                { name: 'Almoço', time: '12:45', cal: 680, macros: '45g P | 80g C | 20g G' },
-                { name: 'Lanche', time: '16:00', cal: 320, macros: '15g P | 50g C | 10g G' },
-              ].map((meal, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  className="flex items-center justify-between p-4 glass-subtle rounded-xl cursor-pointer"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
-                      <Utensils className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{meal.name}</p>
-                      <p className="text-sm text-gray-600">{meal.time}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{meal.cal} kcal</p>
-                    <p className="text-xs text-gray-600">{meal.macros}</p>
-                  </div>
-                </motion.div>
-              ))}
+              {isLoading ? (
+                <div className="text-center py-8 text-gray-500">Carregando...</div>
+              ) : recentMeals.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhuma refeição registrada hoje
+                </div>
+              ) : (
+                recentMeals.map((meal: any, index: number) => {
+                  const mealTypeNames: { [key: string]: string } = {
+                    breakfast: 'Café da Manhã',
+                    lunch: 'Almoço',
+                    snack: 'Lanche',
+                    dinner: 'Jantar',
+                  };
+                  const mealName = mealTypeNames[meal.type || meal.mealType] || meal.name || 'Refeição';
+                  const macros = `${parseFloat(meal.protein || 0).toFixed(0)}g P | ${parseFloat(meal.carbs || 0).toFixed(0)}g C | ${parseFloat(meal.fats || 0).toFixed(0)}g G`;
+                  
+                  return (
+                    <motion.div
+                      key={meal.id || index}
+                      whileHover={{ scale: 1.02, x: 4 }}
+                      className="flex items-center justify-between p-4 glass-subtle rounded-xl cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+                          <Utensils className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{mealName}</p>
+                          <p className="text-sm text-gray-600">{meal.time || ''}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">
+                          {parseFloat(meal.calories || 0).toFixed(0)} kcal
+                        </p>
+                        <p className="text-xs text-gray-600">{macros}</p>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           </CardContent>
         </Card>
