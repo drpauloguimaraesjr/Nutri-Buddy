@@ -556,6 +556,8 @@
 
         // Fazer requisição à API
         async function apiRequest(endpoint, method = 'GET', body = null) {
+            console.log('🔄 API Request:', { endpoint, method, body });
+            
             try {
                 const options = {
                     method,
@@ -569,27 +571,43 @@
                     options.body = JSON.stringify(body);
                 }
 
+                console.log('📤 Sending request to:', `${API_BASE}${endpoint}`);
+                console.log('📋 Headers:', options.headers);
+                
                 const response = await fetch(`${API_BASE}${endpoint}`, options);
+                
+                console.log('📥 Response status:', response.status, response.statusText);
                 
                 // Verificar se a resposta é JSON
                 let data;
                 const contentType = response.headers.get('content-type');
+                console.log('📄 Content-Type:', contentType);
+                
                 if (contentType && contentType.includes('application/json')) {
                     data = await response.json();
+                    console.log('✅ Response data:', data);
                 } else {
                     const text = await response.text();
+                    console.error('❌ Non-JSON response:', text);
                     throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 if (!response.ok) {
+                    console.error('❌ Request failed:', data);
                     throw new Error(data.message || data.error || `Erro ${response.status}: ${response.statusText}`);
                 }
 
                 return data;
             } catch (error) {
-                console.error('API Error:', error);
+                console.error('🔥 API Error:', error);
+                console.error('🔥 Error details:', {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+                
                 const errorMessage = error.message || 'Erro ao conectar com a API';
-                showAlert(errorMessage, 'error');
+                showAlert('❌ ' + errorMessage, 'error');
                 throw error;
             }
         }
@@ -835,30 +853,49 @@
 
         // Verificar saúde da API
         async function checkHealth() {
+            console.log('🏥 Checking API health...');
+            
             try {
                 const response = await apiRequest('/api/health');
                 console.log('✅ API conectada:', response);
                 updateConnectionStatus(true, 'Conectado');
-                showAlert('✅ Conectado à API com sucesso!');
+                
+                // Não mostrar alerta toda vez que conectar
+                // showAlert('✅ Conectado à API com sucesso!');
             } catch (error) {
-                console.error('❌ API não está respondendo');
+                console.error('❌ API não está respondendo:', error);
                 updateConnectionStatus(false, 'Erro de conexão');
-                showAlert('⚠️ Erro ao conectar com a API. Verifique o console.', 'error');
+                
+                // Mostrar erro mais detalhado
+                let errorMsg = 'Erro ao conectar: ';
+                if (error.message.includes('Failed to fetch')) {
+                    errorMsg += 'CORS ou rede. Verifique se a API está rodando.';
+                } else if (error.message.includes('401')) {
+                    errorMsg += 'Autenticação falhou. Verifique WEBHOOK_SECRET.';
+                } else {
+                    errorMsg += error.message;
+                }
+                
+                showAlert('⚠️ ' + errorMsg, 'error');
             }
         }
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             console.log('=== NutriBuddy Iniciado ===');
-            console.log('API:', API_BASE);
+            console.log('🌐 API Base URL:', API_BASE);
+            console.log('🔐 Webhook Secret:', WEBHOOK_SECRET ? '✅ Configurado' : '❌ Não configurado');
+            console.log('📍 Frontend URL:', window.location.href);
             
             // Configurar data de hoje
             document.getElementById('nutritionDate').valueAsDate = new Date();
             
             // Verificar saúde da API
+            console.log('🔍 Verificando conexão com API...');
             checkHealth();
             
             // Atualizar dashboard
+            console.log('📊 Carregando dashboard...');
             updateDashboard();
             updateWater();
             
@@ -871,6 +908,12 @@
             console.log('✅ Sistema iniciado!');
             console.log('✅ Botões funcionando!');
             console.log('👉 Clique nos botões para testar!');
+            console.log('');
+            console.log('📝 Dicas de troubleshooting:');
+            console.log('  - Verifique o console para erros detalhados');
+            console.log('  - CORS: Veja se há erros de Access-Control');
+            console.log('  - Auth: Verifique se o WEBHOOK_SECRET está correto');
+            console.log('  - Network: Veja a aba Network do DevTools');
         });
     </script>
 </body>
