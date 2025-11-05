@@ -138,3 +138,4 @@ Se você já tem acesso a outro admin ou consegue criar um usuário temporário:
   2. Se as Custom Claims estão configuradas no Firebase Auth
   3. Se você fez logout e login após as alterações
 
+

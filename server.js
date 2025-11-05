@@ -19,6 +19,7 @@ const stravaRoutes = require('./routes/strava');
 // Role-based routes
 const prescriberRoutes = require('./routes/prescriber');
 const patientRoutes = require('./routes/patient');
+const n8nRoutes = require('./routes/n8n');
 
 // Import Firebase config to initialize
 const { db } = require('./config/firebase');
@@ -62,7 +63,8 @@ app.get('/', (req, res) => {
       strava: '/api/strava/*',
       user: '/api/user',
       webhook: '/api/webhook',
-      whatsapp: '/api/whatsapp/*'
+      whatsapp: '/api/whatsapp/*',
+      n8n: '/api/n8n/*'
     }
   });
 });
@@ -83,6 +85,7 @@ app.use('/api/strava', stravaRoutes);
 // Role-based routes
 app.use('/api/prescriber', prescriberRoutes);
 app.use('/api/patient', patientRoutes);
+app.use('/api/n8n', n8nRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

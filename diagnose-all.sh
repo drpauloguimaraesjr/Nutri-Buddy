@@ -100,3 +100,4 @@ echo "   Iniciar backend: cd /Users/drpgjr.../NutriBuddy && npm start"
 echo "   Iniciar frontend: cd frontend && npm run dev"
 echo ""
 
+

@@ -16,18 +16,28 @@ import {
   Mail,
   Bell,
   Lock,
-  Globe
+  Globe,
+  Workflow,
+  Play,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
+import { n8nAPI } from '@/lib/api';
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [stravaStatus, setStravaStatus] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
+  const [n8nStatus, setN8nStatus] = useState<any>(null);
+  const [n8nLoading, setN8nLoading] = useState(false);
+  const [n8nWorkflows, setN8nWorkflows] = useState<any[]>([]);
+  const [n8nExecutions, setN8nExecutions] = useState<any[]>([]);
 
-  // Carregar status do Strava
+  // Carregar status do Strava e N8N
   useEffect(() => {
     loadStravaStatus();
+    loadN8nStatus();
   }, []);
 
   const loadStravaStatus = async () => {
@@ -121,6 +131,72 @@ export default function SettingsPage() {
       alert(error.response?.data?.error || 'Erro ao desconectar do Strava');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // N8N Functions
+  const loadN8nStatus = async () => {
+    try {
+      setN8nLoading(true);
+      const response = await n8nAPI.getStatus();
+      setN8nStatus(response.data);
+      
+      // Load workflows and executions if available
+      if (response.data.config?.hasApiKey) {
+        try {
+          const workflowsResponse = await n8nAPI.getWorkflows();
+          setN8nWorkflows(workflowsResponse.data.workflows || []);
+        } catch (error) {
+          console.error('Erro ao carregar workflows:', error);
+        }
+        
+        try {
+          const executionsResponse = await n8nAPI.getExecutions({ limit: 5 });
+          setN8nExecutions(executionsResponse.data.executions || []);
+        } catch (error) {
+          console.error('Erro ao carregar execuções:', error);
+        }
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar status N8N:', error);
+    } finally {
+      setN8nLoading(false);
+    }
+  };
+
+  const handleTestN8n = async () => {
+    try {
+      setN8nLoading(true);
+      const response = await n8nAPI.testConnection();
+      alert(`✅ Teste concluído!\n\n${JSON.stringify(response.data.tests, null, 2)}`);
+      loadN8nStatus();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Erro ao testar conexão N8N');
+    } finally {
+      setN8nLoading(false);
+    }
+  };
+
+  const handleTriggerWorkflow = async (workflowId?: string) => {
+    if (!confirm('Deseja realmente disparar este workflow?')) {
+      return;
+    }
+
+    try {
+      setN8nLoading(true);
+      const response = await n8nAPI.triggerWorkflow({ 
+        workflowId,
+        data: { 
+          triggeredBy: user?.uid,
+          timestamp: new Date().toISOString(),
+        }
+      });
+      alert(`✅ Workflow disparado com sucesso!\n\n${response.data.message}`);
+      loadN8nStatus();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Erro ao disparar workflow');
+    } finally {
+      setN8nLoading(false);
     }
   };
 
@@ -324,6 +400,190 @@ export default function SettingsPage() {
               <span className="text-gray-700">Perfil público</span>
             </label>
           </div>
+        </div>
+      </Card>
+
+      {/* Integração N8N */}
+      <Card>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Workflow className="w-5 h-5 text-purple-600" />
+            <h2 className="text-xl font-semibold">Integração com N8N</h2>
+          </div>
+
+          {n8nLoading && !n8nStatus ? (
+            <div className="text-center py-8">
+              <RefreshCw className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-2" />
+              <p className="text-gray-600">Carregando status...</p>
+            </div>
+          ) : n8nStatus?.config?.status === 'online' ? (
+            <div className="space-y-4">
+              {/* Status Conectado */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <span className="font-medium text-green-900">
+                    N8N Conectado
+                  </span>
+                </div>
+                <p className="text-sm text-green-700">
+                  URL: <strong>{n8nStatus.config.n8nUrl}</strong>
+                </p>
+                {n8nStatus.config.version && (
+                  <p className="text-sm text-green-700 mt-1">
+                    Versão: <strong>{n8nStatus.config.version}</strong>
+                  </p>
+                )}
+                {n8nStatus.lastWebhook && (
+                  <p className="text-sm text-green-700 mt-1">
+                    Último webhook: {new Date(n8nStatus.lastWebhook.receivedAt?.toDate?.() || n8nStatus.lastWebhook.receivedAt).toLocaleString('pt-BR')}
+                  </p>
+                )}
+              </div>
+
+              {/* Workflows */}
+              {n8nWorkflows.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                    Workflows Disponíveis ({n8nWorkflows.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {n8nWorkflows.slice(0, 3).map((wf) => (
+                      <div
+                        key={wf.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${wf.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                          <span className="text-sm font-medium">{wf.name}</span>
+                          {!wf.active && (
+                            <span className="text-xs text-gray-500">(Inativo)</span>
+                          )}
+                        </div>
+                        {wf.active && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleTriggerWorkflow(wf.id)}
+                            disabled={n8nLoading}
+                            className="flex items-center gap-1"
+                          >
+                            <Play className="w-3 h-3" />
+                            Disparar
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Execuções Recentes */}
+              {n8nExecutions.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                    Execuções Recentes
+                  </h3>
+                  <div className="space-y-2">
+                    {n8nExecutions.map((exec) => (
+                      <div
+                        key={exec.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-400" />
+                          <div>
+                            <p className="text-sm font-medium">{exec.workflowName || 'Workflow'}</p>
+                            <p className="text-xs text-gray-500">
+                              {exec.startedAt ? new Date(exec.startedAt).toLocaleString('pt-BR') : 'Aguardando'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          exec.status === 'finished' ? 'bg-green-100 text-green-700' :
+                          exec.status === 'running' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {exec.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ações */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleTestN8n}
+                  disabled={n8nLoading}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${n8nLoading ? 'animate-spin' : ''}`} />
+                  Testar Conexão
+                </Button>
+                <Button
+                  onClick={loadN8nStatus}
+                  disabled={n8nLoading}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${n8nLoading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+              </div>
+
+              {/* Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Como funciona:</strong> O N8N permite criar automações e workflows para processar dados nutricionais, enviar notificações e muito mais.
+                </p>
+              </div>
+            </div>
+          ) : n8nStatus?.config?.status === 'offline' ? (
+            <div className="space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <span className="font-medium text-red-900">
+                    N8N Offline
+                  </span>
+                </div>
+                <p className="text-sm text-red-700">
+                  {n8nStatus.config.error || 'Não foi possível conectar ao N8N'}
+                </p>
+              </div>
+
+              <Button
+                onClick={loadN8nStatus}
+                disabled={n8nLoading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${n8nLoading ? 'animate-spin' : ''}`} />
+                Tentar Novamente
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Configure o N8N para automações e workflows avançados.
+              </p>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ <strong>Configuração necessária:</strong> Configure <code className="bg-yellow-100 px-1 rounded">N8N_URL</code> e <code className="bg-yellow-100 px-1 rounded">N8N_API_KEY</code> no arquivo <code className="bg-yellow-100 px-1 rounded">.env</code> do backend para habilitar a integração completa.
+                </p>
+              </div>
+
+              <Button
+                onClick={loadN8nStatus}
+                disabled={n8nLoading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${n8nLoading ? 'animate-spin' : ''}`} />
+                Verificar Status
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 

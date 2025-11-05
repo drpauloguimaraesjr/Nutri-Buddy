@@ -19,14 +19,52 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { prescriberAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function PatientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [patientEmail, setPatientEmail] = useState('');
+  const queryClient = useQueryClient();
 
-  // Mock data - será substituído por dados reais da API
-  const [patients] = useState([
+  // Fetch patients from API
+  const { data: patientsData, isLoading } = useQuery({
+    queryKey: ['prescriberPatients'],
+    queryFn: () => prescriberAPI.getPatients(),
+  });
+
+  const patients = patientsData?.data?.data || [];
+
+  // Add patient mutation
+  const addPatientMutation = useMutation({
+    mutationFn: (data: { patientEmail?: string; patientId?: string }) =>
+      prescriberAPI.addPatient(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriberPatients'] });
+      toast.success('Paciente adicionado com sucesso!');
+      setShowAddModal(false);
+      setPatientEmail('');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Erro ao adicionar paciente');
+    },
+  });
+
+  const handleAddPatient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientEmail) {
+      toast.error('Por favor, insira o email do paciente');
+      return;
+    }
+
+    addPatientMutation.mutate({ patientEmail });
+  };
+
+  // Mock data fallback - será usado enquanto não há dados reais
+  const mockPatients = [
     {
       id: '1',
       name: 'Maria Silva',
@@ -97,9 +135,12 @@ export default function PatientsPage() {
       goalWeight: 58,
       activePlan: 'Plano Manutenção',
     },
-  ]);
+  ];
 
-  const filteredPatients = patients.filter((patient) => {
+  // Use real patients if available, otherwise use mock
+  const allPatients = patients.length > 0 ? patients : mockPatients;
+
+  const filteredPatients = allPatients.filter((patient: any) => {
     const matchesSearch =
       patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -157,7 +198,9 @@ export default function PatientsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{patients.length}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {isLoading ? '...' : allPatients.length}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10">
                 <Users className="h-6 w-6 text-blue-600" />
@@ -172,7 +215,7 @@ export default function PatientsPage() {
               <div>
                 <p className="text-sm text-gray-600">Ativos</p>
                 <p className="text-2xl font-bold text-emerald-600">
-                  {patients.filter(p => p.status === 'active').length}
+                  {isLoading ? '...' : allPatients.filter((p: any) => p.status === 'active').length}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10">
@@ -188,9 +231,12 @@ export default function PatientsPage() {
               <div>
                 <p className="text-sm text-gray-600">Aderência Média</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {Math.round(
-                    patients.reduce((acc, p) => acc + p.compliance, 0) / patients.length
-                  )}%
+                  {isLoading ? '...' : allPatients.length > 0
+                    ? Math.round(
+                        allPatients.reduce((acc: number, p: any) => acc + (p.compliance || 0), 0) /
+                          allPatients.length
+                      )
+                    : 0}%
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10">
@@ -206,7 +252,7 @@ export default function PatientsPage() {
               <div>
                 <p className="text-sm text-gray-600">Planos Ativos</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {patients.filter(p => p.activePlan).length}
+                  {isLoading ? '...' : allPatients.filter((p: any) => p.activePlan).length}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/10 to-red-500/10">
@@ -253,7 +299,32 @@ export default function PatientsPage() {
 
       {/* Patients List */}
       <motion.div variants={itemVariants} className="space-y-4">
-        {filteredPatients.map((patient) => (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto" />
+            <p className="text-gray-600 mt-4">Carregando pacientes...</p>
+          </div>
+        ) : filteredPatients.length === 0 ? (
+          <motion.div variants={itemVariants} className="glass-card p-12 text-center">
+            <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Nenhum paciente encontrado
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm
+                ? 'Tente ajustar sua busca'
+                : 'Adicione seu primeiro paciente para começar'}
+            </p>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+            >
+              <UserPlus className="w-5 h-5 mr-2" />
+              Adicionar Paciente
+            </Button>
+          </motion.div>
+        ) : (
+          filteredPatients.map((patient: any) => (
           <motion.div
             key={patient.id}
             whileHover={{ y: -2 }}
@@ -366,30 +437,9 @@ export default function PatientsPage() {
               </div>
             </div>
           </motion.div>
-        ))}
+          ))
+        )}
       </motion.div>
-
-      {/* Empty State */}
-      {filteredPatients.length === 0 && (
-        <motion.div variants={itemVariants} className="glass-card p-12 text-center">
-          <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            Nenhum paciente encontrado
-          </h3>
-          <p className="text-gray-600 mb-6">
-            {searchTerm
-              ? 'Tente ajustar sua busca'
-              : 'Adicione seu primeiro paciente para começar'}
-          </p>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-          >
-            <UserPlus className="w-5 h-5 mr-2" />
-            Adicionar Paciente
-          </Button>
-        </motion.div>
-      )}
 
       {/* Add Patient Modal - Placeholder */}
       <AnimatePresence>
@@ -413,30 +463,39 @@ export default function PatientsPage() {
                   Adicionar Novo Paciente
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  Envie um convite por email para seu paciente
+                  Adicione um paciente pelo email ou ID
                 </p>
-                <form className="space-y-4">
+                <form onSubmit={handleAddPatient} className="space-y-4">
                   <Input
                     type="email"
                     label="Email do paciente"
                     placeholder="paciente@email.com"
+                    value={patientEmail}
+                    onChange={(e) => setPatientEmail(e.target.value)}
                     icon={<Mail className="h-4 w-4" />}
                     required
+                    disabled={addPatientMutation.isPending}
                   />
                   <div className="flex space-x-3">
                     <Button
                       type="button"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => setShowAddModal(false)}
+                      onClick={() => {
+                        setShowAddModal(false);
+                        setPatientEmail('');
+                      }}
+                      disabled={addPatientMutation.isPending}
                     >
                       Cancelar
                     </Button>
                     <Button
                       type="submit"
                       className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                      disabled={addPatientMutation.isPending}
+                      loading={addPatientMutation.isPending}
                     >
-                      Enviar Convite
+                      {addPatientMutation.isPending ? 'Adicionando...' : 'Adicionar Paciente'}
                     </Button>
                   </div>
                 </form>

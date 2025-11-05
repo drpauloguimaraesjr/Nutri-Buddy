@@ -28,11 +28,13 @@ import { useStore } from '@/store/useStore';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export default function PatientDashboardPage() {
   const { user } = useAuth();
   const { waterIntakeToday, fastingActive, fastingStartTime } = useStore();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const router = useRouter();
 
   // Mock data - será substituído por dados reais da API
   const [dailyStats, setDailyStats] = useState({
@@ -190,7 +192,11 @@ export default function PatientDashboardPage() {
                     <p className="text-sm opacity-80">{prescriberInfo.specialty}</p>
                   </div>
                 </div>
-                <Button variant="secondary" className="bg-white text-purple-600 hover:bg-white/90">
+                <Button 
+                  onClick={() => router.push('/goals')}
+                  variant="secondary" 
+                  className="bg-white text-purple-600 hover:bg-white/90"
+                >
                   Ver Plano Completo
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -205,19 +211,31 @@ export default function PatientDashboardPage() {
         variants={itemVariants}
         className="grid grid-cols-2 md:grid-cols-4 gap-4"
       >
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0">
+        <Button 
+          onClick={() => router.push('/meals')}
+          className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
+        >
           <Utensils className="w-6 h-6" />
           <span className="text-sm font-medium">Registrar Refeição</span>
         </Button>
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0">
+        <Button 
+          onClick={() => router.push('/water')}
+          className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0"
+        >
           <Droplets className="w-6 h-6" />
           <span className="text-sm font-medium">Beber Água</span>
         </Button>
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0">
+        <Button 
+          onClick={() => router.push('/exercises')}
+          className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0"
+        >
           <Dumbbell className="w-6 h-6" />
           <span className="text-sm font-medium">Exercício</span>
         </Button>
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0">
+        <Button 
+          onClick={() => router.push('/reports')}
+          className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+        >
           <BarChart3 className="w-6 h-6" />
           <span className="text-sm font-medium">Relatórios</span>
         </Button>
@@ -343,7 +361,11 @@ export default function PatientDashboardPage() {
                       </div>
                     </div>
                     {meal.status === 'pending' && (
-                      <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white">
+                      <Button 
+                        onClick={() => router.push('/meals')}
+                        size="sm" 
+                        className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                      >
                         Marcar como feito
                       </Button>
                     )}
@@ -417,7 +439,11 @@ export default function PatientDashboardPage() {
                 <p className="text-sm text-gray-600">
                   Meta: {dailyStats.water.goal}ml
                 </p>
-                <Button size="sm" className="mt-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
+                <Button 
+                  onClick={() => router.push('/water')}
+                  size="sm" 
+                  className="mt-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+                >
                   <Plus className="w-4 h-4 mr-1" />
                   250ml
                 </Button>
@@ -448,7 +474,11 @@ export default function PatientDashboardPage() {
                 label="Meta diária"
                 color="emerald"
               />
-              <Button variant="outline" className="w-full">
+              <Button 
+                onClick={() => router.push('/exercises')}
+                variant="outline" 
+                className="w-full"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Exercício
               </Button>
@@ -473,7 +503,11 @@ export default function PatientDashboardPage() {
                   Você completou 7 dias seguidos registrando suas refeições!
                 </p>
               </div>
-              <Button variant="secondary" className="bg-white text-gray-900 hover:bg-white/90">
+              <Button 
+                onClick={() => router.push('/reports')}
+                variant="secondary" 
+                className="bg-white text-gray-900 hover:bg-white/90"
+              >
                 Ver Conquistas
               </Button>
             </div>

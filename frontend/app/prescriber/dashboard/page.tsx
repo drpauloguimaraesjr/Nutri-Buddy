@@ -17,22 +17,77 @@ import {
   ChevronRight,
   UserCog,
 } from 'lucide-react';
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { prescriberAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function PrescriberDashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
-  // Mock data - será substituído por dados reais da API
-  const [stats] = useState({
-    totalPatients: 24,
-    activePatients: 18,
-    pendingApprovals: 3,
-    plansCreatedThisMonth: 12,
+  // Fetch patients from API
+  const { data: patientsData } = useQuery({
+    queryKey: ['prescriberPatients'],
+    queryFn: () => prescriberAPI.getPatients(),
   });
 
-  const [recentPatients] = useState([
+  // Fetch requests from API
+  const { data: requestsData } = useQuery({
+    queryKey: ['prescriberRequests'],
+    queryFn: () => prescriberAPI.getRequests(),
+  });
+
+  const patients = patientsData?.data?.data || [];
+  const requests = requestsData?.data?.data || [];
+
+  // Calculate stats from real data
+  const stats = {
+    totalPatients: patients.length,
+    activePatients: patients.filter((p: any) => p.status === 'active').length,
+    pendingApprovals: requests.length,
+    plansCreatedThisMonth: 12, // TODO: Implementar contagem real
+  };
+
+  // Approve/reject mutations
+  const approveMutation = useMutation({
+    mutationFn: (requestId: string) => prescriberAPI.approveRequest(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriberRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['prescriberPatients'] });
+      toast.success('Solicitação aprovada com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Erro ao aprovar solicitação');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (requestId: string) => prescriberAPI.rejectRequest(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriberRequests'] });
+      toast.success('Solicitação rejeitada');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Erro ao rejeitar solicitação');
+    },
+  });
+
+  // Get recent patients (first 4)
+  const recentPatients = patients.slice(0, 4).map((p: any) => ({
+    id: p.id,
+    name: p.displayName || p.name || 'Paciente',
+    email: p.email,
+    lastActivity: 'Hoje', // TODO: Implementar cálculo real
+    compliance: p.compliance || 85,
+    status: p.status || 'active',
+  }));
+
+  // Mock pending requests if no real data
+  const mockPendingRequests = [
     {
       id: '1',
       name: 'Maria Silva',
@@ -86,7 +141,17 @@ export default function PrescriberDashboardPage() {
       email: 'roberto@email.com',
       requestDate: 'Hoje',
     },
-  ]);
+  ];
+
+  // Use real requests if available, otherwise use mock
+  const pendingRequests = requests.length > 0 
+    ? requests.map((r: any) => ({
+        id: r.id,
+        name: r.patientName || 'Paciente',
+        email: r.patientEmail || r.email || '',
+        requestDate: r.createdAt ? new Date(r.createdAt.toDate()).toLocaleDateString('pt-BR') : 'Hoje',
+      }))
+    : mockPendingRequests;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -123,6 +188,7 @@ export default function PrescriberDashboardPage() {
           </div>
           
           <Button
+            onClick={() => router.push('/prescriber/patients')}
             size="lg"
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0"
           >
@@ -169,19 +235,31 @@ export default function PrescriberDashboardPage() {
       <motion.div variants={itemVariants}>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0">
+          <Button 
+            onClick={() => router.push('/prescriber/patients')}
+            className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0"
+          >
             <UserPlus className="w-6 h-6" />
             <span className="text-sm font-medium">Novo Paciente</span>
           </Button>
-          <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0">
+          <Button 
+            onClick={() => router.push('/prescriber/patients')}
+            className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+          >
             <FileText className="w-6 h-6" />
             <span className="text-sm font-medium">Nova Prescrição</span>
           </Button>
-          <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0">
+          <Button 
+            onClick={() => router.push('/prescriber/patients')}
+            className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0"
+          >
             <Calendar className="w-6 h-6" />
             <span className="text-sm font-medium">Agendar Consulta</span>
           </Button>
-          <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0">
+          <Button 
+            onClick={() => router.push('/reports')}
+            className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
+          >
             <BarChart3 className="w-6 h-6" />
             <span className="text-sm font-medium">Relatórios</span>
           </Button>
@@ -222,10 +300,22 @@ export default function PrescriberDashboardPage() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="ghost" className="text-emerald-600">
+                      <Button 
+                        onClick={() => approveMutation.mutate(request.id)}
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-emerald-600"
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                      >
                         <CheckCircle2 className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-red-600">
+                      <Button 
+                        onClick={() => rejectMutation.mutate(request.id)}
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-red-600"
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                      >
                         <AlertCircle className="h-4 w-4" />
                       </Button>
                     </div>

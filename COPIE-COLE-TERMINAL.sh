@@ -47,3 +47,4 @@ echo "   2. Testar no frontend (criar conta prescritor/paciente)"
 echo ""
 
 
+

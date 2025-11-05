@@ -145,8 +145,19 @@ class WhatsAppService {
         }
       }
 
-      // Salvar no Firebase se necessário
-      // TODO: Implementar salvamento no Firestore
+      // Salvar mensagens recebidas no Firebase
+      try {
+        const { db, admin } = require('../config/firebase');
+        await db.collection('whatsapp_messages').add({
+          type: 'received',
+          from,
+          message: messageContent,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          success: true
+        });
+      } catch (error) {
+        console.error('Erro ao salvar mensagem no Firebase:', error);
+      }
 
     } catch (error) {
       console.error('❌ Erro ao processar mensagem:', error);
@@ -210,6 +221,53 @@ class WhatsAppService {
 
     } catch (error) {
       console.error('❌ Erro ao enviar imagem:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Baixa mídia de uma mensagem (imagem, vídeo, áudio, etc)
+   */
+  async downloadMediaMessage(message) {
+    try {
+      if (!this.sock) {
+        throw new Error('WhatsApp não está conectado');
+      }
+
+      const baileys = await this.loadBaileys();
+      const { downloadMediaMessage } = baileys;
+
+      // Extrair informações da mídia
+      let mediaMessage = null;
+      if (message.message?.imageMessage) {
+        mediaMessage = message.message.imageMessage;
+      } else if (message.message?.videoMessage) {
+        mediaMessage = message.message.videoMessage;
+      } else if (message.message?.audioMessage) {
+        mediaMessage = message.message.audioMessage;
+      } else if (message.message?.documentMessage) {
+        mediaMessage = message.message.documentMessage;
+      }
+
+      if (!mediaMessage) {
+        throw new Error('Mensagem não contém mídia');
+      }
+
+      // Baixar mídia
+      const buffer = await downloadMediaMessage(
+        message,
+        'buffer',
+        {},
+        {
+          logger: pino({ level: 'silent' }),
+          reuploadRequest: this.sock.updateMediaMessage
+        }
+      );
+
+      return buffer;
+
+    } catch (error) {
+      console.error('❌ Erro ao baixar mídia:', error);
       throw error;
     }
   }

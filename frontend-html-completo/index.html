@@ -296,8 +296,16 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🥗 NutriBuddy</h1>
-            <p>Seu Assistente Nutricional Inteligente</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🥗 NutriBuddy</h1>
+                    <p>Seu Assistente Nutricional Inteligente</p>
+                </div>
+                <div id="connectionStatus" style="display: flex; align-items: center; gap: 8px;">
+                    <span id="statusDot" style="width: 12px; height: 12px; border-radius: 50%; background: #ccc; display: inline-block;"></span>
+                    <span id="statusText" style="color: #666; font-size: 0.9em;">Conectando...</span>
+                </div>
+            </div>
         </div>
 
         <!-- Navegação -->
@@ -562,16 +570,26 @@
                 }
 
                 const response = await fetch(`${API_BASE}${endpoint}`, options);
-                const data = await response.json();
+                
+                // Verificar se a resposta é JSON
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
+                }
 
                 if (!response.ok) {
-                    throw new Error(data.message || 'Erro na requisição');
+                    throw new Error(data.message || data.error || `Erro ${response.status}: ${response.statusText}`);
                 }
 
                 return data;
             } catch (error) {
                 console.error('API Error:', error);
-                showAlert(error.message, 'error');
+                const errorMessage = error.message || 'Erro ao conectar com a API';
+                showAlert(errorMessage, 'error');
                 throw error;
             }
         }
@@ -719,10 +737,10 @@
                 const meals = response.data || [];
                 
                 meals.forEach(meal => {
-                    totalCalories += meal.calories || 0;
-                    totalProtein += meal.protein || 0;
-                    totalCarbs += meal.carbs || 0;
-                    totalFats += meal.fats || 0;
+                    totalCalories += parseFloat(meal.calories) || 0;
+                    totalProtein += parseFloat(meal.protein) || 0;
+                    totalCarbs += parseFloat(meal.carbs) || 0;
+                    totalFats += parseFloat(meal.fats) || 0;
                 });
 
                 document.getElementById('totalCalories').textContent = totalCalories.toFixed(0);
@@ -734,6 +752,10 @@
                 updateMealsList(meals);
             } catch (error) {
                 console.error('Erro ao atualizar dashboard:', error);
+                // Não mostrar erro se for apenas ausência de dados
+                if (!error.message.includes('404') && !error.message.includes('Not Found')) {
+                    console.warn('Erro ao carregar dados do dashboard');
+                }
             }
         }
 
@@ -746,19 +768,26 @@
                 return;
             }
 
-            mealsList.innerHTML = meals.map(meal => `
+            // Ordenar por data/hora (mais recente primeiro)
+            const sortedMeals = [...meals].sort((a, b) => {
+                const timeA = a.time || '00:00:00';
+                const timeB = b.time || '00:00:00';
+                return timeB.localeCompare(timeA);
+            });
+
+            mealsList.innerHTML = sortedMeals.map(meal => `
                 <div class="meal-item">
                     <div class="meal-info">
-                        <strong>${getMealTypeName(meal.type)} - ${meal.name || 'Sem nome'}</strong>
+                        <strong>${getMealTypeName(meal.type || meal.mealType)} - ${meal.name || 'Sem nome'}</strong>
                         <div class="meal-time">${meal.time || ''}</div>
                     </div>
                     <div class="meal-stats">
                         <div class="meal-stat">
-                            <div class="value">${meal.calories || 0}</div>
+                            <div class="value">${parseFloat(meal.calories || 0).toFixed(0)}</div>
                             <div class="label">kcal</div>
                         </div>
                         <div class="meal-stat">
-                            <div class="value">${meal.protein || 0}g</div>
+                            <div class="value">${parseFloat(meal.protein || 0).toFixed(1)}g</div>
                             <div class="label">Prot</div>
                         </div>
                     </div>
@@ -788,14 +817,32 @@
             }
         }
 
+        // Atualizar status de conexão
+        function updateConnectionStatus(connected, message) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                statusDot.style.background = '#28a745';
+                statusText.textContent = message || 'Conectado';
+                statusText.style.color = '#28a745';
+            } else {
+                statusDot.style.background = '#dc3545';
+                statusText.textContent = message || 'Desconectado';
+                statusText.style.color = '#dc3545';
+            }
+        }
+
         // Verificar saúde da API
         async function checkHealth() {
             try {
                 const response = await apiRequest('/api/health');
                 console.log('✅ API conectada:', response);
+                updateConnectionStatus(true, 'Conectado');
                 showAlert('✅ Conectado à API com sucesso!');
             } catch (error) {
                 console.error('❌ API não está respondendo');
+                updateConnectionStatus(false, 'Erro de conexão');
                 showAlert('⚠️ Erro ao conectar com a API. Verifique o console.', 'error');
             }
         }
@@ -818,6 +865,9 @@
             // Atualizar a cada 30 segundos
             setInterval(updateDashboard, 30000);
             
+            // Verificar conexão a cada 60 segundos
+            setInterval(checkHealth, 60000);
+            
             console.log('✅ Sistema iniciado!');
             console.log('✅ Botões funcionando!');
             console.log('👉 Clique nos botões para testar!');
@@ -825,4 +875,5 @@
     </script>
 </body>
 </html>
+
 
