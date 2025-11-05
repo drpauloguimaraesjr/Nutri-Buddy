@@ -45,11 +45,39 @@ export default function RootLayout({
                   navigator.serviceWorker.register('/sw.js').then(
                     (registration) => {
                       console.log('SW registered:', registration);
+                      
+                      // Verificar atualizações periodicamente
+                      setInterval(() => {
+                        registration.update();
+                      }, 60000); // A cada 1 minuto
+                      
+                      // Detectar quando há nova versão disponível
+                      registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              // Nova versão disponível - recarregar automaticamente
+                              console.log('Nova versão do Service Worker disponível. Recarregando...');
+                              window.location.reload();
+                            }
+                          });
+                        }
+                      });
                     },
                     (err) => {
                       console.log('SW registration failed:', err);
                     }
                   );
+                  
+                  // Forçar atualização ao focar na janela
+                  window.addEventListener('focus', () => {
+                    navigator.serviceWorker.getRegistration().then((registration) => {
+                      if (registration) {
+                        registration.update();
+                      }
+                    });
+                  });
                 });
               }
             `,

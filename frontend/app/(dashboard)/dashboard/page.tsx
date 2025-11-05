@@ -25,11 +25,14 @@ import { useStore } from '@/store/useStore';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { waterIntakeToday, fastingActive, fastingStartTime } = useStore();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const router = useRouter();
 
   // Mock data - será substituído por dados reais da API
   const [dailyStats, setDailyStats] = useState({
@@ -136,22 +139,34 @@ export default function DashboardPage() {
         variants={itemVariants}
         className="grid grid-cols-2 md:grid-cols-4 gap-4"
       >
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0">
+        <Link 
+          href="/dashboard/meals"
+          className="h-auto py-6 flex-col space-y-2 inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0 cursor-pointer"
+        >
           <Utensils className="w-6 h-6" />
           <span className="text-sm font-medium">Adicionar Refeição</span>
-        </Button>
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0">
+        </Link>
+        <Link 
+          href="/dashboard/water"
+          className="h-auto py-6 flex-col space-y-2 inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 cursor-pointer"
+        >
           <Droplets className="w-6 h-6" />
           <span className="text-sm font-medium">Registrar Água</span>
-        </Button>
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0">
+        </Link>
+        <Link 
+          href="/dashboard/exercises"
+          className="h-auto py-6 flex-col space-y-2 inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 cursor-pointer"
+        >
           <Dumbbell className="w-6 h-6" />
           <span className="text-sm font-medium">Adicionar Exercício</span>
-        </Button>
-        <Button className="h-auto py-6 flex-col space-y-2 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0">
+        </Link>
+        <Link 
+          href="/dashboard"
+          className="h-auto py-6 flex-col space-y-2 inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 cursor-pointer"
+        >
           <Plus className="w-6 h-6" />
           <span className="text-sm font-medium">Mais</span>
-        </Button>
+        </Link>
       </motion.div>
 
       {/* Main Stats - Featured Calorie Card */}
@@ -278,10 +293,13 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-600">
                   Meta: {dailyStats.water.goal}ml
                 </p>
-                <Button size="sm" className="mt-3">
+                <Link 
+                  href="/dashboard/water"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium h-9 px-3 mt-3 bg-primary text-primary-foreground hover:opacity-90"
+                >
                   <Plus className="w-4 h-4 mr-1" />
                   250ml
-                </Button>
+                </Link>
               </div>
             </div>
           </CardContent>
@@ -309,10 +327,13 @@ export default function DashboardPage() {
                 label="Meta diária"
                 color="emerald"
               />
-              <Button variant="outline" className="w-full">
+              <Link 
+                href="/dashboard/exercises"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium h-10 px-4 py-2 w-full border border-border text-foreground hover:bg-secondary"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Exercício
-              </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -361,9 +382,12 @@ export default function DashboardPage() {
                     <p className="text-xl font-bold text-purple-600">8h 30m</p>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full">
+                <Link 
+                  href="/dashboard/fasting"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium h-10 px-4 py-2 w-full border border-border text-foreground hover:bg-secondary"
+                >
                   Terminar Jejum
-                </Button>
+                </Link>
               </div>
             ) : (
               <div className="text-center space-y-4 py-6">
@@ -371,10 +395,13 @@ export default function DashboardPage() {
                   <Clock className="h-12 w-12 text-gray-400" />
                 </div>
                 <p className="text-gray-600">Nenhum jejum ativo</p>
-                <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0">
+                <Link 
+                  href="/dashboard/fasting"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium h-10 px-4 py-2 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0"
+                >
                   <Clock className="w-4 h-4 mr-2" />
                   Iniciar Jejum
-                </Button>
+                </Link>
               </div>
             )}
           </CardContent>
@@ -388,10 +415,13 @@ export default function DashboardPage() {
                 <Utensils className="w-5 h-5 mr-2 text-orange-600" />
                 Últimas Refeições
               </span>
-              <Button variant="ghost" size="sm">
+              <Link 
+                href="/dashboard/meals"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium h-9 px-3 text-foreground hover:bg-secondary"
+              >
                 Ver todas
                 <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+              </Link>
             </CardTitle>
           </CardHeader>
           <CardContent>

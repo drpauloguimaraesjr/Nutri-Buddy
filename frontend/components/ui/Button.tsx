@@ -48,13 +48,21 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, loading, children, disabled, ...props }, ref) => {
+  ({ className, variant, size, loading, children, disabled, onClick, ...props }, ref) => {
     // Filtrar props que conflitam com Framer Motion
     const {
       onDrag, onDragStart, onDragEnd,
       onAnimationStart, onAnimationEnd, onAnimationIteration,
       ...htmlProps
     } = props as React.ButtonHTMLAttributes<HTMLButtonElement>;
+    
+    // Handler que garante que onClick seja executado
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (disabled || loading) return;
+      if (onClick) {
+        onClick(e);
+      }
+    };
     
     return (
       <motion.button
@@ -64,6 +72,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         transition={{ duration: 0.15 }}
+        onClick={handleClick}
+        type={htmlProps.type || 'button'}
         {...htmlProps}
       >
         {loading ? (

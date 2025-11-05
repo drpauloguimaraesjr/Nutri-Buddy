@@ -1,5 +1,6 @@
 // Service Worker for NutriBuddy PWA
-const CACHE_NAME = 'nutribuddy-v1';
+// Incrementar a versão quando fizer mudanças importantes
+const CACHE_NAME = 'nutribuddy-v2';
 const URLS_TO_CACHE = [
   '/',
   '/dashboard',
@@ -54,13 +55,25 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip non-HTTP(S) requests (chrome-extension, etc)
-  const url = new URL(event.request.url);
-  if (!url.protocol.startsWith('http')) {
+  try {
+    const url = new URL(event.request.url);
+    if (!url.protocol.startsWith('http')) {
+      return;
+    }
+  } catch (error) {
+    // Invalid URL, skip
     return;
   }
 
   // Skip API calls (let them go to network)
   if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // Skip Firebase Realtime Database requests (channel, .json, etc)
+  if (event.request.url.includes('firebaseio.com') || 
+      event.request.url.includes('/channel?') ||
+      event.request.url.includes('.firebaseapp.com/channel')) {
     return;
   }
 
@@ -88,8 +101,20 @@ self.addEventListener('fetch', (event) => {
         }
 
         // Don't cache chrome-extension or other unsupported schemes
-        const responseUrl = new URL(response.url);
-        if (!responseUrl.protocol.startsWith('http')) {
+        try {
+          const responseUrl = new URL(response.url);
+          if (!responseUrl.protocol.startsWith('http')) {
+            return response;
+          }
+        } catch (error) {
+          // Invalid URL, return response as-is
+          return response;
+        }
+
+        // Skip caching Firebase and API responses
+        if (response.url.includes('firebaseio.com') || 
+            response.url.includes('/api/') ||
+            response.url.includes('/channel?')) {
           return response;
         }
 
@@ -105,6 +130,13 @@ self.addEventListener('fetch', (event) => {
         });
 
         return response;
+      }).catch((error) => {
+        // Network error - try to serve from cache or return error
+        console.log('Fetch error (SW):', error);
+        return caches.match(event.request).catch(() => {
+          // No cache match, return network error
+          return new Response('Network error', { status: 408 });
+        });
       });
     }).catch(() => {
       // Offline fallback
