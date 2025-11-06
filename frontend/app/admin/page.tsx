@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { useAuth } from '@/context/AuthContext';
-import { adminAPI } from '@/lib/api';
+import { adminAPI, whatsappAPI } from '@/lib/api';
 import {
   Shield,
   Users,
@@ -33,6 +33,14 @@ export default function AdminPage() {
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // WhatsApp state
+  const [whatsappStatus, setWhatsappStatus] = useState<any>(null);
+  const [whatsappQR, setWhatsappQR] = useState<string | null>(null);
+  const [whatsappMessages, setWhatsappMessages] = useState<any[]>([]);
+  const [loadingWhatsapp, setLoadingWhatsapp] = useState(false);
+  const [showWhatsappSection, setShowWhatsappSection] = useState(true);
+  const [testMessage, setTestMessage] = useState({ to: '', message: '' });
   
   // Prescriber creation form
   const [creatingPrescriber, setCreatingPrescriber] = useState(false);
@@ -71,11 +79,102 @@ export default function AdminPage() {
       setStatus(statusResponse.data.data);
       setStats(statsResponse.data.data);
       setError(null);
+      // Load WhatsApp data
+      loadWhatsAppData();
     } catch (error: any) {
       console.error('Erro ao carregar dados admin:', error);
       setError(error.response?.data?.error || 'Erro ao carregar dados do sistema');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWhatsAppData = async () => {
+    try {
+      const [statusRes, messagesRes] = await Promise.all([
+        whatsappAPI.getStatus(),
+        whatsappAPI.getMessages({ limit: 10 })
+      ]);
+      setWhatsappStatus(statusRes.data);
+      setWhatsappMessages(messagesRes.data.messages || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar dados WhatsApp:', error);
+    }
+  };
+
+  const handleConnectWhatsApp = async () => {
+    try {
+      setLoadingWhatsapp(true);
+      await whatsappAPI.connect();
+      alert('✅ Conectando WhatsApp... Aguarde o QR Code aparecer.');
+      // Esperar 2 segundos e buscar QR
+      setTimeout(async () => {
+        try {
+          const qrRes = await whatsappAPI.getQR();
+          if (qrRes.data.qr) {
+            setWhatsappQR(qrRes.data.qr);
+            alert('📱 QR Code gerado! Escaneie com seu WhatsApp.');
+          }
+        } catch (err) {
+          console.error('Erro ao obter QR:', err);
+        }
+      }, 2000);
+      loadWhatsAppData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Erro ao conectar WhatsApp');
+    } finally {
+      setLoadingWhatsapp(false);
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    if (!confirm('⚠️ Tem certeza que deseja desconectar o WhatsApp?')) return;
+    try {
+      setLoadingWhatsapp(true);
+      await whatsappAPI.disconnect();
+      alert('✅ WhatsApp desconectado!');
+      setWhatsappQR(null);
+      loadWhatsAppData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Erro ao desconectar');
+    } finally {
+      setLoadingWhatsapp(false);
+    }
+  };
+
+  const handleGetQR = async () => {
+    try {
+      setLoadingWhatsapp(true);
+      const res = await whatsappAPI.getQR();
+      if (res.data.qr) {
+        setWhatsappQR(res.data.qr);
+        alert('📱 QR Code atualizado!');
+      } else {
+        alert('ℹ️ WhatsApp já está conectado ou QR não disponível.');
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Erro ao obter QR');
+    } finally {
+      setLoadingWhatsapp(false);
+    }
+  };
+
+  const handleSendTestMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testMessage.to || !testMessage.message) {
+      alert('⚠️ Preencha o número e a mensagem');
+      return;
+    }
+    try {
+      setLoadingWhatsapp(true);
+      await whatsappAPI.sendMessage(testMessage);
+      alert('✅ Mensagem enviada!');
+      setTestMessage({ to: '', message: '' });
+      loadWhatsAppData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Erro ao enviar mensagem');
+    } finally {
+      setLoadingWhatsapp(false);
     }
   };
 
@@ -211,21 +310,39 @@ export default function AdminPage() {
                 </div>
 
                 {/* N8N Status */}
-                <StatusCard
-                  title="N8N"
-                  icon={Workflow}
-                  isOnline={status.integrations?.n8n?.online}
-                  url={status.integrations?.n8n?.url}
-                  color="purple"
-                />
+                <div className="relative">
+                  <StatusCard
+                    title="N8N"
+                    icon={Workflow}
+                    isOnline={status.integrations?.n8n?.online}
+                    url={status.integrations?.n8n?.url}
+                    color="purple"
+                  />
+                  {!status.integrations?.n8n?.online && (
+                    <div className="absolute -top-2 -right-2">
+                      <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+                        OFFLINE
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* WhatsApp Status */}
-                <StatusCard
-                  title="WhatsApp"
-                  icon={MessageSquare}
-                  isOnline={status.integrations?.whatsapp?.connected}
-                  color="green"
-                />
+                <div className="relative">
+                  <StatusCard
+                    title="WhatsApp"
+                    icon={MessageSquare}
+                    isOnline={status.integrations?.whatsapp?.connected}
+                    color="green"
+                  />
+                  {!status.integrations?.whatsapp?.connected && (
+                    <div className="absolute -top-2 -right-2">
+                      <div className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+                        DESCONECTADO
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Environment */}
                 <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
@@ -301,6 +418,247 @@ export default function AdminPage() {
                   label="Webhooks Recebidos"
                   color="blue"
                 />
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* WhatsApp Management */}
+        {showWhatsappSection && (
+          <Card className="bg-white/80 backdrop-blur-sm border-2 shadow-xl">
+            <div className="p-6 lg:p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-100">
+                    <MessageSquare className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h2 className="text-2xl lg:text-3xl font-bold text-slate-900">
+                    Gerenciar WhatsApp
+                  </h2>
+                </div>
+                <Button
+                  onClick={loadWhatsAppData}
+                  variant="outline"
+                  size="sm"
+                  className="border-2"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Atualizar
+                </Button>
+              </div>
+
+              {/* Status Card */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div className={`relative overflow-hidden rounded-xl p-6 text-white shadow-lg ${
+                  whatsappStatus?.connected
+                    ? 'bg-gradient-to-br from-green-500 to-emerald-600'
+                    : 'bg-gradient-to-br from-gray-500 to-slate-600'
+                }`}>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-3 rounded-lg bg-white/20 backdrop-blur-sm">
+                        <MessageSquare className="w-6 h-6" />
+                      </div>
+                      {whatsappStatus?.connected ? (
+                        <CheckCircle2 className="w-8 h-8 text-green-200" />
+                      ) : (
+                        <XCircle className="w-8 h-8 text-gray-200" />
+                      )}
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">
+                      {whatsappStatus?.connected ? 'Conectado' : 'Desconectado'}
+                    </h3>
+                    <p className="text-sm opacity-90">
+                      Status: {whatsappStatus?.status || 'N/A'}
+                    </p>
+                    {whatsappStatus?.hasQr && !whatsappStatus?.connected && (
+                      <p className="text-sm opacity-90 mt-1">
+                        QR Code disponível - Clique em "Obter QR Code"
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 space-y-3">
+                  <h3 className="font-bold text-lg text-slate-900 mb-4">Ações</h3>
+                  
+                  {!whatsappStatus?.connected ? (
+                    <>
+                      <Button
+                        onClick={handleConnectWhatsApp}
+                        disabled={loadingWhatsapp}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                      >
+                        {loadingWhatsapp ? (
+                          <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Conectando...</>
+                        ) : (
+                          <><MessageSquare className="w-4 h-4 mr-2" />Conectar WhatsApp</>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={handleGetQR}
+                        disabled={loadingWhatsapp}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Obter QR Code
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={handleDisconnectWhatsApp}
+                      disabled={loadingWhatsapp}
+                      variant="outline"
+                      className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                    >
+                      {loadingWhatsapp ? (
+                        <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Desconectando...</>
+                      ) : (
+                        <><XCircle className="w-4 h-4 mr-2" />Desconectar</>
+                      )}
+                    </Button>
+                  )}
+                  
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-slate-600">
+                      💡 Use o WhatsApp conectado para receber mensagens de pacientes e enviar análises automáticas de alimentos via IA.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* QR Code Display */}
+              {whatsappQR && !whatsappStatus?.connected && (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 mb-8">
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-slate-900 mb-4">
+                      📱 Escaneie o QR Code com seu WhatsApp
+                    </h3>
+                    <div className="bg-white p-4 rounded-lg inline-block mb-4 shadow-lg">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(whatsappQR)}`}
+                        alt="QR Code WhatsApp"
+                        className="w-48 h-48"
+                      />
+                    </div>
+                    <div className="space-y-2 text-sm text-slate-700 max-w-md mx-auto">
+                      <p className="font-semibold">Como escanear:</p>
+                      <ol className="text-left space-y-1">
+                        <li>1. Abra o WhatsApp no celular</li>
+                        <li>2. Menu → Aparelhos Conectados</li>
+                        <li>3. Conectar um Aparelho</li>
+                        <li>4. Escaneie este QR Code</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Send Test Message */}
+              {whatsappStatus?.connected && (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">
+                    Enviar Mensagem de Teste
+                  </h3>
+                  <form onSubmit={handleSendTestMessage} className="space-y-4">
+                    <Input
+                      label="Número (formato: 5511999999999@s.whatsapp.net)"
+                      type="text"
+                      value={testMessage.to}
+                      onChange={(e) => setTestMessage({ ...testMessage, to: e.target.value })}
+                      placeholder="5511999999999@s.whatsapp.net"
+                      required
+                    />
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Mensagem
+                      </label>
+                      <textarea
+                        value={testMessage.message}
+                        onChange={(e) => setTestMessage({ ...testMessage, message: e.target.value })}
+                        placeholder="Digite sua mensagem..."
+                        required
+                        rows={3}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={loadingWhatsapp}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {loadingWhatsapp ? (
+                        <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Enviando...</>
+                      ) : (
+                        <>Enviar Mensagem</>
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              )}
+
+              {/* Recent Messages */}
+              {whatsappMessages.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">
+                    📨 Mensagens Recentes (Últimas 10)
+                  </h3>
+                  <div className="space-y-3">
+                    {whatsappMessages.map((msg: any, index: number) => (
+                      <div
+                        key={index}
+                        className={`p-4 rounded-lg border-2 ${
+                          msg.type === 'sent'
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-green-50 border-green-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-xs font-semibold text-slate-600">
+                            {msg.type === 'sent' ? '📤 Enviada' : '📥 Recebida'}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {msg.timestamp ? new Date(msg.timestamp).toLocaleString('pt-BR') : 'N/A'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-700 mb-1">
+                          <strong>{msg.type === 'sent' ? 'Para:' : 'De:'}</strong>{' '}
+                          {msg.type === 'sent' ? msg.to : msg.from}
+                        </p>
+                        <p className="text-sm text-slate-900">{msg.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Info Box */}
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-5 mt-8">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-6 h-6 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-emerald-900">
+                    <p className="font-bold text-base mb-2">💡 Sobre o WhatsApp Bot</p>
+                    <ul className="space-y-2 list-none">
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-500 mt-1">•</span>
+                        <span>Pacientes podem enviar fotos de alimentos e a IA analisa automaticamente</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-500 mt-1">•</span>
+                        <span>Comandos: "menu", "resumo", "Bebi 500ml", "Fiz 30min corrida"</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-500 mt-1">•</span>
+                        <span>Integração com Strava para importar atividades</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-500 mt-1">•</span>
+                        <span>Vincule pacientes adicionando campo "whatsapp" no Firestore</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>

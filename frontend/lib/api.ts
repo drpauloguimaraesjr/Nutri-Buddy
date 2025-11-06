@@ -124,10 +124,15 @@ export const userAPI = {
 export const whatsappAPI = {
   getStatus: () => api.get('/api/whatsapp/status'),
   getQR: () => api.get('/api/whatsapp/qr'),
+  connect: () => api.get('/api/whatsapp/connect'),
+  disconnect: () => api.post('/api/whatsapp/disconnect'),
   sendMessage: (data: { to: string; message: string }) =>
     api.post('/api/whatsapp/send', data),
+  sendImage: (data: { to: string; imageUrl: string; caption?: string }) =>
+    api.post('/api/whatsapp/send-image', data),
   getMessages: (params?: { limit?: number }) =>
     api.get('/api/whatsapp/messages', { params }),
+  cleanAuth: () => api.post('/api/whatsapp/clean-auth'),
 };
 
 export const prescriberAPI = {

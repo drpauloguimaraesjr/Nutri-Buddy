@@ -1,6 +1,6 @@
 // Service Worker for NutriBuddy PWA
 // Incrementar a versão quando fizer mudanças importantes
-const CACHE_NAME = 'nutribuddy-v2';
+const CACHE_NAME = 'nutribuddy-v3'; // ATUALIZADO para forçar limpeza de cache antigo
 const URLS_TO_CACHE = [
   '/',
   '/dashboard',
@@ -15,6 +15,15 @@ const URLS_TO_CACHE = [
   '/dashboard/recipes',
   '/dashboard/glucose',
   '/dashboard/benefits'
+];
+
+// URLs que NUNCA devem ser cacheadas
+const URLS_NO_CACHE = [
+  '/admin',
+  '/login',
+  '/register',
+  '/debug-firebase',
+  '/settings'
 ];
 
 // Install event - cache resources
@@ -67,6 +76,15 @@ self.addEventListener('fetch', (event) => {
 
   // Skip API calls (let them go to network)
   if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // NUNCA cachear páginas admin, login, register, settings, debug
+  const url = new URL(event.request.url);
+  const pathname = url.pathname;
+  if (URLS_NO_CACHE.some(path => pathname.startsWith(path))) {
+    // Sempre buscar da rede, nunca do cache
+    event.respondWith(fetch(event.request));
     return;
   }
 
