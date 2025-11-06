@@ -143,6 +143,72 @@ router.post('/end/:id', async (req, res) => {
 });
 
 /**
+ * POST /api/fasting/stop
+ * Finaliza o jejum ativo do usuário (sem precisar do ID)
+ */
+router.post('/stop', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId é obrigatório'
+      });
+    }
+
+    // Buscar jejum ativo
+    const snapshot = await db.collection('fasting')
+      .where('userId', '==', userId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({
+        success: false,
+        error: 'Nenhum jejum ativo encontrado'
+      });
+    }
+
+    const doc = snapshot.docs[0];
+    const fastingData = doc.data();
+
+    const endTime = new Date();
+    const startTime = new Date(fastingData.startTime);
+    const duration = Math.floor((endTime - startTime) / 1000 / 60); // minutos
+    const completed = duration >= fastingData.goal;
+
+    await doc.ref.update({
+      endTime: endTime.toISOString(),
+      status: 'completed',
+      duration,
+      completed,
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      fasting: {
+        id: doc.id,
+        ...fastingData,
+        endTime: endTime.toISOString(),
+        status: 'completed',
+        duration,
+        completed
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao parar jejum:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/fasting/active
  * Obtém jejum ativo do usuário
  */

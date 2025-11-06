@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Play, StopCircle, Timer, TrendingUp, Award, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { useAuth } from '@/context/AuthContext';
+import { fastingAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface FastingSession {
   id: string;
@@ -22,10 +25,10 @@ interface FastingSession {
 }
 
 export default function FastingPage() {
+  const { user } = useAuth();
   const [selectedType, setSelectedType] = useState('16:8');
   const [currentTime, setCurrentTime] = useState(new Date());
   const queryClient = useQueryClient();
-  const userId = 'user123'; // Mock - substituir com auth real
 
   // Atualizar relógio a cada segundo
   useEffect(() => {
@@ -40,58 +43,47 @@ export default function FastingPage() {
   }, [currentTime, queryClient]);
 
   // Fetch active fasting
-  const { data: activeFast, isLoading } = useQuery({
-    queryKey: ['active-fast', userId],
-    queryFn: async () => {
-      const res = await fetch(`http://localhost:3000/api/fasting/active?userId=${userId}`);
-      if (!res.ok) throw new Error('Failed to fetch active fast');
-      const data = await res.json();
-      return data.fasting;
-    },
-    refetchInterval: 60000 // Atualizar a cada minuto
+  const { data: activeFastResponse, isLoading } = useQuery({
+    queryKey: ['active-fast', user?.uid],
+    queryFn: () => fastingAPI.getActive(),
+    enabled: !!user,
+    refetchInterval: 60000, // Atualizar a cada minuto
   });
 
+  const activeFast = activeFastResponse?.data?.fasting || activeFastResponse?.data?.data || null;
+
   // Fetch history
-  const { data: historyData } = useQuery({
-    queryKey: ['fasting-history', userId],
-    queryFn: async () => {
-      const res = await fetch(`http://localhost:3000/api/fasting/history?userId=${userId}&limit=10`);
-      if (!res.ok) throw new Error('Failed to fetch history');
-      return res.json();
-    }
+  const { data: historyResponse } = useQuery({
+    queryKey: ['fasting-history', user?.uid],
+    queryFn: () => fastingAPI.getHistory({ limit: 10 }),
+    enabled: !!user,
   });
+
+  const historyData = historyResponse?.data;
 
   // Start fasting
   const startMutation = useMutation({
-    mutationFn: async (type: string) => {
-      const res = await fetch('http://localhost:3000/api/fasting/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, type })
-      });
-      if (!res.ok) throw new Error('Failed to start fasting');
-      return res.json();
-    },
+    mutationFn: (type: string) => fastingAPI.start(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-fast'] });
-    }
+      toast.success('Jejum iniciado com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao iniciar jejum');
+    },
   });
 
   // End fasting
   const endMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`http://localhost:3000/api/fasting/end/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      if (!res.ok) throw new Error('Failed to end fasting');
-      return res.json();
-    },
+    mutationFn: () => fastingAPI.stop(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-fast'] });
       queryClient.invalidateQueries({ queryKey: ['fasting-history'] });
-    }
+      toast.success('Jejum finalizado!');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao finalizar jejum');
+    },
   });
 
   const formatTime = (minutes: number) => {
@@ -248,7 +240,7 @@ export default function FastingPage() {
               </div>
 
               <Button
-                onClick={() => endMutation.mutate(activeFast.id)}
+                onClick={() => endMutation.mutate()}
                 disabled={endMutation.isPending}
                 variant="outline"
                 className="px-8"
