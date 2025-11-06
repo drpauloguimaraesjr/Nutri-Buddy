@@ -1,15 +1,9 @@
 {
   "version": 2,
-  "buildCommand": null,
-  "outputDirectory": "public",
-  "framework": null,
-  "installCommand": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/.next",
+  "framework": "nextjs",
+  "installCommand": "cd frontend && npm install",
   "headers": [
     {
       "source": "/(.*)",
