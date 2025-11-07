@@ -8,6 +8,8 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -18,6 +20,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateUserRole: (role: UserRole) => Promise<void>;
@@ -179,6 +182,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const { user: firebaseUser } = await signInWithPopup(auth, provider);
+
+      // Check if user already exists
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      
+      if (!userDoc.exists()) {
+        // New user - create document with default role
+        await createUserDocument(firebaseUser, 'patient');
+      }
+
+      // Get user data
+      const userData = await getUserData(firebaseUser);
+      setUser(userData);
+    } catch (error) {
+      console.error('Error during Google login:', error);
+      throw new Error(error instanceof Error ? error.message : 'Erro ao fazer login com Google');
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -212,6 +237,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     firebaseUser,
     loading,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUserRole,
