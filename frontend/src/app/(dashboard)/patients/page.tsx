@@ -4,16 +4,14 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Search, 
-  Filter, 
   Plus, 
   User, 
   Mail, 
   Phone,
   Calendar,
-  TrendingUp,
   MoreVertical,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AddPatientModal } from '@/components/AddPatientModal';
@@ -43,6 +41,7 @@ export default function PatientsPage() {
 
   useEffect(() => {
     loadPatients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadPatients = async () => {

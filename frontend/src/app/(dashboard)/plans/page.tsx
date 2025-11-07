@@ -1,8 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FileText, Plus, Calendar, User } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { FileText, Plus } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
 export default function PlansPage() {

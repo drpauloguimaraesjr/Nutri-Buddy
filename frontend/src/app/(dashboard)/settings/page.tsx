@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, Briefcase, Building } from 'lucide-react';
+import { User, Mail, Briefcase, Building } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useAuth } from '@/context/AuthContext';
 
