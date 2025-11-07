@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, StatsCard } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
   Users,
@@ -203,32 +203,61 @@ export default function PrescriberDashboardPage() {
         variants={itemVariants}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
       >
-        <StatsCard
-          title="Total de Pacientes"
-          value={stats.totalPatients}
-          icon={<Users className="h-6 w-6 text-blue-600" />}
-          trend="up"
-          trendValue="+3 este mês"
-        />
-        <StatsCard
-          title="Pacientes Ativos"
-          value={stats.activePatients}
-          icon={<Activity className="h-6 w-6 text-emerald-600" />}
-          trend="up"
-          trendValue={`${Math.round((stats.activePatients / stats.totalPatients) * 100)}%`}
-        />
-        <StatsCard
-          title="Aprovações Pendentes"
-          value={stats.pendingApprovals}
-          icon={<Clock className="h-6 w-6 text-orange-600" />}
-        />
-        <StatsCard
-          title="Planos Criados"
-          value={stats.plansCreatedThisMonth}
-          icon={<FileText className="h-6 w-6 text-purple-600" />}
-          trend="up"
-          trendValue="Este mês"
-        />
+        {/* Total de Pacientes */}
+        <motion.div
+          whileHover={{ y: -4 }}
+          className="bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-blue-50">
+              <Users className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-1">Total de Pacientes</p>
+          <p className="text-3xl font-bold text-gray-900">{stats.totalPatients}</p>
+        </motion.div>
+
+        {/* Pacientes Ativos */}
+        <motion.div
+          whileHover={{ y: -4 }}
+          className="bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-green-50">
+              <Activity className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-1">Pacientes Ativos</p>
+          <p className="text-3xl font-bold text-gray-900">{stats.activePatients}</p>
+        </motion.div>
+
+        {/* Solicitações Pendentes */}
+        <motion.div
+          whileHover={{ y: -4 }}
+          className="bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-orange-50">
+              <Clock className="w-6 h-6 text-orange-600" />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-1">Solicitações Pendentes</p>
+          <p className="text-3xl font-bold text-gray-900">{stats.pendingApprovals}</p>
+        </motion.div>
+
+        {/* Planos Criados */}
+        <motion.div
+          whileHover={{ y: -4 }}
+          className="bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-purple-50">
+              <FileText className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-1">Planos Criados</p>
+          <p className="text-3xl font-bold text-gray-900">{stats.plansCreatedThisMonth}</p>
+        </motion.div>
       </motion.div>
 
       {/* Quick Actions */}

@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import {
   Users,
   Search,
@@ -266,33 +265,52 @@ export default function PatientsPage() {
       {/* Filters and Search */}
       <motion.div variants={itemVariants} className="glass-card p-4">
         <div className="flex flex-col md:flex-row gap-4">
+          {/* Busca */}
           <div className="flex-1">
-            <Input
-              placeholder="Buscar paciente por nome ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              icon={<Search className="h-4 w-4" />}
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Buscar paciente por nome ou email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur"
+              />
+            </div>
           </div>
+
+          {/* Filtros */}
           <div className="flex gap-2">
-            <Button
-              variant={selectedFilter === 'all' ? 'default' : 'outline'}
+            <button
               onClick={() => setSelectedFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                selectedFilter === 'all'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+              }`}
             >
-              Todos
-            </Button>
-            <Button
-              variant={selectedFilter === 'active' ? 'success' : 'outline'}
+              Todos ({allPatients.length})
+            </button>
+            <button
               onClick={() => setSelectedFilter('active')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                selectedFilter === 'active'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+              }`}
             >
-              Ativos
-            </Button>
-            <Button
-              variant={selectedFilter === 'inactive' ? 'outline' : 'outline'}
+              Ativos ({allPatients.filter((p: any) => p.status === 'active').length})
+            </button>
+            <button
               onClick={() => setSelectedFilter('inactive')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                selectedFilter === 'inactive'
+                  ? 'bg-gray-700 text-white shadow-lg shadow-gray-500/30'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+              }`}
             >
-              Inativos
-            </Button>
+              Inativos ({allPatients.filter((p: any) => p.status === 'inactive').length})
+            </button>
           </div>
         </div>
       </motion.div>
