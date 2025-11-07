@@ -1,5 +1,10 @@
-frontend/
 node_modules/
 .env
 *.log
+# Backend files não necessários no deploy do frontend
+server.js
+routes/
+services/
+middleware/
+config/
 
