@@ -1,38 +1,85 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Activity, TrendingUp, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { useAuth } from '@/context/AuthContext';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    activePatients: 0,
+    plansCreated: 0,
+    activitiesThisWeek: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    loadStats();
+  }, [user]);
+
+  const loadStats = async () => {
+    if (!user || user.role !== 'prescriber') {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Load patients
+      const patientsRef = collection(db, 'users');
+      const patientsQuery = query(
+        patientsRef,
+        where('role', '==', 'patient'),
+        where('prescriberId', '==', user.uid)
+      );
+      const patientsSnapshot = await getDocs(patientsQuery);
+      const patientsData = patientsSnapshot.docs.map(doc => doc.data());
+
+      const totalPatients = patientsData.length;
+      const activePatients = patientsData.filter(p => p.status === 'active').length;
+
+      setStats({
+        totalPatients,
+        activePatients,
+        plansCreated: 0, // TODO: Load from plans collection
+        activitiesThisWeek: 0, // TODO: Load from activities collection
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const statsCards = [
     {
       title: 'Total de Pacientes',
-      value: '0',
+      value: stats.totalPatients.toString(),
       icon: Users,
       color: 'bg-blue-500',
       bgLight: 'bg-blue-50',
     },
     {
-      title: 'Atividades Hoje',
-      value: '0',
+      title: 'Pacientes Ativos',
+      value: stats.activePatients.toString(),
       icon: Activity,
       color: 'bg-green-500',
       bgLight: 'bg-green-50',
     },
     {
-      title: 'Progresso Médio',
-      value: '0%',
+      title: 'Planos Criados',
+      value: stats.plansCreated.toString(),
       icon: TrendingUp,
       color: 'bg-purple-500',
       bgLight: 'bg-purple-50',
     },
     {
-      title: 'Consultas Agendadas',
-      value: '0',
+      title: 'Atividades da Semana',
+      value: stats.activitiesThisWeek.toString(),
       icon: Calendar,
       color: 'bg-orange-500',
       bgLight: 'bg-orange-50',
@@ -52,8 +99,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-4 text-gray-600">Carregando dados...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <motion.div
@@ -76,7 +129,8 @@ export default function DashboardPage() {
             </motion.div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Empty State */}
       <Card>

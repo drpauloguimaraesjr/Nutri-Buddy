@@ -23,7 +23,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/patients', icon: Users, label: 'Pacientes', roles: ['prescriber'] },
+    { href: '/patients', icon: Users, label: 'Pacientes', roles: ['prescriber', 'admin'] },
     { href: '/plans', icon: FileText, label: 'Planos', roles: ['prescriber'] },
     { href: '/settings', icon: Settings, label: 'Configurações' },
   ];
