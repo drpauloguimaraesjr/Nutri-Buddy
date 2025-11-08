@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import Sidebar from '@/components/Sidebar';
@@ -13,6 +13,17 @@ export default function DashboardLayout({
 }) {
   const { loading } = useProtectedRoute();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (loading) {
     return (
@@ -34,7 +45,10 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex relative bg-background">
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={isDesktop || sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
