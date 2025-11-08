@@ -210,7 +210,7 @@ export default function PatientsPage() {
                 }
               }}
             >
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
