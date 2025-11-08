@@ -9,7 +9,36 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
-import type { NutritionPlan } from '@/types';
+
+interface NutritionPlan {
+  id: string;
+  name: string;
+  patientId: string;
+  patientName: string;
+  prescriberId: string;
+  objective?: string;
+  duration?: string;
+  startDate?: Date | null;
+  notes?: string;
+  meals?: Array<{
+    id: string;
+    title: string;
+    time?: string;
+    description: string;
+    energy?: number | null;
+  }>;
+  macros?: {
+    calories?: number | null;
+    protein?: number | null;
+    carbs?: number | null;
+    fats?: number | null;
+  };
+  planPdfUrl?: string | null;
+  planPdfName?: string | null;
+  planPdfStoragePath?: string | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}
 
 export default function PlansPage() {
   const { user } = useAuth();
