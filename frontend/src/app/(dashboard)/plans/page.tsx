@@ -157,55 +157,66 @@ export default function PlansPage() {
       ) : (
         <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {plans.map((plan) => (
-            <Card
+            <motion.div
               key={plan.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer"
+              whileHover={{ scale: 1.01 }}
+              className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               onClick={() => router.push(`/plans/${plan.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  router.push(`/plans/${plan.id}`);
+                }
+              }}
             >
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      {plan.name}
-                    </h3>
-                    <p className="text-sm text-gray-500">{plan.objective || 'Sem objetivo definido'}</p>
-                  </div>
-                  <div className="rounded-full bg-blue-50 p-3 text-blue-600">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    <span>{plan.patientName}</span>
-                  </div>
-                  {plan.duration && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{plan.duration}</span>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {plan.name}
+                      </h3>
+                      <p className="text-sm text-gray-500">{plan.objective || 'Sem objetivo definido'}</p>
                     </div>
-                  )}
-                  {plan.startDate && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>Início: {plan.startDate.toLocaleDateString('pt-BR')}</span>
+                    <div className="rounded-full bg-blue-50 p-3 text-blue-600">
+                      <FileText className="w-5 h-5" />
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-blue-700">
-                    <p className="text-xs uppercase tracking-wide">Calorias</p>
-                    <p className="text-lg font-semibold">{plan.macros?.calories ?? '-'} kcal</p>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      <span>{plan.patientName}</span>
+                    </div>
+                    {plan.duration && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>{plan.duration}</span>
+                      </div>
+                    )}
+                    {plan.startDate && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>Início: {plan.startDate.toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-green-700">
-                    <p className="text-xs uppercase tracking-wide">Proteínas</p>
-                    <p className="text-lg font-semibold">{plan.macros?.protein ?? '-'} g</p>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-blue-700">
+                      <p className="text-xs uppercase tracking-wide">Calorias</p>
+                      <p className="text-lg font-semibold">{plan.macros?.calories ?? '-'} kcal</p>
+                    </div>
+                    <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-green-700">
+                      <p className="text-xs uppercase tracking-wide">Proteínas</p>
+                      <p className="text-lg font-semibold">{plan.macros?.protein ?? '-'} g</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </motion.div>
       )}
