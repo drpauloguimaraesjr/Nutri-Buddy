@@ -11,7 +11,22 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
-import type { PatientSummary, PlanMeal } from '@/types';
+import type { PlanMeal } from '@/types';
+
+interface PatientSummary {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  gender?: 'male' | 'female' | 'other';
+  age?: number | null;
+  weight?: number | null;
+  height?: number | null;
+  status?: 'active' | 'inactive';
+  prescriberId?: string;
+  createdAt?: Date | null;
+  lastConsultation?: Date | null;
+}
 
 interface PlanMealForm extends PlanMeal {
   energy?: string;
