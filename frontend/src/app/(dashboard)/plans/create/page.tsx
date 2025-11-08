@@ -11,8 +11,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
-import type { PlanMeal } from '@/types';
-
 interface PatientSummary {
   id: string;
   name: string;
@@ -26,6 +24,13 @@ interface PatientSummary {
   prescriberId?: string;
   createdAt?: Date | null;
   lastConsultation?: Date | null;
+}
+
+interface PlanMeal {
+  id: string;
+  title: string;
+  time?: string;
+  description: string;
 }
 
 interface PlanMealForm extends PlanMeal {
