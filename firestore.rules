@@ -20,6 +20,10 @@ service cloud.firestore {
       return isAuthenticated() && getUserData().role == 'prescriber';
     }
     
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+    
     function isPatient() {
       return isAuthenticated() && getUserData().role == 'patient';
     }
@@ -36,15 +40,20 @@ service cloud.firestore {
       
       // Users can create their own document during registration
       allow create: if isAuthenticated() && isOwner(userId) &&
-                       request.resource.data.role in ['patient', 'prescriber'];
+                       request.resource.data.role in ['patient', 'prescriber', 'admin'];
       
       // Users can update their own document (but not change role after creation)
       allow update: if isOwner(userId) &&
                        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
       
-      // Prescribers can read their patients' basic info
-      allow read: if isPrescriber() && 
-                     hasActiveConnection(request.auth.uid, userId);
+      // Prescribers/Admins can manage patients assigned to them
+      allow read: if (isPrescriber() || isAdmin()) && resource.data.prescriberId == request.auth.uid;
+      allow create: if (isPrescriber() || isAdmin()) &&
+                       request.resource.data.role == 'patient' &&
+                       request.resource.data.prescriberId == request.auth.uid;
+      allow update: if (isPrescriber() || isAdmin()) &&
+                       resource.data.prescriberId == request.auth.uid &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'prescriberId']);
     }
     
     // Connections collection (prescriber-patient relationships)
