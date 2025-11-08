@@ -13,7 +13,10 @@ export default function DashboardLayout({
 }) {
   const { loading } = useProtectedRoute();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1024;
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -37,6 +40,29 @@ export default function DashboardLayout({
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
           </div>
           <p className="text-gray-600 font-medium">Carregando...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!isDesktop) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex flex-col items-center justify-center px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-sm rounded-2xl bg-white shadow-lg border border-blue-100 p-8 space-y-4"
+        >
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-600/10">
+            <span className="text-2xl font-semibold text-blue-600">NB</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Acesse pelo computador
+          </h1>
+          <p className="text-sm text-gray-600">
+            A área do prescritor foi otimizada para telas maiores. Utilize o dashboard em um
+            desktop ou notebook para ter a melhor experiência.
+          </p>
         </motion.div>
       </div>
     );
