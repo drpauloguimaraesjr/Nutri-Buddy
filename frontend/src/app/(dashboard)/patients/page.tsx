@@ -200,12 +200,17 @@ export default function PatientsPage() {
               custom={index}
               whileHover={{ scale: 1.01 }}
               transition={{ type: 'spring', stiffness: 300 }}
+              onClick={() => router.push(`/patients/${patient.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  router.push(`/patients/${patient.id}`);
+                }
+              }}
             >
-              <Card
-                className="hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => router.push(`/patients/${patient.id}`)}
-                role="button"
-              >
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
