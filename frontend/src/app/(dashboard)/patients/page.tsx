@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   Search, 
   Plus, 
   User, 
@@ -11,6 +11,7 @@ import {
   Calendar,
   MoreVertical,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -33,6 +34,7 @@ interface Patient {
 
 export default function PatientsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -199,7 +201,11 @@ export default function PatientsPage() {
               whileHover={{ scale: 1.01 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Card
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => router.push(`/patients/${patient.id}`)}
+                role="button"
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
