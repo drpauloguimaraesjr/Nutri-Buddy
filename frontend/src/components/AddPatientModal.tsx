@@ -8,6 +8,7 @@ import { User, Mail, Phone, Calendar, Ruler, Weight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import type { UserRole } from '@/types';
 
 interface AddPatientModalProps {
   isOpen: boolean;
@@ -37,8 +38,9 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
     setIsLoading(true);
 
     try {
-      if (!user || user.role !== 'prescriber') {
-        throw new Error('Apenas prescritores podem adicionar pacientes');
+      const allowedRoles: UserRole[] = ['prescriber', 'admin'];
+      if (!user || !allowedRoles.includes(user.role)) {
+        throw new Error('Apenas prescritores ou administradores podem adicionar pacientes');
       }
 
       // Criar documento do paciente no Firestore
