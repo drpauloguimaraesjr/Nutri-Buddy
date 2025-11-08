@@ -47,7 +47,11 @@ export default function PatientsPage() {
   }, [user]);
 
   const loadPatients = async () => {
-    if (!user || user.role !== 'prescriber') return;
+    if (!user || (user.role !== 'prescriber' && user.role !== 'admin')) {
+      setIsLoading(false);
+      setPatients([]);
+      return;
+    }
 
     try {
       setIsLoading(true);
