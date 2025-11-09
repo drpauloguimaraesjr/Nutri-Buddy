@@ -30,6 +30,7 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
     weight: '',
     gender: 'other' as 'male' | 'female' | 'other',
     goals: '',
+    role: 'patient' as UserRole,
   });
 
   const handleSubmit = async (e: FormEvent) => {
@@ -44,6 +45,9 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
       }
 
       // Criar documento do paciente no Firestore
+      const selectedRole: UserRole =
+        user.role === 'admin' ? formData.role : 'patient';
+
       await addDoc(collection(db, 'users'), {
         name: formData.name,
         email: formData.email,
@@ -53,8 +57,8 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
         weight: formData.weight ? parseFloat(formData.weight) : null,
         gender: formData.gender,
         goals: formData.goals ? formData.goals.split(',').map(g => g.trim()) : [],
-        role: 'patient',
-        prescriberId: user.uid,
+        role: selectedRole,
+        prescriberId: selectedRole === 'patient' ? user.uid : null,
         status: 'active',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -70,6 +74,7 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
         weight: '',
         gender: 'other',
         goals: '',
+        role: 'patient',
       });
 
       onSuccess();
@@ -177,6 +182,24 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
             rows={3}
           />
         </div>
+
+        {user?.role === 'admin' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tipo de usuário
+            </label>
+            <select
+              value={formData.role}
+              onChange={(event) =>
+                setFormData({ ...formData, role: event.target.value as UserRole })
+              }
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="patient">Paciente</option>
+              <option value="prescriber">Prescritor</option>
+            </select>
+          </div>
+        )}
 
         <div className="flex gap-3 pt-4">
           <Button

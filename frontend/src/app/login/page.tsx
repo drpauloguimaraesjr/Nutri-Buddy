@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +16,12 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [isResetLoading, setIsResetLoading] = useState(false);
+  const { login, loginWithGoogle, resetPassword } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -46,6 +52,37 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login com Google');
     } finally {
       setIsGoogleLoading(false);
+    }
+  };
+
+  const openResetModal = () => {
+    setResetEmail(email);
+    setResetError('');
+    setResetSuccess('');
+    setIsResetModalOpen(true);
+  };
+
+  const handleResetSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setResetError('');
+    setResetSuccess('');
+    setIsResetLoading(true);
+
+    try {
+      if (!resetEmail) {
+        throw new Error('Informe um email válido para recuperar sua senha.');
+      }
+
+      await resetPassword(resetEmail);
+      setResetSuccess('Enviamos as instruções de recuperação para o seu email. Verifique também a caixa de spam.');
+    } catch (resetErr) {
+      setResetError(
+        resetErr instanceof Error
+          ? resetErr.message
+          : 'Não foi possível enviar o email de recuperação. Tente novamente.'
+      );
+    } finally {
+      setIsResetLoading(false);
     }
   };
 
@@ -106,6 +143,16 @@ export default function LoginPage() {
               </Button>
             </form>
 
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={openResetModal}
+                className="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
+
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
@@ -149,6 +196,55 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <Modal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        title="Recuperar senha"
+        size="sm"
+      >
+        <form onSubmit={handleResetSubmit} className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Informe o email utilizado no cadastro. Enviaremos um link para você criar uma nova senha.
+          </p>
+
+          <Input
+            type="email"
+            label="Email"
+            placeholder="seu@email.com"
+            value={resetEmail}
+            onChange={(event) => setResetEmail(event.target.value)}
+            icon={<Mail className="w-4 h-4" />}
+            required
+          />
+
+          {resetError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {resetError}
+            </div>
+          )}
+
+          {resetSuccess && (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              {resetSuccess}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setIsResetModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="flex-1" isLoading={isResetLoading}>
+              Enviar instruções
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

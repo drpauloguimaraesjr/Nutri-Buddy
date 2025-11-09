@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
+import type { UserRole } from '@/types';
 
 type PatientTab = 'profile' | 'goals' | 'body' | 'config' | 'diet' | 'notes';
 
@@ -32,6 +33,8 @@ interface PatientDetail {
   planPdfStoragePath?: string | null;
   planTranscriptionStatus?: 'idle' | 'processing' | 'completed';
   planUpdatedAt?: Date | null;
+  role: UserRole;
+  prescriberId?: string | null;
 }
 
 interface UploadedPlanFile {
@@ -56,6 +59,8 @@ export default function PatientDetailPage() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [patient, setPatient] = useState<PatientDetail | null>(null);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('patient');
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [dietPlanText, setDietPlanText] = useState('');
   const [trainingPlanText, setTrainingPlanText] = useState('');
   const [planFile, setPlanFile] = useState<UploadedPlanFile | null>(null);
@@ -99,9 +104,12 @@ export default function PatientDetailPage() {
           planPdfStoragePath: data.planPdfStoragePath ?? null,
           planTranscriptionStatus: data.planTranscriptionStatus ?? 'idle',
           planUpdatedAt: data.planUpdatedAt?.toDate?.() ?? null,
+          role: data.role ?? 'patient',
+          prescriberId: data.prescriberId ?? null,
         };
 
         setPatient(mappedPatient);
+        setSelectedRole(mappedPatient.role);
         setDietPlanText(mappedPatient.dietPlanText ?? '');
         setTrainingPlanText(mappedPatient.trainingPlanText ?? '');
         if (mappedPatient.planPdfUrl && mappedPatient.planPdfName) {
@@ -241,6 +249,52 @@ export default function PatientDetailPage() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const canManageRole = user?.role === 'admin' || user?.role === 'prescriber';
+
+  const handleRoleUpdate = async (newRole: UserRole) => {
+    if (!patientId || !patient || newRole === selectedRole || !canManageRole) {
+      setSelectedRole(newRole);
+      return;
+    }
+
+    try {
+      setIsUpdatingRole(true);
+      setFeedback(null);
+
+      const docRef = doc(db, 'users', patientId);
+      const newPrescriberId = newRole === 'patient' ? (patient.prescriberId ?? user?.uid ?? null) : null;
+
+      await updateDoc(docRef, {
+        role: newRole,
+        prescriberId: newPrescriberId,
+        updatedAt: serverTimestamp(),
+      });
+
+      setPatient((prev) =>
+        prev
+          ? {
+              ...prev,
+              role: newRole,
+              prescriberId: newPrescriberId,
+            }
+          : prev
+      );
+      setSelectedRole(newRole);
+      setFeedback({
+        type: 'success',
+        message: 'Função do usuário atualizada com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar função do usuário:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível atualizar a função do usuário.',
+      });
+    } finally {
+      setIsUpdatingRole(false);
     }
   };
 
@@ -445,20 +499,42 @@ export default function PatientDetailPage() {
             <p className="text-sm text-gray-600">{patient.email}</p>
             {patient.phone && <p className="text-sm text-gray-600">{patient.phone}</p>}
           </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`rounded-full px-3 py-1 text-sm font-medium ${
-                patient.status === 'inactive'
-                  ? 'bg-gray-100 text-gray-600'
-                  : 'bg-green-100 text-green-700'
-              }`}
-            >
-              {patient.status === 'inactive' ? 'Inativo' : 'Ativo'}
-            </span>
-            {patient.planUpdatedAt && (
-              <span className="text-xs text-gray-500">
-                Última atualização: {patient.planUpdatedAt.toLocaleDateString('pt-BR')}
+          <div className="flex flex-col items-start gap-3 md:items-end">
+            <div className="flex items-center gap-2">
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-medium ${
+                  patient.status === 'inactive'
+                    ? 'bg-gray-100 text-gray-600'
+                    : 'bg-green-100 text-green-700'
+                }`}
+              >
+                {patient.status === 'inactive' ? 'Inativo' : 'Ativo'}
               </span>
+              {patient.planUpdatedAt && (
+                <span className="text-xs text-gray-500">
+                  Última atualização: {patient.planUpdatedAt.toLocaleDateString('pt-BR')}
+                </span>
+              )}
+            </div>
+
+            {canManageRole && (
+              <div className="flex flex-col gap-1 text-sm text-gray-600">
+                <span className="font-medium text-gray-700">Função do usuário</span>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedRole}
+                    onChange={(event) => handleRoleUpdate(event.target.value as UserRole)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value="patient">Paciente</option>
+                    <option value="prescriber">Prescritor</option>
+                    {user?.role === 'admin' && <option value="admin">Administrador</option>}
+                  </select>
+                  {isUpdatingRole && (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </CardContent>

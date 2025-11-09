@@ -10,6 +10,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -21,6 +22,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<User | null>;
   loginWithGoogle: () => Promise<User | null>;
+  resetPassword: (email: string) => Promise<void>;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateUserRole: (role: UserRole) => Promise<void>;
@@ -206,6 +208,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      throw new Error(error instanceof Error ? error.message : 'Erro ao enviar email de recuperação');
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -241,6 +252,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     loginWithGoogle,
     register,
+    resetPassword,
     logout,
     updateUserRole,
     isPrescrber: user?.role === 'prescriber',
