@@ -14,8 +14,8 @@ try {
     };
 
     const config = {
-      credential: admin.credential.cert(serviceAccount),
-      databaseId: 'nutribuddy' // Usar banco em southamerica-east1
+      credential: admin.credential.cert(serviceAccount)
+      // Usando banco (default) em nam5
     };
 
     // Só adiciona databaseURL se Realtime Database estiver habilitado
