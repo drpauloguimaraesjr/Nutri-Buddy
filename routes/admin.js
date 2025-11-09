@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken, requireRole } = require('../middleware/auth');
 const { db, admin } = require('../config/firebase');
 const { getEmailTemplate, verifyEmailConfig } = require('../services/email');
+const { validateAllPatients } = require('../services/patient-validator');
 
 // Todas as rotas requerem autenticação + role admin
 router.use(verifyToken);
@@ -317,6 +318,30 @@ router.get('/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [ADMIN] Error fetching stats:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/admin/validate-patients
+ * Executar validação manual de todos os pacientes
+ */
+router.post('/validate-patients', async (req, res) => {
+  try {
+    console.log('🔧 [ADMIN] Starting manual patient validation...');
+    
+    const results = await validateAllPatients();
+    
+    res.json({
+      success: true,
+      message: `Validação concluída: ${results.fixed} pacientes corrigidos de ${results.checked} verificados`,
+      data: results
+    });
+  } catch (error) {
+    console.error('❌ [ADMIN] Error in manual validation:', error);
     res.status(500).json({
       success: false,
       error: error.message,

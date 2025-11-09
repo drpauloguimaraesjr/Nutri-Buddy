@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken, requireRole } = require('../middleware/auth');
 const { db, admin } = require('../config/firebase');
 const { sendOnboardingEmail, sendLoginVoucher } = require('../services/email');
+const { validateAndFixPatient } = require('../services/patient-validator');
 
 const ALLOWED_ROLES_TO_CREATE = ['patient', 'prescriber'];
 
@@ -196,6 +197,14 @@ router.post('/patients/create', async (req, res) => {
     }
 
     await userDocRef.set(dataToSave, { merge: true });
+
+    // ✅ Validação automática para garantir consistência
+    console.log('🔧 [PRESCRIBER] Running automatic validation...');
+    const validationResult = await validateAndFixPatient(dataToSave, dataToSave.prescriberId);
+    
+    if (validationResult.fixes.length > 0) {
+      console.log('✅ [PRESCRIBER] Auto-fixes applied:', validationResult.fixes);
+    }
 
     // ✅ NOVO: Enviar email de onboarding automaticamente quando criar novo usuário
     if (createdAuthUser) {

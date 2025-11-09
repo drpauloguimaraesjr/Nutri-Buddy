@@ -12,6 +12,9 @@ const adminRoutes = require('./routes/admin');
 // Import Firebase config to initialize
 const { db } = require('./config/firebase');
 
+// Import cron jobs for automatic maintenance
+const { startCronJobs } = require('./services/cron-jobs');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -79,6 +82,9 @@ app.listen(PORT, () => {
   console.log(`🔗 http://localhost:${PORT}`);
   console.log(`🔗 http://localhost:${PORT}/api/health`);
   console.log('=================================');
+  
+  // Iniciar cron jobs para manutenção automática
+  startCronJobs();
 });
 
 // Graceful shutdown
