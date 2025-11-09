@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn, MailCheck } from 'lucide-react';
+import { Mail, Lock, LogIn, MailCheck, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [isConfirmingMagicLink, setIsConfirmingMagicLink] = useState(false);
   const [requiresMagicEmailConfirmation, setRequiresMagicEmailConfirmation] = useState(false);
   const [magicEmailInput, setMagicEmailInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     login,
@@ -229,12 +230,22 @@ export default function LoginPage() {
               />
 
               <Input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 label="Senha"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 icon={<Lock className="w-4 h-4" />}
+                trailingIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="text-gray-400 hover:text-gray-600 transition"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
                 required
               />
 
