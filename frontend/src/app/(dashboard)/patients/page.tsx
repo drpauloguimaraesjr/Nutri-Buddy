@@ -12,6 +12,8 @@ import {
   MoreVertical,
   Trash2,
   Edit,
+  Send,
+  MessageCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -133,6 +135,45 @@ export default function PatientsPage() {
       alert(error instanceof Error ? error.message : 'Erro ao excluir paciente');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleSendCredentials = async (patient: Patient, method: 'email' | 'whatsapp') => {
+    if (!firebaseUser) return;
+
+    try {
+      setOpenMenuId(null);
+      
+      const token = await firebaseUser.getIdToken();
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiBaseUrl}/api/prescriber/patients/${patient.id}/send-credentials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ method }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar credenciais');
+      }
+
+      if (method === 'whatsapp' && data.whatsappMessage) {
+        // Copiar mensagem para clipboard
+        await navigator.clipboard.writeText(data.whatsappMessage);
+        alert(`✅ Mensagem copiada!\n\nAgora envie pelo WhatsApp para: ${data.phone || patient.phone}\n\n(Integração automática disponível em breve)`);
+      } else {
+        alert(`✅ ${data.message}`);
+      }
+      
+      console.log('✅ Credenciais enviadas:', data);
+    } catch (error) {
+      console.error('❌ Erro ao enviar credenciais:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao enviar credenciais');
     }
   };
 
@@ -357,6 +398,34 @@ export default function PatientsPage() {
                               <Edit className="w-4 h-4" />
                               <span>Editar</span>
                             </button>
+                            
+                            {/* Divisor */}
+                            <div className="border-t border-gray-200 my-1"></div>
+                            
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSendCredentials(patient, 'email');
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+                            >
+                              <Send className="w-4 h-4" />
+                              <span>Enviar Voucher (Email)</span>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSendCredentials(patient, 'whatsapp');
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50 flex items-center gap-2"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              <span>Enviar Voucher (WhatsApp)</span>
+                            </button>
+                            
+                            {/* Divisor */}
+                            <div className="border-t border-gray-200 my-1"></div>
+                            
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

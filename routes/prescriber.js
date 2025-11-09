@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, requireRole } = require('../middleware/auth');
 const { db, admin } = require('../config/firebase');
+const { sendOnboardingEmail, sendLoginVoucher } = require('../services/email');
 
 const ALLOWED_ROLES_TO_CREATE = ['patient', 'prescriber'];
 
@@ -196,17 +197,33 @@ router.post('/patients/create', async (req, res) => {
 
     await userDocRef.set(dataToSave, { merge: true });
 
+    // ✅ NOVO: Enviar email de onboarding automaticamente quando criar novo usuário
+    if (createdAuthUser) {
+      try {
+        await sendOnboardingEmail({
+          patientName: name,
+          patientEmail: normalizedEmail,
+          tempPassword: tempPassword,
+        });
+        console.log('✅ [PRESCRIBER] Onboarding email sent to:', normalizedEmail);
+      } catch (emailError) {
+        console.error('⚠️ [PRESCRIBER] Failed to send onboarding email:', emailError.message);
+        // Não falha a criação do usuário se o email falhar
+      }
+    }
+
     res.status(createdAuthUser ? 201 : 200).json({
       success: true,
       message: createdAuthUser
-        ? 'Usuário criado com sucesso'
+        ? 'Usuário criado com sucesso e email de boas-vindas enviado'
         : 'Usuário atualizado com sucesso',
       data: {
         userId,
         email: normalizedEmail,
         role: targetRole,
         createdAuthUser,
-        prescriberId: dataToSave.prescriberId || null
+        prescriberId: dataToSave.prescriberId || null,
+        emailSent: createdAuthUser, // Indica se email foi enviado
       }
     });
   } catch (error) {
@@ -501,6 +518,104 @@ router.get('/dietPlans/:patientId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/prescriber/patients/:userId/send-credentials
+ * Reenviar credenciais de acesso por email
+ */
+router.post('/patients/:userId/send-credentials', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { method = 'email' } = req.body; // 'email' ou 'whatsapp'
+    const requesterId = req.user.uid;
+    const requesterRole = req.user.role;
+
+    console.log('📧 [PRESCRIBER] Sending credentials to user:', userId, 'via:', method);
+
+    // Buscar dados do paciente
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado'
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Verificar permissão
+    if (requesterRole !== 'admin') {
+      if (userData.role !== 'patient' || userData.prescriberId !== requesterId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você não tem permissão para enviar credenciais deste usuário'
+        });
+      }
+    }
+
+    // Gerar nova senha temporária
+    const newTempPassword = generateTemporaryPassword();
+    
+    // Atualizar senha no Firebase Auth
+    try {
+      await admin.auth().updateUser(userId, {
+        password: newTempPassword
+      });
+    } catch (authError) {
+      console.error('❌ [PRESCRIBER] Failed to update password:', authError);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao atualizar senha'
+      });
+    }
+
+    // Enviar credenciais
+    if (method === 'email') {
+      try {
+        await sendLoginVoucher({
+          patientName: userData.displayName || userData.name,
+          patientEmail: userData.email,
+          tempPassword: newTempPassword,
+        });
+        
+        res.json({
+          success: true,
+          message: 'Credenciais enviadas por email com sucesso',
+          method: 'email',
+        });
+      } catch (emailError) {
+        console.error('❌ [PRESCRIBER] Failed to send email:', emailError);
+        res.status(500).json({
+          success: false,
+          error: 'Erro ao enviar email'
+        });
+      }
+    } else if (method === 'whatsapp') {
+      // TODO: Implementar envio via WhatsApp
+      const whatsappMessage = `🔑 *Suas Credenciais NutriBuddy*\n\n📧 Email: ${userData.email}\n🔑 Senha: ${newTempPassword}\n\n🔗 Acesse: https://nutribuddy.vercel.app/login`;
+      
+      res.json({
+        success: true,
+        message: 'Credenciais geradas. Envio por WhatsApp disponível em breve.',
+        method: 'whatsapp',
+        whatsappMessage, // Para copiar manualmente por enquanto
+        phone: userData.phone,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Método inválido. Use "email" ou "whatsapp"'
+      });
+    }
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error sending credentials:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao enviar credenciais'
     });
   }
 });

@@ -2,24 +2,12 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Import routes
+// Core routes still used by the current product flow
 const apiRoutes = require('./routes/api');
-const whatsappRoutes = require('./routes/whatsapp');
-const mealsRoutes = require('./routes/meals');
-const waterRoutes = require('./routes/water');
-const exercisesRoutes = require('./routes/exercises');
-const goalsRoutes = require('./routes/goals');
-const aiRoutes = require('./routes/ai');
-const chatRoutes = require('./routes/chat');
-const fastingRoutes = require('./routes/fasting');
-const measurementsRoutes = require('./routes/measurements');
-const recipesRoutes = require('./routes/recipes');
-const glucoseRoutes = require('./routes/glucose');
-const stravaRoutes = require('./routes/strava');
-// Role-based routes
 const prescriberRoutes = require('./routes/prescriber');
 const patientRoutes = require('./routes/patient');
 const n8nRoutes = require('./routes/n8n');
+const adminRoutes = require('./routes/admin');
 
 // Import Firebase config to initialize
 const { db } = require('./config/firebase');
@@ -51,40 +39,17 @@ app.get('/', (req, res) => {
       health: '/api/health',
       nutrition: '/api/nutrition',
       meals: '/api/meals',
-      water: '/api/water',
-      exercises: '/api/exercises',
-      goals: '/api/goals',
-      ai: '/api/ai/*',
-      chat: '/api/chat/*',
-      fasting: '/api/fasting/*',
-      measurements: '/api/measurements/*',
-      recipes: '/api/recipes/*',
-      glucose: '/api/glucose/*',
-      strava: '/api/strava/*',
       user: '/api/user',
       webhook: '/api/webhook',
-      whatsapp: '/api/whatsapp/*',
       n8n: '/api/n8n/*'
     }
   });
 });
 
 app.use('/api', apiRoutes);
-app.use('/api/whatsapp', whatsappRoutes);
-app.use('/api/meals', mealsRoutes);
-app.use('/api/water', waterRoutes);
-app.use('/api/exercises', exercisesRoutes);
-app.use('/api/goals', goalsRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/fasting', fastingRoutes);
-app.use('/api/measurements', measurementsRoutes);
-app.use('/api/recipes', recipesRoutes);
-app.use('/api/glucose', glucoseRoutes);
-app.use('/api/strava', stravaRoutes);
-// Role-based routes
 app.use('/api/prescriber', prescriberRoutes);
 app.use('/api/patient', patientRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/n8n', n8nRoutes);
 
 // Error handling middleware
@@ -114,27 +79,7 @@ app.listen(PORT, () => {
   console.log(`🔗 http://localhost:${PORT}`);
   console.log(`🔗 http://localhost:${PORT}/api/health`);
   console.log('=================================');
-  
-  // Inicializar WhatsApp Handler
-  initializeWhatsAppHandler();
 });
-
-// Inicializar WhatsApp Message Handler
-async function initializeWhatsAppHandler() {
-  try {
-    const { getWhatsAppService } = require('./services/whatsapp');
-    const WhatsAppMessageHandler = require('./services/whatsappHandler');
-    
-    const whatsappService = getWhatsAppService();
-    const handler = new WhatsAppMessageHandler(whatsappService);
-    handler.register();
-    
-    console.log('✅ WhatsApp Message Handler registrado!');
-    console.log('📱 Use o endpoint /api/whatsapp/connect para conectar');
-  } catch (error) {
-    console.warn('⚠️ WhatsApp Handler não pôde ser inicializado:', error.message);
-  }
-}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
