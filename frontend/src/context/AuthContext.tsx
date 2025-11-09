@@ -19,8 +19,8 @@ interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  login: (email: string, password: string) => Promise<User | null>;
+  loginWithGoogle: () => Promise<User | null>;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateUserRole: (role: UserRole) => Promise<void>;
@@ -176,6 +176,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Get user data from Firestore
       const userData = await getUserData(firebaseUser);
       setUser(userData);
+      return userData;
     } catch (error) {
       console.error('Error during login:', error);
       throw new Error(error instanceof Error ? error.message : 'Erro ao fazer login');
@@ -198,6 +199,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Get user data
       const userData = await getUserData(firebaseUser);
       setUser(userData);
+      return userData;
     } catch (error) {
       console.error('Error during Google login:', error);
       throw new Error(error instanceof Error ? error.message : 'Erro ao fazer login com Google');

@@ -24,8 +24,9 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      router.push('/dashboard');
+      const loggedUser = await login(email, password);
+      const destination = loggedUser?.role === 'patient' ? '/meu-plano' : '/dashboard';
+      router.push(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     } finally {
@@ -38,8 +39,9 @@ export default function LoginPage() {
     setIsGoogleLoading(true);
 
     try {
-      await loginWithGoogle();
-      router.push('/dashboard');
+      const loggedUser = await loginWithGoogle();
+      const destination = loggedUser?.role === 'patient' ? '/meu-plano' : '/dashboard';
+      router.push(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login com Google');
     } finally {
