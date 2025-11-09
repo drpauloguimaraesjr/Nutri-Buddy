@@ -496,3 +496,4 @@ incluindo exemplos de requisições e respostas para cada endpoint.
 **Última atualização:** Baseado na análise completa do código em 2024
 
 
+

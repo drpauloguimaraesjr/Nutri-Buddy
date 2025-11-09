@@ -197,3 +197,4 @@ Posso melhorar **todo o frontend** com:
 **Pronto para deixar o NutriBuddy ainda mais bonito! 🎨✨**
 
 
+

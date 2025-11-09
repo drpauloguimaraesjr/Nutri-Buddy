@@ -398,3 +398,4 @@ Seu NutriBuddy está configurado e pronto para uso!
 **Última validação:** Executada automaticamente pelo script de setup
 **Relatório salvo em:** RELATORIO-SETUP-*.txt
 
+

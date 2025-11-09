@@ -6,6 +6,7 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { User, Mail, Phone, Calendar, Ruler, Weight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/ToastProvider';
 import type { UserRole } from '@/types';
 
 interface AddPatientModalProps {
@@ -39,6 +40,7 @@ const createInitialFormState = () => ({
 
 export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalProps) {
   const { user, firebaseUser } = useAuth();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -123,6 +125,14 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
           ? 'Paciente criado com sucesso. O paciente já pode usar a opção "Esqueci minha senha" para definir o acesso.'
           : 'Usuário criado com sucesso.'
       );
+      showToast({
+        title: 'Paciente criado com sucesso!',
+        description:
+          selectedRole === 'patient'
+            ? 'As credenciais já podem ser enviadas ou o paciente pode recuperar a senha.'
+            : 'Novo prescritor disponível na plataforma.',
+        variant: 'success',
+      });
 
       resetForm();
 
@@ -130,6 +140,14 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
     } catch (err) {
       console.error('Error adding patient:', err);
       setError(err instanceof Error ? err.message : 'Erro ao adicionar paciente');
+      showToast({
+        title: 'Erro ao criar paciente',
+        description:
+          err instanceof Error
+            ? err.message
+            : 'Tente novamente em instantes ou confira os dados informados.',
+        variant: 'error',
+      });
     } finally {
       setIsLoading(false);
     }

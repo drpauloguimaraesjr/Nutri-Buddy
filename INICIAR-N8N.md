@@ -94,3 +94,4 @@ Deve retornar: `OK`
 **✅ Pronto! Agora você pode acessar http://localhost:5678 e começar a usar o N8N!**
 
 
+

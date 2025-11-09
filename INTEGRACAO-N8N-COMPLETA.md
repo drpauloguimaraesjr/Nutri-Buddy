@@ -272,3 +272,4 @@ curl -X POST \
 **✅ Integração completa! Agora você tem controle total do N8N tanto no backend quanto no frontend!**
 
 
+

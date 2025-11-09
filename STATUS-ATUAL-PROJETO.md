@@ -300,3 +300,4 @@ railway logs
 - Backend: https://web-production-c9eaf.up.railway.app
 - GitHub: https://github.com/drpauloguimaraesjr/Nutri-Buddy
 
+

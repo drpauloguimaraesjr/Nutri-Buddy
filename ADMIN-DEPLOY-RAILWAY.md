@@ -196,3 +196,4 @@ curl https://seu-backend.railway.app/api/health
 **Pronto! Tudo deve funcionar automaticamente após o push!** 🚀
 
 
+

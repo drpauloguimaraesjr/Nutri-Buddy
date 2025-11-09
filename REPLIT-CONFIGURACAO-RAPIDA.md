@@ -247,3 +247,4 @@ Agora você tem:
 **Quer que eu atualize o `CORS_ORIGIN` com a URL do seu Replit depois que você criar?** 🚀
 
 
+

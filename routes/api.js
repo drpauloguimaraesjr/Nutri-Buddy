@@ -700,24 +700,12 @@ router.get('/admin/status', verifyToken, requireAdmin, async (req, res) => {
       }
     }
 
-    // Check WhatsApp status
-    let whatsappStatus = null;
-    try {
-      const { getWhatsAppService } = require('../services/whatsapp');
-      const whatsappService = getWhatsAppService();
-      const status = whatsappService.getStatus();
-      whatsappStatus = {
-        connected: status.connected,
-        status: status.status,
-        hasQr: status.hasQr,
-        qrCode: status.hasQr ? whatsappService.getQrCode() : null
-      };
-    } catch (error) {
-      whatsappStatus = {
-        connected: false,
-        error: error.message
-      };
-    }
+    // WhatsApp integration was disabled to simplify the runtime footprint.
+    const whatsappStatus = {
+      connected: false,
+      status: 'disabled',
+      message: 'WhatsApp integration is currently archived'
+    };
 
     res.json({
       success: true,

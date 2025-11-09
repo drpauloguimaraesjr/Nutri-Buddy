@@ -81,3 +81,4 @@ echo "Para iniciar novamente:"
 echo "   ./INICIAR-TUDO.sh"
 echo ""
 
+

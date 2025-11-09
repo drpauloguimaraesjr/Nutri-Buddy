@@ -308,3 +308,4 @@ node set-admin.js seu-email@exemplo.com
 
 **🥗 Bom uso do NutriBuddy!**
 
+

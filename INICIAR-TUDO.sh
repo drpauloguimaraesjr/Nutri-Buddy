@@ -124,3 +124,4 @@ trap 'echo ""; echo "🛑 Para parar os servidores:"; echo "   kill $(cat .backe
 # Aguardar indefinidamente
 wait
 
+

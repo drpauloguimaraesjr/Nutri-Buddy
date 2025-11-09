@@ -82,3 +82,4 @@ auth/api-key-not-valid
 **Parabéns! O NutriBuddy está funcionando!** 🎉
 
 
+

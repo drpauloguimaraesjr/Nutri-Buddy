@@ -4,5 +4,11 @@
     "firebase deploy --only firestore:rules": "nutribuddy-2fc9c"
   },
   "targets": {},
-  "etags": {}
+  "etags": {
+    "nutribuddy-2fc9c": {
+      "extensionInstances": {
+        "firestore-send-email": "3a4b12c9525efa69dcb35c0a9526eddd7a6363a94ffed47e2fc83f0b7528aadb"
+      }
+    }
+  }
 }

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn, MailCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 
 export default function LoginPage() {
+  const MAGIC_EMAIL_STORAGE_KEY = 'nutribuddy-magic-link-email';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +23,21 @@ export default function LoginPage() {
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
   const [isResetLoading, setIsResetLoading] = useState(false);
-  const { login, loginWithGoogle, resetPassword } = useAuth();
+  const [magicLinkInfo, setMagicLinkInfo] = useState('');
+  const [magicLinkError, setMagicLinkError] = useState('');
+  const [isMagicLinkSending, setIsMagicLinkSending] = useState(false);
+  const [isConfirmingMagicLink, setIsConfirmingMagicLink] = useState(false);
+  const [requiresMagicEmailConfirmation, setRequiresMagicEmailConfirmation] = useState(false);
+  const [magicEmailInput, setMagicEmailInput] = useState('');
+
+  const {
+    login,
+    loginWithGoogle,
+    resetPassword,
+    sendMagicLink,
+    completeMagicLinkSignIn,
+    checkIsMagicLink,
+  } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -86,6 +102,101 @@ export default function LoginPage() {
     }
   };
 
+  const finalizeMagicLink = async (emailToUse: string, link: string) => {
+    setRequiresMagicEmailConfirmation(false);
+    setIsConfirmingMagicLink(true);
+    setMagicLinkError('');
+    setMagicLinkInfo('Confirmando seu acesso...');
+
+    try {
+      const loggedUser = await completeMagicLinkSignIn(emailToUse, link);
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(MAGIC_EMAIL_STORAGE_KEY);
+      }
+      const destination = loggedUser?.role === 'patient' ? '/meu-plano' : '/dashboard';
+      router.push(destination);
+    } catch (magicError) {
+      setMagicLinkError(
+        magicError instanceof Error
+          ? magicError.message
+          : 'Não foi possível validar o link. Solicite um novo acesso.'
+      );
+      setMagicLinkInfo('');
+      setRequiresMagicEmailConfirmation(true);
+    } finally {
+      setIsConfirmingMagicLink(false);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const currentLink = window.location.href;
+
+    if (!checkIsMagicLink(currentLink)) {
+      return;
+    }
+
+    setMagicLinkError('');
+    const storedEmail = window.localStorage.getItem(MAGIC_EMAIL_STORAGE_KEY);
+
+    if (storedEmail) {
+      setMagicEmailInput(storedEmail);
+      setRequiresMagicEmailConfirmation(false);
+      finalizeMagicLink(storedEmail, currentLink);
+    } else {
+      setMagicLinkInfo(
+        'Detectamos um link de acesso. Informe o email utilizado para recebê-lo e finalize seu login.'
+      );
+      setRequiresMagicEmailConfirmation(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSendMagicLink = async () => {
+    setMagicLinkError('');
+    setMagicLinkInfo('');
+
+    if (!email) {
+      setMagicLinkError('Informe um email válido para receber o link de acesso.');
+      return;
+    }
+
+    try {
+      setIsMagicLinkSending(true);
+      await sendMagicLink(email);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(MAGIC_EMAIL_STORAGE_KEY, email);
+      }
+      setMagicLinkInfo(
+        'Enviamos um link de acesso para o seu email. Abra o link no mesmo dispositivo e navegador para entrar rapidamente.'
+      );
+      setRequiresMagicEmailConfirmation(false);
+    } catch (magicErr) {
+      setMagicLinkError(
+        magicErr instanceof Error
+          ? magicErr.message
+          : 'Não foi possível enviar o link. Verifique o email informado e tente novamente.'
+      );
+    } finally {
+      setIsMagicLinkSending(false);
+    }
+  };
+
+  const handleConfirmMagicLink = async (event: FormEvent) => {
+    event.preventDefault();
+    if (typeof window === 'undefined') return;
+
+    const link = window.location.href;
+    const emailToUse = magicEmailInput || email;
+
+    if (!emailToUse) {
+      setMagicLinkError('Informe o email utilizado para solicitar o link.');
+      return;
+    }
+
+    await finalizeMagicLink(emailToUse, link);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
       <motion.div
@@ -143,14 +254,38 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-4 text-center">
-              <button
+            <div className="mt-4 space-y-3">
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={openResetModal}
+                  className="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+              <Button
                 type="button"
-                onClick={openResetModal}
-                className="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={handleSendMagicLink}
+                isLoading={isMagicLinkSending}
               >
-                Esqueci minha senha
-              </button>
+                <MailCheck className="w-4 h-4" />
+                <span>Receber link de acesso por e-mail</span>
+              </Button>
+
+              {(magicLinkInfo || magicLinkError) && (
+                <div
+                  className={`rounded-lg border p-3 text-sm ${
+                    magicLinkError
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-blue-200 bg-blue-50 text-blue-700'
+                  }`}
+                >
+                  {magicLinkError || magicLinkInfo}
+                </div>
+              )}
             </div>
 
             <div className="relative my-6">
@@ -196,6 +331,51 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {requiresMagicEmailConfirmation && (
+        <Modal
+          isOpen={requiresMagicEmailConfirmation}
+          onClose={() => setRequiresMagicEmailConfirmation(false)}
+          title="Finalizar login por e-mail"
+          size="sm"
+        >
+          <form className="space-y-4" onSubmit={handleConfirmMagicLink}>
+            <p className="text-sm text-gray-600">
+              Informe o email utilizado para receber o link de acesso. Isso garante que apenas você possa concluir o
+              login neste dispositivo.
+            </p>
+            <Input
+              type="email"
+              label="Email"
+              placeholder="seu@email.com"
+              value={magicEmailInput}
+              onChange={(event) => setMagicEmailInput(event.target.value)}
+              icon={<Mail className="w-4 h-4" />}
+              required
+            />
+
+            {magicLinkError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {magicLinkError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setRequiresMagicEmailConfirmation(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="flex-1" isLoading={isConfirmingMagicLink}>
+                Concluir acesso
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       <Modal
         isOpen={isResetModalOpen}

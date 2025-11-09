@@ -166,3 +166,4 @@ https://vercel.com/drpauloguimaraesjrs-projects/nutri-buddy-ir2n
 
 Assim que você adicionar `CORS_ORIGIN=*` no Railway, o erro "Failed to fetch" vai sumir e tudo vai funcionar! 🚀
 
+

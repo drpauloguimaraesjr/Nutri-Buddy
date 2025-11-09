@@ -291,3 +291,4 @@ Se ainda tiver problemas:
 **Data de criação:** $(date)  
 **Última validação:** Execute `./SETUP-COMPLETO-NUTRIBUDDY.sh` para atualizar
 
+

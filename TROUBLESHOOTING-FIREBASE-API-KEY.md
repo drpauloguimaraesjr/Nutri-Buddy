@@ -180,3 +180,4 @@ console.log('API Key:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY)
 **Me avise qual passo você está e o que encontrou!** 🔍
 
 
+

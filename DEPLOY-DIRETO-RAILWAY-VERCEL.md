@@ -368,3 +368,4 @@ https://nutri-buddy-xxxxx.vercel.app
 **Agora é só seguir os passos e tudo vai funcionar direto nas plataformas! Sem precisar rodar nada na sua máquina! 🚀**
 
 
+

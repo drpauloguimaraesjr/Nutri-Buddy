@@ -298,3 +298,4 @@ https://nutri-buddy-ir2n.vercel.app,https://nutribuddy-demo-your-username.repl.c
 
 **Quer que eu atualize o `frontend-replit.html` agora para usar a API do Railway?** 🚀
 
+

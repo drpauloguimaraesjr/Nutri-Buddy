@@ -18,7 +18,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/webhook",
+        "url": "={{$env.BACKEND_BASE_URL}}/api/webhook",
         "authentication": "headerAuth",
         "sendHeaders": true,
         "headerParameters": {
@@ -73,7 +73,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/nutrition",
+        "url": "={{$env.BACKEND_BASE_URL}}/api/nutrition",
         "authentication": "headerAuth",
         "sendHeaders": true,
         "headerParameters": {
@@ -98,7 +98,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3000/api/meals",
+        "url": "={{$env.BACKEND_BASE_URL}}/api/meals",
         "authentication": "headerAuth",
         "sendHeaders": true,
         "headerParameters": {
@@ -123,7 +123,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "http://localhost:3000/api/health",
+        "url": "={{$env.BACKEND_BASE_URL}}/api/health",
         "options": {}
       },
       "id": "health-check",
@@ -135,7 +135,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "http://localhost:3000/api/nutrition",
+        "url": "={{$env.BACKEND_BASE_URL}}/api/nutrition",
         "authentication": "headerAuth",
         "sendHeaders": true,
         "headerParameters": {

@@ -11,6 +11,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -23,6 +26,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User | null>;
   loginWithGoogle: () => Promise<User | null>;
   resetPassword: (email: string) => Promise<void>;
+  sendMagicLink: (email: string) => Promise<void>;
+  completeMagicLinkSignIn: (email: string, link: string) => Promise<User | null>;
+  checkIsMagicLink: (link: string) => boolean;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateUserRole: (role: UserRole) => Promise<void>;
@@ -217,6 +223,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const buildActionCodeSettings = () => {
+    const redirectUrl = process.env.NEXT_PUBLIC_EMAIL_LINK_REDIRECT_URL;
+
+    if (redirectUrl) {
+      return {
+        url: redirectUrl,
+        handleCodeInApp: true,
+      };
+    }
+
+    if (typeof window === 'undefined') {
+      throw new Error('Action code settings requerem contexto do navegador.');
+    }
+
+    return {
+      url: `${window.location.origin}/login`,
+      handleCodeInApp: true,
+    };
+  };
+
+  const sendMagicLink = async (email: string) => {
+    try {
+      const actionCodeSettings = buildActionCodeSettings();
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    } catch (error) {
+      console.error('Error sending magic link:', error);
+      throw new Error(error instanceof Error ? error.message : 'Erro ao enviar o link de acesso');
+    }
+  };
+
+  const completeMagicLinkSignIn = async (email: string, link: string) => {
+    try {
+      const result = await signInWithEmailLink(auth, email, link);
+      const userData = await getUserData(result.user);
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      console.error('Error completing magic link sign-in:', error);
+      throw new Error(error instanceof Error ? error.message : 'Não foi possível concluir o acesso com o link');
+    }
+  };
+
+  const checkIsMagicLink = (link: string) => {
+    try {
+      return isSignInWithEmailLink(auth, link);
+    } catch (error) {
+      console.error('Error checking magic link:', error);
+      return false;
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -253,6 +310,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loginWithGoogle,
     register,
     resetPassword,
+    sendMagicLink,
+    completeMagicLinkSignIn,
+    checkIsMagicLink,
     logout,
     updateUserRole,
     isPrescrber: user?.role === 'prescriber',

@@ -40,3 +40,4 @@ temp/
 # WhatsApp Auth
 whatsapp_auth/
 *.data.json
+.vercel
