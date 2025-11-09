@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, requirePrescriber } = require('../middleware/auth');
-const { db } = require('../config/firebase');
+const { verifyToken, requireRole } = require('../middleware/auth');
+const { db, admin } = require('../config/firebase');
+
+const ALLOWED_ROLES_TO_CREATE = ['patient', 'prescriber'];
 
 // Todas as rotas aqui requerem autenticação + role prescriber
 router.use(verifyToken);
-router.use(requirePrescriber);
+router.use(requireRole(['prescriber', 'admin']));
+
+const generateTemporaryPassword = () => {
+  const random = Math.random().toString(36).slice(-8);
+  return `Temp${random.charAt(0).toUpperCase()}${random.slice(1)}!1`;
+};
 
 /**
  * GET /api/prescriber/patients
@@ -49,6 +56,164 @@ router.get('/patients', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/prescriber/patients/create
+ * Criar paciente/prescritor e garantir cadastro no Firebase Auth
+ */
+router.post('/patients/create', async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      phone,
+      age,
+      height,
+      weight,
+      gender = 'other',
+      goals,
+      role,
+      status = 'active',
+      prescriberId: requestedPrescriberId
+    } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name and email are required'
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const requesterRole = req.user.role;
+    const requesterId = req.user.uid;
+
+    const targetRole =
+      requesterRole === 'admin' && role && ALLOWED_ROLES_TO_CREATE.includes(role)
+        ? role
+        : 'patient';
+
+    let userRecord;
+    let createdAuthUser = false;
+    const tempPassword = generateTemporaryPassword();
+
+    try {
+      userRecord = await admin.auth().getUserByEmail(normalizedEmail);
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        userRecord = await admin.auth().createUser({
+          email: normalizedEmail,
+          password: tempPassword,
+          displayName: name,
+          emailVerified: false
+        });
+        createdAuthUser = true;
+      } else {
+        console.error('❌ [PRESCRIBER] Error fetching user from Auth:', error);
+        throw error;
+      }
+    }
+
+    const userId = userRecord.uid;
+
+    // Atualizar displayName se necessário
+    if (!createdAuthUser && userRecord.displayName !== name) {
+      await admin.auth().updateUser(userId, {
+        displayName: name
+      });
+    }
+
+    // Atualizar custom claims para refletir o papel atual
+    try {
+      await admin.auth().setCustomUserClaims(userId, { role: targetRole });
+    } catch (error) {
+      console.warn('⚠️ [PRESCRIBER] Failed to set custom claims:', error.message);
+    }
+
+    const userDocRef = db.collection('users').doc(userId);
+    const existingDoc = await userDocRef.get();
+
+    if (
+      existingDoc.exists &&
+      targetRole === 'patient' &&
+      requesterRole === 'prescriber' &&
+      existingDoc.data().prescriberId &&
+      existingDoc.data().prescriberId !== requesterId
+    ) {
+      return res.status(409).json({
+        success: false,
+        error: 'Paciente já está vinculado a outro prescritor'
+      });
+    }
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const goalsArray = Array.isArray(goals)
+      ? goals
+      : typeof goals === 'string' && goals.trim().length
+        ? goals
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : [];
+
+    const parseNumber = (value) => {
+      if (value === null || value === undefined || value === '') {
+        return null;
+      }
+      const parsed = typeof value === 'number' ? value : Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const dataToSave = {
+      uid: userId,
+      email: normalizedEmail,
+      displayName: name,
+      name,
+      phone: phone || null,
+      age: parseNumber(age),
+      height: parseNumber(height),
+      weight: parseNumber(weight),
+      gender,
+      goals: goalsArray,
+      role: targetRole,
+      status: status || 'active',
+      updatedAt: now
+    };
+
+    if (targetRole === 'patient') {
+      dataToSave.prescriberId =
+        requesterRole === 'prescriber'
+          ? requesterId
+          : requestedPrescriberId || null;
+    }
+
+    if (!existingDoc.exists) {
+      dataToSave.createdAt = now;
+    }
+
+    await userDocRef.set(dataToSave, { merge: true });
+
+    res.status(createdAuthUser ? 201 : 200).json({
+      success: true,
+      message: createdAuthUser
+        ? 'Usuário criado com sucesso'
+        : 'Usuário atualizado com sucesso',
+      data: {
+        userId,
+        email: normalizedEmail,
+        role: targetRole,
+        createdAuthUser,
+        prescriberId: dataToSave.prescriberId || null
+      }
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error creating user:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao criar usuário'
     });
   }
 });
