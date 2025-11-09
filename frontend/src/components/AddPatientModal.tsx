@@ -6,8 +6,6 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { User, Mail, Phone, Calendar, Ruler, Weight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { UserRole } from '@/types';
 
 interface AddPatientModalProps {
@@ -16,26 +14,52 @@ interface AddPatientModalProps {
   onSuccess: () => void;
 }
 
+const getApiBaseUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
+  if (baseUrl) {
+    return baseUrl;
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return '';
+};
+
+const createInitialFormState = () => ({
+  name: '',
+  email: '',
+  phone: '',
+  age: '',
+  height: '',
+  weight: '',
+  gender: 'other' as 'male' | 'female' | 'other',
+  goals: '',
+  role: 'patient' as UserRole,
+});
+
 export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalProps) {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    age: '',
-    height: '',
-    weight: '',
-    gender: 'other' as 'male' | 'female' | 'other',
-    goals: '',
-    role: 'patient' as UserRole,
-  });
+  const [formData, setFormData] = useState(createInitialFormState());
+
+  const resetForm = () => {
+    setFormData(createInitialFormState());
+  };
+
+  const handleClose = () => {
+    setError('');
+    setSuccess('');
+    resetForm();
+    onClose();
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
 
     try {
@@ -44,41 +68,65 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
         throw new Error('Apenas prescritores ou administradores podem adicionar pacientes');
       }
 
-      // Criar documento do paciente no Firestore
-      const selectedRole: UserRole =
-        user.role === 'admin' ? formData.role : 'patient';
+      if (!firebaseUser) {
+        throw new Error('Não foi possível autenticar o usuário atual. Recarregue a página e tente novamente.');
+      }
 
-      await addDoc(collection(db, 'users'), {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
-        age: formData.age ? parseInt(formData.age) : null,
-        height: formData.height ? parseFloat(formData.height) : null,
-        weight: formData.weight ? parseFloat(formData.weight) : null,
+      const selectedRole: UserRole = user.role === 'admin' ? formData.role : 'patient';
+      const apiBaseUrl = getApiBaseUrl();
+      const endpoint = `${apiBaseUrl}/api/prescriber/patients/create`;
+      const token = await firebaseUser.getIdToken();
+
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone ? formData.phone.trim() : undefined,
+        age: formData.age ? Number(formData.age) : null,
+        height: formData.height ? Number(formData.height) : null,
+        weight: formData.weight ? Number(formData.weight) : null,
         gender: formData.gender,
-        goals: formData.goals ? formData.goals.split(',').map(g => g.trim()) : [],
+        goals: formData.goals,
         role: selectedRole,
-        prescriberId: selectedRole === 'patient' ? user.uid : null,
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      };
+
+      console.log('[AddPatientModal] submit', {
+        endpoint,
+        tokenInfo: {
+          length: token.length,
+          start: token.slice(0, 25),
+          end: token.slice(-25),
+        },
+        payload,
       });
 
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        age: '',
-        height: '',
-        weight: '',
-        gender: 'other',
-        goals: '',
-        role: 'patient',
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.error ||
+            result?.message ||
+            'Não foi possível criar o usuário. Verifique os dados e tente novamente.'
+        );
+      }
+
+      setSuccess(
+        selectedRole === 'patient'
+          ? 'Paciente criado com sucesso. O paciente já pode usar a opção "Esqueci minha senha" para definir o acesso.'
+          : 'Usuário criado com sucesso.'
+      );
+
+      resetForm();
 
       onSuccess();
-      onClose();
     } catch (err) {
       console.error('Error adding patient:', err);
       setError(err instanceof Error ? err.message : 'Erro ao adicionar paciente');
@@ -88,11 +136,16 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Adicionar Novo Paciente" size="lg">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Adicionar Novo Paciente" size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+        {success && !error && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-700">{success}</p>
           </div>
         )}
 
@@ -205,7 +258,7 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1"
           >
             Cancelar
