@@ -506,6 +506,80 @@ router.get('/dietPlans/:patientId', async (req, res) => {
 });
 
 /**
+ * DELETE /api/prescriber/patients/:userId
+ * Excluir paciente (Firebase Auth + Firestore)
+ */
+router.delete('/patients/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requesterId = req.user.uid;
+    const requesterRole = req.user.role;
+
+    console.log('🗑️ [PRESCRIBER] Deleting user:', userId, 'by:', requesterId);
+
+    // Buscar usuário no Firestore
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado'
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Verificar permissão:
+    // - Admin pode excluir qualquer um
+    // - Prescritor pode excluir apenas seus próprios pacientes
+    if (requesterRole !== 'admin') {
+      if (userData.role !== 'patient' || userData.prescriberId !== requesterId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Você não tem permissão para excluir este usuário'
+        });
+      }
+    }
+
+    // Excluir do Firebase Auth
+    try {
+      await admin.auth().deleteUser(userId);
+      console.log('✅ [PRESCRIBER] User deleted from Firebase Auth:', userId);
+    } catch (authError) {
+      console.warn('⚠️ [PRESCRIBER] Failed to delete from Auth (may not exist):', authError.message);
+    }
+
+    // Excluir do Firestore
+    await db.collection('users').doc(userId).delete();
+    console.log('✅ [PRESCRIBER] User deleted from Firestore:', userId);
+
+    // Excluir conexões relacionadas
+    const connectionsSnapshot = await db.collection('connections')
+      .where('patientId', '==', userId)
+      .get();
+    
+    const batch = db.batch();
+    connectionsSnapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+
+    console.log('✅ [PRESCRIBER] User and connections deleted successfully');
+
+    res.json({
+      success: true,
+      message: 'Usuário excluído com sucesso'
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error deleting user:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao excluir usuário'
+    });
+  }
+});
+
+/**
  * GET /api/prescriber/stats
  * Obter estatísticas do prescritor
  */

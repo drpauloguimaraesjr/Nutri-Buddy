@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, 
   Plus, 
@@ -10,12 +10,15 @@ import {
   Phone,
   Calendar,
   MoreVertical,
+  Trash2,
+  Edit,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AddPatientModal } from '@/components/AddPatientModal';
+import { DeletePatientModal } from '@/components/DeletePatientModal';
 import { useAuth } from '@/context/AuthContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -33,18 +36,36 @@ interface Patient {
 }
 
 export default function PatientsPage() {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     loadPatients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Fechar menu ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (openMenuId && !target.closest('[data-menu]')) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   const loadPatients = async () => {
     if (!user || (user.role !== 'prescriber' && user.role !== 'admin')) {
@@ -75,6 +96,43 @@ export default function PatientsPage() {
       console.error('Error loading patients:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeletePatient = async () => {
+    if (!selectedPatient || !firebaseUser) return;
+
+    try {
+      setIsDeleting(true);
+      
+      const token = await firebaseUser.getIdToken();
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiBaseUrl}/api/prescriber/patients/${selectedPatient.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao excluir paciente');
+      }
+
+      // Atualizar lista local
+      setPatients(prev => prev.filter(p => p.id !== selectedPatient.id));
+      
+      // Fechar modal
+      setShowDeleteModal(false);
+      setSelectedPatient(null);
+      
+      console.log('✅ Paciente excluído com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao excluir paciente:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao excluir paciente');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -264,9 +322,57 @@ export default function PatientsPage() {
                     </div>
 
                     {/* Actions */}
-                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                      <MoreVertical className="w-5 h-5 text-gray-400" />
-                    </button>
+                    <div className="relative" data-menu>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === patient.id ? null : patient.id);
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <MoreVertical className="w-5 h-5 text-gray-400" />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      <AnimatePresence>
+                        {openMenuId === patient.id && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            transition={{ duration: 0.1 }}
+                            className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                            ref={(el) => {
+                              menuRefs.current[patient.id] = el;
+                            }}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(null);
+                                router.push(`/patients/${patient.id}`);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            >
+                              <Edit className="w-4 h-4" />
+                              <span>Editar</span>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(null);
+                                setSelectedPatient(patient);
+                                setShowDeleteModal(true);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span>Excluir</span>
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -280,6 +386,18 @@ export default function PatientsPage() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={loadPatients}
+      />
+
+      {/* Delete Patient Modal */}
+      <DeletePatientModal
+        isOpen={showDeleteModal}
+        patientName={selectedPatient?.name || ''}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedPatient(null);
+        }}
+        onConfirm={handleDeletePatient}
+        isDeleting={isDeleting}
       />
     </motion.div>
   );
