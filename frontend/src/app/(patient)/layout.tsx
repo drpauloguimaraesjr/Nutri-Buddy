@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePatientRoute } from '@/hooks/usePatientRoute';
+import { useAuth } from '@/context/AuthContext';
 
 export default function PatientLayout({
   children,
@@ -11,6 +12,7 @@ export default function PatientLayout({
   children: ReactNode;
 }) {
   const { loading } = usePatientRoute();
+  const { user } = useAuth();
 
   if (loading) {
     return (
@@ -40,12 +42,15 @@ export default function PatientLayout({
               <p className="text-xs text-gray-500">Acompanhe seu plano personalizado</p>
             </div>
           </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-50"
-          >
-            Área do prescritor
-          </Link>
+          {/* Mostrar botão apenas se o usuário for prescritor ou admin */}
+          {(user?.role === 'prescriber' || user?.role === 'admin') && (
+            <Link
+              href="/dashboard"
+              className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-50"
+            >
+              Área do prescritor
+            </Link>
+          )}
         </div>
       </header>
 
