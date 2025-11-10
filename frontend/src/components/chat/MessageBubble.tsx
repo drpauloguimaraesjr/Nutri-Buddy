@@ -40,7 +40,7 @@ export const MessageBubble = memo(function MessageBubble({
       y: 0,
       scale: 1,
       transition: {
-        type: 'spring',
+        type: 'spring' as const,
         stiffness: 500,
         damping: 30,
       },

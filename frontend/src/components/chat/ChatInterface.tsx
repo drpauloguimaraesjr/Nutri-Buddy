@@ -160,9 +160,9 @@ export function ChatInterface({
         }
 
         const data = await response.json();
-        const formattedMessages = (data.messages as Array<Record<string, unknown>>).map((msg) => ({
+        const formattedMessages = (data.messages as Message[]).map((msg) => ({
           ...msg,
-          createdAt: new Date(msg.createdAt as string),
+          createdAt: new Date(msg.createdAt as unknown as string),
         }));
 
         setMessages(formattedMessages);

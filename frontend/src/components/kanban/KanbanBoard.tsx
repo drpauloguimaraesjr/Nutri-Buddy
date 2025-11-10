@@ -55,9 +55,9 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
         }
 
         const data = await response.json();
-        const formattedConversations = (data.conversations as Array<Record<string, unknown>>).map((conv) => ({
+        const formattedConversations = (data.conversations as Conversation[]).map((conv) => ({
           ...conv,
-          lastMessageAt: new Date(conv.lastMessageAt as string),
+          lastMessageAt: new Date(conv.lastMessageAt as unknown as string),
         }));
 
         setConversations(formattedConversations);
