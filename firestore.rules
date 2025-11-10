@@ -9,7 +9,10 @@ service cloud.firestore {
     }
     
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      // CORRIGIDO: Verifica se o documento existe antes de acessar
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : { role: 'patient' }; // Fallback para novos usuários
     }
     
     function isOwner(userId) {
