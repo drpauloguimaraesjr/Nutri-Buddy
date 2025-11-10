@@ -1,0 +1,133 @@
+{
+  "name": "NutriBuddy - Resumo Diário para Prescritor (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-daily",
+      "name": "Agendar: Diariamente 9h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3000/api/messages/conversations",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-all-conversations",
+      "name": "Buscar Todas as Conversas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const conversations = $json.conversations || [];\nconst now = new Date();\nconst yesterday = new Date(now - 24 * 60 * 60 * 1000);\n\n// Filtrar conversas novas nas últimas 24h\nconst newConversations = conversations.filter(c => {\n  const createdAt = new Date(c.createdAt);\n  return createdAt >= yesterday;\n});\n\n// Filtrar conversas com mensagens não lidas\nconst unreadConversations = conversations.filter(c => c.unreadCount > 0);\n\n// Filtrar conversas urgentes\nconst urgentConversations = conversations.filter(c => c.priority === 'high');\n\n// Agrupar por status\nconst byStatus = {\n  new: conversations.filter(c => c.kanbanColumn === 'new').length,\n  inProgress: conversations.filter(c => c.kanbanColumn === 'in-progress').length,\n  waiting: conversations.filter(c => c.kanbanColumn === 'waiting-response').length,\n  resolved: conversations.filter(c => c.kanbanColumn === 'resolved').length\n};\n\nreturn {\n  json: {\n    totalConversations: conversations.length,\n    newLast24h: newConversations.length,\n    unreadCount: unreadConversations.length,\n    urgentCount: urgentConversations.length,\n    byStatus: byStatus,\n    urgentList: urgentConversations.map(c => ({\n      patient: c.metadata?.patientName || 'Paciente',\n      lastMessage: c.lastMessage || 'Sem mensagem'\n    }))\n  }\n};"
+      },
+      "id": "process-stats",
+      "name": "Processar Estatísticas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stats = $json;\nconst dateStr = new Date().toLocaleDateString('pt-BR');\n\nconst emailBody = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; }\n    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }\n    .stat-card { background: #f7fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; }\n    .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }\n    .stat-label { color: #718096; font-size: 14px; }\n    .urgent { background: #fff5f5; border-left-color: #f56565; }\n    .urgent-list { padding: 20px; }\n    .urgent-item { background: white; padding: 12px; margin: 8px 0; border-radius: 6px; border-left: 3px solid #f56565; }\n    .footer { text-align: center; padding: 20px; color: #718096; font-size: 12px; }\n    .button { display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>📊 Resumo Diário - NutriBuddy</h1>\n      <p>Seu resumo de conversas para ${dateStr}</p>\n    </div>\n    \n    <div class=\"stats\">\n      <div class=\"stat-card\">\n        <div class=\"stat-number\">${stats.totalConversations}</div>\n        <div class=\"stat-label\">Total de Conversas</div>\n      </div>\n      \n      <div class=\"stat-card\">\n        <div class=\"stat-number\">${stats.newLast24h}</div>\n        <div class=\"stat-label\">Novas (24h)</div>\n      </div>\n      \n      <div class=\"stat-card urgent\">\n        <div class=\"stat-number\" style=\"color: #f56565;\">${stats.urgentCount}</div>\n        <div class=\"stat-label\">Urgentes</div>\n      </div>\n      \n      <div class=\"stat-card\">\n        <div class=\"stat-number\">${stats.unreadCount}</div>\n        <div class=\"stat-label\">Não Lidas</div>\n      </div>\n    </div>\n    \n    <div style=\"padding: 20px;\">\n      <h3>Status das Conversas</h3>\n      <ul style=\"list-style: none; padding: 0;\">\n        <li>🆕 Novas: <strong>${stats.byStatus.new}</strong></li>\n        <li>💬 Em Atendimento: <strong>${stats.byStatus.inProgress}</strong></li>\n        <li>⏳ Aguardando Resposta: <strong>${stats.byStatus.waiting}</strong></li>\n        <li>✅ Resolvidas: <strong>${stats.byStatus.resolved}</strong></li>\n      </ul>\n    </div>\n    \n    ${stats.urgentCount > 0 ? `\n    <div class=\"urgent-list\">\n      <h3 style=\"color: #f56565;\">⚠️ Conversas Urgentes</h3>\n      ${stats.urgentList.map(item => `\n        <div class=\"urgent-item\">\n          <strong>${item.patient}</strong><br>\n          <span style=\"color: #718096; font-size: 14px;\">${item.lastMessage.substring(0, 100)}...</span>\n        </div>\n      `).join('')}\n    </div>\n    ` : '<div style=\"padding: 20px; text-align: center;\">✅ Nenhuma conversa urgente no momento</div>'}\n    \n    <div style=\"text-align: center; padding: 20px;\">\n      <a href=\"http://localhost:3001/messages\" class=\"button\">\n        Acessar Painel de Mensagens\n      </a>\n    </div>\n    \n    <div class=\"footer\">\n      <p>Este é um email automático do NutriBuddy. Não responda este email.</p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    emailBody: emailBody,\n    subject: `📊 Resumo Diário - ${stats.newLast24h} novas conversas${stats.urgentCount > 0 ? ` | ⚠️ ${stats.urgentCount} urgentes` : ''}`\n  }\n};"
+      },
+      "id": "generate-email",
+      "name": "Gerar Email HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "sendTo": "seu-email@gmail.com",
+        "subject": "={{$json.subject}}",
+        "emailType": "html",
+        "message": "={{$json.emailBody}}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Enviar Email (Gmail)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Agendar: Diariamente 9h": {
+      "main": [
+        [
+          {
+            "node": "Buscar Todas as Conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Todas as Conversas": {
+      "main": [
+        [
+          {
+            "node": "Processar Estatísticas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Estatísticas": {
+      "main": [
+        [
+          {
+            "node": "Gerar Email HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Email HTML": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-11-10T03:30:00.000Z",
+  "versionId": "2"
+}
+

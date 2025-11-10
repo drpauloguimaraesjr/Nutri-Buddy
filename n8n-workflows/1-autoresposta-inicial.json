@@ -1,0 +1,173 @@
+{
+  "name": "NutriBuddy - Auto-resposta Inicial",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-new-conversation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-new-conversation",
+      "name": "Webhook: Nova Conversa",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-new-conversation"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "wait-2-minutes",
+      "name": "Aguardar 2 Minutos",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:3000/api/messages/conversations/{{$json.conversationId}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "check-if-replied",
+      "name": "Verificar se Prescritor Respondeu",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.conversation.lastMessageBy}}",
+              "operation": "equals",
+              "value2": "patient"
+            }
+          ]
+        }
+      },
+      "id": "if-not-replied",
+      "name": "Se Não Respondeu",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:3000/api/messages/webhook/ai-response",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"conversationId\": \"{{$json.conversationId}}\",\n  \"content\": \"Olá! 👋 Recebi sua mensagem e vou responder em breve. Enquanto isso, sinta-se à vontade para me contar mais detalhes sobre sua dúvida ou necessidade.\",\n  \"aiContext\": {\"type\": \"auto-response\", \"reason\": \"prescriber-delayed\"}\n}",
+        "options": {}
+      },
+      "id": "send-auto-response",
+      "name": "Enviar Auto-resposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"Auto-resposta enviada\"}"
+      },
+      "id": "response-success",
+      "name": "Resposta: Sucesso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"Prescritor já respondeu\"}"
+      },
+      "id": "response-already-replied",
+      "name": "Resposta: Já Respondeu",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook: Nova Conversa": {
+      "main": [
+        [
+          {
+            "node": "Aguardar 2 Minutos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar 2 Minutos": {
+      "main": [
+        [
+          {
+            "node": "Verificar se Prescritor Respondeu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar se Prescritor Respondeu": {
+      "main": [
+        [
+          {
+            "node": "Se Não Respondeu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Se Não Respondeu": {
+      "main": [
+        [
+          {
+            "node": "Enviar Auto-resposta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta: Já Respondeu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Auto-resposta": {
+      "main": [
+        [
+          {
+            "node": "Resposta: Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

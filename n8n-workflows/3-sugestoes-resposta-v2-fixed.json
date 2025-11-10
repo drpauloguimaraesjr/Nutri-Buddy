@@ -1,0 +1,138 @@
+{
+  "name": "NutriBuddy - Sugestões de Resposta IA (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-suggest-response",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-suggest",
+      "name": "Webhook: Solicitar Sugestões",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-suggest-response"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3000/api/messages/webhook/conversation-context/{{$json.body.conversationId}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-context",
+      "name": "Buscar Contexto da Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "temperature": 0.7
+        },
+        "text": "=Você é um nutricionista experiente auxiliando outro nutricionista. Com base no histórico de mensagens e dados do paciente, sugira 3 respostas profissionais e empáticas.\n\nContexto do Paciente:\n- Nome: {{$json.context?.patient?.name || 'Paciente'}}\n- Idade: {{$json.context?.patient?.age || 'N/A'}}\n- Objetivos: {{$json.context?.patient?.goals || 'N/A'}}\n- Restrições: {{$json.context?.patient?.restrictions || 'Nenhuma'}}\n\nÚltimas mensagens:\n{{$json.context?.messages?.map(m => `${m.senderRole}: ${m.content}`).join('\\n') || 'Sem mensagens anteriores'}}\n\nRetorne APENAS um JSON válido (sem markdown) com este formato:\n{\n  \"suggestions\": [\n    {\"text\": \"Resposta 1\", \"tone\": \"professional\"},\n    {\"text\": \"Resposta 2\", \"tone\": \"friendly\"},\n    {\"text\": \"Resposta 3\", \"tone\": \"motivational\"}\n  ]\n}"
+      },
+      "id": "openai-suggest",
+      "name": "OpenAI: Gerar Sugestões",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "SELECIONE_SUA_CREDENCIAL",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response\n// Pegar conversationId do primeiro item (do webhook)\nconst firstItem = $('Webhook: Solicitar Sugestões').first().json;\nconst conversationId = firstItem.body?.conversationId || firstItem.conversationId || 'unknown';\n\ntry {\n  const aiResponse = $input.first().json;\n  \n  // Tentar pegar o conteúdo de diferentes estruturas possíveis\n  let content = '';\n  if (aiResponse.message?.content) {\n    content = aiResponse.message.content;\n  } else if (aiResponse.choices?.[0]?.message?.content) {\n    content = aiResponse.choices[0].message.content;\n  } else if (aiResponse.text) {\n    content = aiResponse.text;\n  } else if (typeof aiResponse === 'string') {\n    content = aiResponse;\n  }\n  \n  // Remove markdown code blocks se presentes\n  content = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  \n  // Parse JSON\n  const parsed = JSON.parse(content);\n  \n  return {\n    json: {\n      conversationId: conversationId,\n      suggestions: parsed.suggestions || []\n    }\n  };\n} catch (error) {\n  // Se falhar, retornar sugestões padrão\n  return {\n    json: {\n      conversationId: conversationId,\n      suggestions: [\n        {\n          text: \"Obrigado por compartilhar essas informações comigo. Vou analisar e preparar uma orientação personalizada para você.\",\n          tone: \"professional\"\n        },\n        {\n          text: \"Que bom que você está se dedicando! Vamos trabalhar juntos para alcançar seus objetivos de forma saudável.\",\n          tone: \"motivational\"\n        },\n        {\n          text: \"Entendo sua situação. Vou considerar todos esses pontos na elaboração do seu plano alimentar.\",\n          tone: \"friendly\"\n        }\n      ],\n      error: error.message\n    }\n  };\n}"
+      },
+      "id": "parse-suggestions",
+      "name": "Parse Sugestões",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"suggestions\": $json.suggestions}"
+      },
+      "id": "response-success",
+      "name": "Retornar Sugestões",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Solicitar Sugestões": {
+      "main": [
+        [
+          {
+            "node": "Buscar Contexto da Conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Contexto da Conversa": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: Gerar Sugestões",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: Gerar Sugestões": {
+      "main": [
+        [
+          {
+            "node": "Parse Sugestões",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sugestões": {
+      "main": [
+        [
+          {
+            "node": "Retornar Sugestões",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-11-10T03:00:00.000Z",
+  "versionId": "2"
+}
+

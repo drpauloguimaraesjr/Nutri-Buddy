@@ -1,0 +1,148 @@
+{
+  "name": "NutriBuddy - Sugestões de Resposta IA",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-suggest-response",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-suggest",
+      "name": "Webhook: Solicitar Sugestões",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-suggest-response"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.API_URL}}/api/messages/webhook/conversation-context/{{$json.conversationId}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.FIREBASE_TOKEN}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-context",
+      "name": "Buscar Contexto da Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "text",
+        "operation": "message",
+        "modelId": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Você é um nutricionista experiente auxiliando outro nutricionista. Com base no histórico de mensagens e dados do paciente, sugira 3 respostas profissionais e empáticas que o nutricionista pode usar. Retorne em formato JSON: {\"suggestions\": [{\"text\": \"resposta\", \"tone\": \"professional/friendly/motivational\"}]}"
+            },
+            {
+              "role": "user",
+              "content": "=Contexto do Paciente:\n- Nome: {{$json.context.patient.name}}\n- Idade: {{$json.context.patient.age}}\n- Objetivos: {{$json.context.patient.goals}}\n- Restrições: {{$json.context.patient.restrictions}}\n\nÚltimas mensagens:\n{{$json.context.messages.map(m => `${m.senderRole}: ${m.content}`).join('\\n')}}\n\nSugira 3 respostas para o nutricionista."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "openai-suggest",
+      "name": "OpenAI: Gerar Sugestões",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.message.content;\nconst parsed = JSON.parse(response);\n\nreturn {\n  conversationId: $input.first().json.conversationId,\n  suggestions: parsed.suggestions\n};"
+      },
+      "id": "parse-suggestions",
+      "name": "Parse Sugestões",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"suggestions\": $json.suggestions}"
+      },
+      "id": "response-success",
+      "name": "Retornar Sugestões",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Solicitar Sugestões": {
+      "main": [
+        [
+          {
+            "node": "Buscar Contexto da Conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Contexto da Conversa": {
+      "main": [
+        [
+          {
+            "node": "OpenAI: Gerar Sugestões",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI: Gerar Sugestões": {
+      "main": [
+        [
+          {
+            "node": "Parse Sugestões",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sugestões": {
+      "main": [
+        [
+          {
+            "node": "Retornar Sugestões",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "1",
+      "name": "nutribuddy"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+

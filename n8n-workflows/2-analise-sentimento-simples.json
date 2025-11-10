@@ -1,0 +1,190 @@
+{
+  "name": "NutriBuddy - Análise Simples (Sem OpenAI)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-analyze-sentiment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-analyze",
+      "name": "Webhook: Nova Mensagem",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-analyze-sentiment"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================\n// ANÁLISE GRATUITA POR PALAVRAS-CHAVE\n// ===================================\n\nconst content = $input.first().json.content?.toLowerCase() || '';\nconst conversationId = $input.first().json.conversationId;\nconst messageId = $input.first().json.messageId;\nconst patientName = $input.first().json.patientName || 'Paciente';\n\n// ========== PALAVRAS-CHAVE ==========\n\n// Urgência ALTA\nconst urgentWords = [\n  'urgente', 'emergência', 'emergencia', 'socorro',\n  'dor forte', 'dor intensa', 'muita dor',\n  'náusea', 'nausea', 'vômito', 'vomito',\n  'sangue', 'sangrando', 'hemorragia',\n  'ajuda', 'grave', 'sério', 'serio',\n  'rápido', 'rapido', 'agora', 'imediato',\n  'tonteira', 'desmaio', 'desmaiando',\n  'falta de ar', 'não consigo respirar',\n  'febre alta', 'muito mal', 'horrível'\n];\n\n// Urgência MÉDIA\nconst mediumWords = [\n  'preocupado', 'preocupada', 'ansioso', 'ansiosa',\n  'dúvida importante', 'preciso saber',\n  'quando', 'quanto tempo', 'resultado',\n  'medicação', 'remédio', 'remedio',\n  'efeito colateral', 'reação', 'reacao'\n];\n\n// Sentimento NEGATIVO\nconst negativeWords = [\n  'ruim', 'mal', 'pior', 'péssimo', 'pessimo',\n  'não consigo', 'nao consigo', 'difícil', 'dificil',\n  'problema', 'complicado', 'errado',\n  'dor', 'doente', 'fraco', 'cansado', 'cansada',\n  'triste', 'deprimido', 'deprimida', 'desanimado',\n  'frustrado', 'frustrada', 'chateado', 'chateada'\n];\n\n// Sentimento POSITIVO\nconst positiveWords = [\n  'melhor', 'bem', 'ótimo', 'otimo', 'excelente',\n  'obrigado', 'obrigada', 'agradeco', 'agradeço',\n  'melhorou', 'melhorando', 'progresso',\n  'bom', 'boa', 'feliz', 'alegre',\n  'consegui', 'conseguindo', 'legal',\n  'animado', 'animada', 'motivado', 'motivada'\n];\n\n// Categoria: NUTRIÇÃO\nconst nutritionWords = [\n  'dieta', 'alimentação', 'alimentacao', 'comida',\n  'alimento', 'comer', 'refeição', 'refeicao',\n  'café da manhã', 'cafe da manha', 'almoço', 'almoco',\n  'jantar', 'lanche', 'proteína', 'proteina',\n  'carboidrato', 'gordura', 'calorias',\n  'frutas', 'vegetais', 'verduras', 'legumes',\n  'água', 'agua', 'hidratação', 'hidratacao'\n];\n\n// Categoria: EXERCÍCIO\nconst exerciseWords = [\n  'exercício', 'exercicio', 'treino', 'academia',\n  'atividade física', 'atividade fisica', 'correr',\n  'caminhar', 'caminhada', 'musculação', 'musculacao',\n  'yoga', 'pilates', 'natação', 'natacao',\n  'esporte', 'movimentar', 'movimento'\n];\n\n// Categoria: RESULTADO\nconst resultWords = [\n  'resultado', 'exame', 'peso', 'medida',\n  'balança', 'balanca', 'progresso',\n  'quanto perdi', 'emagreci', 'engordei',\n  'medição', 'medicao', 'avaliação', 'avaliacao'\n];\n\n// Categoria: DÚVIDA\nconst doubtWords = [\n  'dúvida', 'duvida', 'pergunta', 'questão', 'questao',\n  'como', 'quando', 'porque', 'por que',\n  'posso', 'pode', 'devo', 'preciso',\n  'qual', 'onde', 'será que', 'sera que'\n];\n\n// ========== ANÁLISE ==========\n\n// Detectar urgência\nlet urgency = 'low';\nconst hasUrgentWord = urgentWords.some(word => content.includes(word));\nconst hasMediumWord = mediumWords.some(word => content.includes(word));\n\nif (hasUrgentWord) {\n  urgency = 'high';\n} else if (hasMediumWord) {\n  urgency = 'medium';\n}\n\n// Detectar sentimento\nlet sentiment = 'neutral';\nconst negativeCount = negativeWords.filter(word => content.includes(word)).length;\nconst positiveCount = positiveWords.filter(word => content.includes(word)).length;\n\nif (negativeCount > positiveCount && negativeCount > 0) {\n  sentiment = 'negative';\n} else if (positiveCount > negativeCount && positiveCount > 0) {\n  sentiment = 'positive';\n}\n\n// Detectar categoria\nlet category = 'other';\nlet maxScore = 0;\n\nconst categories = [\n  { name: 'nutrition', words: nutritionWords },\n  { name: 'exercise', words: exerciseWords },\n  { name: 'result', words: resultWords },\n  { name: 'doubt', words: doubtWords }\n];\n\ncategories.forEach(cat => {\n  const score = cat.words.filter(word => content.includes(word)).length;\n  if (score > maxScore) {\n    maxScore = score;\n    category = cat.name;\n  }\n});\n\n// Gerar tags inteligentes\nconst tags = [];\n\nif (urgency === 'high') tags.push('urgente');\nif (urgency === 'medium') tags.push('importante');\nif (sentiment === 'negative') tags.push('requer-atenção');\nif (sentiment === 'positive') tags.push('progresso-positivo');\n\n// Tags por categoria\nif (category === 'nutrition') tags.push('nutrição');\nif (category === 'exercise') tags.push('exercício');\nif (category === 'result') tags.push('resultado');\nif (category === 'doubt') tags.push('dúvida');\n\n// Tags especiais\nif (content.includes('medicação') || content.includes('remédio')) {\n  tags.push('medicação');\n}\nif (content.includes('dor')) {\n  tags.push('dor');\n}\nif (content.includes('primeira vez') || content.includes('novo')) {\n  tags.push('primeiro-contato');\n}\n\n// Garantir pelo menos uma tag\nif (tags.length === 0) {\n  tags.push('revisar');\n}\n\n// ========== RETORNO ==========\n\nreturn {\n  json: {\n    conversationId: conversationId,\n    messageId: messageId,\n    patientName: patientName,\n    urgency: urgency,\n    sentiment: sentiment,\n    category: category,\n    tags: tags,\n    analysis: {\n      hasUrgentWords: hasUrgentWord,\n      negativeCount: negativeCount,\n      positiveCount: positiveCount,\n      contentLength: content.length\n    }\n  }\n};"
+      },
+      "id": "analyze-content",
+      "name": "Analisar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.urgency}}",
+              "operation": "equals",
+              "value2": "high"
+            }
+          ]
+        }
+      },
+      "id": "if-urgent",
+      "name": "Se Urgente",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://localhost:3000/api/messages/conversations/{{$json.conversationId}}",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"priority\": \"high\",\n  \"tags\": {{JSON.stringify($json.tags)}},\n  \"kanbanColumn\": \"in-progress\",\n  \"urgency\": \"{{$json.urgency}}\",\n  \"sentiment\": \"{{$json.sentiment}}\",\n  \"category\": \"{{$json.category}}\"\n}",
+        "options": {}
+      },
+      "id": "update-priority",
+      "name": "Marcar como Urgente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/messages/webhook/urgent-alert",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"conversationId\": \"{{$json.conversationId}}\",\n  \"patientName\": \"{{$json.patientName}}\",\n  \"urgency\": \"{{$json.urgency}}\",\n  \"tags\": {{JSON.stringify($json.tags)}}\n}",
+        "options": {}
+      },
+      "id": "send-alert",
+      "name": "Enviar Email de Alerta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://localhost:3000/api/messages/conversations/{{$json.conversationId}}",
+        "authentication": "none",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tags\": {{JSON.stringify($json.tags)}},\n  \"sentiment\": \"{{$json.sentiment}}\",\n  \"category\": \"{{$json.category}}\",\n  \"urgency\": \"{{$json.urgency}}\"\n}",
+        "options": {}
+      },
+      "id": "update-tags",
+      "name": "Atualizar Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"analysis\": $json}"
+      },
+      "id": "response-success",
+      "name": "Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Nova Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Analisar Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Se Urgente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Se Urgente": {
+      "main": [
+        [
+          {
+            "node": "Marcar como Urgente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Atualizar Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar como Urgente": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email de Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Email de Alerta": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Tags": {
+      "main": [
+        [
+          {
+            "node": "Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-11-10T00:00:00.000Z",
+  "versionId": "1"
+}
+
