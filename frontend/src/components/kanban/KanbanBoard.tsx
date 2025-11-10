@@ -55,9 +55,9 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
         }
 
         const data = await response.json();
-        const formattedConversations = data.conversations.map((conv: any) => ({
+        const formattedConversations = (data.conversations as Array<Record<string, unknown>>).map((conv) => ({
           ...conv,
-          lastMessageAt: new Date(conv.lastMessageAt),
+          lastMessageAt: new Date(conv.lastMessageAt as string),
         }));
 
         setConversations(formattedConversations);
@@ -122,6 +122,8 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
     }
   };
 
+  // Função para mover cards entre colunas (preparada para drag & drop futuro)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleMoveCard = async (
     conversationId: string,
     newColumn: 'new' | 'in-progress' | 'waiting-response' | 'resolved'
@@ -242,7 +244,6 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
                 columnData[column.id as keyof typeof columnData].map((conversation) => (
                   <KanbanCard
                     key={conversation.id}
-                    id={conversation.id}
                     patientName={conversation.metadata.patientName}
                     patientAvatar={conversation.metadata.patientAvatar}
                     lastMessage={conversation.lastMessage}

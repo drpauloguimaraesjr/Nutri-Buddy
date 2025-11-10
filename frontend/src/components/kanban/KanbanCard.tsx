@@ -2,11 +2,11 @@
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, Clock, AlertCircle, User } from 'lucide-react';
+import Image from 'next/image';
+import { MessageCircle, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface KanbanCardProps {
-  id: string;
   patientName: string;
   patientAvatar?: string;
   lastMessage: string;
@@ -18,7 +18,6 @@ interface KanbanCardProps {
 }
 
 export const KanbanCard = memo(function KanbanCard({
-  id,
   patientName,
   patientAvatar,
   lastMessage,
@@ -86,7 +85,13 @@ export const KanbanCard = memo(function KanbanCard({
             )}
           >
             {patientAvatar ? (
-              <img src={patientAvatar} alt={patientName} className="w-full h-full rounded-full" />
+              <Image 
+                src={patientAvatar} 
+                alt={patientName} 
+                width={40}
+                height={40}
+                className="w-full h-full rounded-full object-cover" 
+              />
             ) : (
               <span className="text-sm">{patientName.charAt(0).toUpperCase()}</span>
             )}
