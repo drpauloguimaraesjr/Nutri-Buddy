@@ -433,5 +433,176 @@ router.get('/test', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * Middleware to verify webhook secret from N8N
+ */
+const verifyWebhookSecret = (req, res, next) => {
+  const secret = req.headers['x-webhook-secret'];
+  const expectedSecret = process.env.N8N_WEBHOOK_SECRET || 'nutribuddy-secret-2024';
+
+  if (!secret || secret !== expectedSecret) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Invalid or missing webhook secret',
+    });
+  }
+
+  next();
+};
+
+/**
+ * Update conversation (tags, priority, status) - Called from N8N
+ * POST /api/n8n/update-conversation
+ * Body: { conversationId, tags, priority, status }
+ */
+router.post('/update-conversation', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId, tags, priority, status, kanbanColumn } = req.body;
+
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        error: 'conversationId is required',
+      });
+    }
+
+    const conversationRef = db.collection('conversations').doc(conversationId);
+    const conversationDoc = await conversationRef.get();
+
+    if (!conversationDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found',
+      });
+    }
+
+    const updateData = {
+      updatedAt: new Date(),
+    };
+
+    if (tags) updateData.tags = tags;
+    if (priority) updateData.priority = priority;
+    if (status) updateData.status = status;
+    if (kanbanColumn) updateData.kanbanColumn = kanbanColumn;
+
+    await conversationRef.update(updateData);
+
+    res.json({
+      success: true,
+      message: 'Conversation updated successfully',
+      conversationId,
+      updates: updateData,
+    });
+  } catch (error) {
+    console.error('Error updating conversation from N8N:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update conversation',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * Mark conversation as urgent - Called from N8N
+ * POST /api/n8n/mark-urgent
+ * Body: { conversationId, reason }
+ */
+router.post('/mark-urgent', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId, reason } = req.body;
+
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        error: 'conversationId is required',
+      });
+    }
+
+    const conversationRef = db.collection('conversations').doc(conversationId);
+    const conversationDoc = await conversationRef.get();
+
+    if (!conversationDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found',
+      });
+    }
+
+    const updateData = {
+      priority: 'high',
+      status: 'urgent',
+      tags: admin.firestore.FieldValue.arrayUnion('urgente'),
+      urgentMarkedAt: new Date(),
+      urgentReason: reason || 'Marcado automaticamente pelo N8N',
+      updatedAt: new Date(),
+    };
+
+    await conversationRef.update(updateData);
+
+    res.json({
+      success: true,
+      message: 'Conversation marked as urgent',
+      conversationId,
+      reason: updateData.urgentReason,
+    });
+  } catch (error) {
+    console.error('Error marking conversation as urgent from N8N:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark conversation as urgent',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * Send alert notification - Called from N8N
+ * POST /api/n8n/send-alert
+ * Body: { conversationId, alertType, message, metadata }
+ */
+router.post('/send-alert', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId, alertType, message, metadata } = req.body;
+
+    if (!conversationId || !alertType) {
+      return res.status(400).json({
+        success: false,
+        error: 'conversationId and alertType are required',
+      });
+    }
+
+    // Save alert to Firestore
+    const alertData = {
+      conversationId,
+      alertType, // 'urgent', 'sentiment', 'followup', etc.
+      message: message || 'Alert from N8N',
+      metadata: metadata || {},
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false,
+    };
+
+    const alertRef = await db.collection('alerts').add(alertData);
+
+    // Optionally: Send notification to prescriber
+    // TODO: Implement push notification or email here
+
+    res.json({
+      success: true,
+      message: 'Alert sent successfully',
+      alertId: alertRef.id,
+      alert: alertData,
+    });
+  } catch (error) {
+    console.error('Error sending alert from N8N:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send alert',
+      message: error.message,
+    });
+  }
+});
+
 module.exports = router;
 
