@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { WhatsAppConversation, WhatsAppMessage } from '@/types';
+import { WhatsAppConversation } from '@/types';
 import WhatsAppKanbanBoard from '@/components/whatsapp/WhatsAppKanbanBoard';
 import WhatsAppConversationModal from '@/components/whatsapp/WhatsAppConversationModal';
 import { Button } from '@/components/ui/Button';
@@ -77,7 +77,7 @@ export default function WhatsAppDashboardPage() {
     );
 
     return () => unsubscribe();
-  }, [user?.uid]);
+  }, [user?.uid, loadMockData]);
 
   // Função para carregar dados mock (desenvolvimento)
   const loadMockData = () => {

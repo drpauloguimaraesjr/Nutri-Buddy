@@ -70,7 +70,7 @@ const WhatsAppConversationModal = ({ conversation, onClose }: WhatsAppConversati
     );
 
     return () => unsubscribe();
-  }, [conversation.id]);
+  }, [conversation.id, loadMockMessages]);
 
   const loadMockMessages = () => {
     const mockMessages: WhatsAppMessage[] = [

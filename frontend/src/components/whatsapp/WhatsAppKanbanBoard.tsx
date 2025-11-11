@@ -12,8 +12,6 @@ interface WhatsAppKanbanBoardProps {
 }
 
 const WhatsAppKanbanBoard = ({ conversations, onConversationClick }: WhatsAppKanbanBoardProps) => {
-  const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
-
   // Categorizar conversas por aderência (score)
   const highAdherence = conversations.filter(c => c.score.totalScore >= 80);
   const goodAdherence = conversations.filter(c => c.score.totalScore >= 60 && c.score.totalScore < 80);

@@ -2,7 +2,7 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageCircle, TrendingUp, Award, Flame, Star, Crown, Target, Zap } from 'lucide-react';
+import { MessageCircle, Flame } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { WhatsAppConversation } from '@/types';
 

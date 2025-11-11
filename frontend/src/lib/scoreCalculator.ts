@@ -22,12 +22,11 @@ interface ScoreCalculationInput {
  * - Qualidade das refeições (10%)
  */
 export function calculatePatientScore(input: ScoreCalculationInput): PatientScore {
-  const { patientId, meals, currentStreak = 0, existingBadges = [] } = input;
+  const { patientId, meals, existingBadges = [] } = input;
 
   // Contador de refeições
   const mealsLogged = meals.length;
   const correctMeals = meals.filter(m => m.isCorrect).length;
-  const mealsWithImages = meals.filter(m => m.hasImage).length;
 
   // Cálculo de aderência (% de refeições corretas)
   const adherencePercentage = mealsLogged > 0 
@@ -126,13 +125,10 @@ function calculateConsecutiveDays(meals: MealEntry[]): number {
     mealsByDay.get(dayKey)!.push(meal);
   });
 
-  // Ordenar dias do mais recente para o mais antigo
-  const sortedDays = Array.from(mealsByDay.keys()).sort().reverse();
-
   // Contar dias consecutivos desde hoje
   let consecutiveDays = 0;
   const today = new Date().toISOString().split('T')[0];
-  let currentDate = new Date(today);
+  const currentDate = new Date(today);
 
   for (let i = 0; i < 30; i++) { // Verificar até 30 dias atrás
     const dateKey = currentDate.toISOString().split('T')[0];
@@ -170,7 +166,6 @@ interface BadgeCalculationInput {
 function calculateBadges(input: BadgeCalculationInput): string[] {
   const { 
     mealsLogged, 
-    correctMeals, 
     adherencePercentage, 
     consecutiveDays, 
     totalScore,
