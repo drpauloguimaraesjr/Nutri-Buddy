@@ -1,0 +1,231 @@
+{
+  "name": "NutriBuddy - Análise Completa FINAL",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-analyze-sentiment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-analyze-sentiment"
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "temperature": 0.3
+        },
+        "text": "=Analise a seguinte mensagem de um paciente e retorne APENAS um JSON válido (sem markdown, sem explicações) com estas chaves:\n- urgency: \"low\", \"medium\" ou \"high\"\n- sentiment: \"positive\", \"neutral\" ou \"negative\"\n- category: \"nutrition\", \"exercise\", \"doubt\", \"result\" ou \"other\"\n- suggestedTags: array de strings com tags relevantes em português\n\nMensagem do paciente: \"{{ $json.content }}\"\n\nRetorne apenas o JSON:"
+      },
+      "id": "openai",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const aiResponse = $input.first().json;\n  let content = '';\n  if (aiResponse.message?.content) {\n    content = aiResponse.message.content;\n  } else if (aiResponse.choices?.[0]?.message?.content) {\n    content = aiResponse.choices[0].message.content;\n  } else if (aiResponse.text) {\n    content = aiResponse.text;\n  } else if (typeof aiResponse === 'string') {\n    content = aiResponse;\n  }\n  content = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  const analysis = JSON.parse(content);\n  return {\n    json: {\n      conversationId: items[0].json.conversationId,\n      messageId: items[0].json.messageId,\n      patientName: items[0].json.patientName || 'Paciente',\n      urgency: analysis.urgency || 'low',\n      sentiment: analysis.sentiment || 'neutral',\n      category: analysis.category || 'other',\n      tags: analysis.suggestedTags || [],\n      rawResponse: content\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      conversationId: items[0].json.conversationId,\n      messageId: items[0].json.messageId,\n      patientName: items[0].json.patientName || 'Paciente',\n      urgency: 'low',\n      sentiment: 'neutral',\n      category: 'other',\n      tags: ['erro-analise'],\n      error: error.message\n    }\n  };\n}"
+      },
+      "id": "parse",
+      "name": "Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.urgency }}",
+              "operation": "equal",
+              "value2": "high"
+            }
+          ]
+        }
+      },
+      "id": "if-urgent",
+      "name": "Se Urgente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/mark-urgent",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "conversationId",
+              "value": "={{ $json.conversationId }}"
+            },
+            {
+              "name": "reason",
+              "value": "=Urgência detectada pela IA: {{ $json.urgency }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mark-urgent",
+      "name": "Marcar Urgente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/send-alert",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "conversationId",
+              "value": "={{ $json.conversationId }}"
+            },
+            {
+              "name": "alertType",
+              "value": "urgent"
+            },
+            {
+              "name": "message",
+              "value": "=Paciente {{ $json.patientName }} precisa de atenção"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-alert",
+      "name": "Enviar Alerta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/update-conversation",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "conversationId",
+              "value": "={{ $json.conversationId }}"
+            },
+            {
+              "name": "priority",
+              "value": "low"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-tags",
+      "name": "Atualizar Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Análise concluída\"\n}"
+      },
+      "id": "response",
+      "name": "Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "OpenAI", "type": "main", "index": 0}]]
+    },
+    "OpenAI": {
+      "main": [[{"node": "Parse", "type": "main", "index": 0}]]
+    },
+    "Parse": {
+      "main": [[{"node": "Se Urgente?", "type": "main", "index": 0}]]
+    },
+    "Se Urgente?": {
+      "main": [
+        [{"node": "Marcar Urgente", "type": "main", "index": 0}],
+        [{"node": "Atualizar Tags", "type": "main", "index": 0}]
+      ]
+    },
+    "Marcar Urgente": {
+      "main": [[{"node": "Enviar Alerta", "type": "main", "index": 0}]]
+    },
+    "Enviar Alerta": {
+      "main": [[{"node": "Resposta", "type": "main", "index": 0}]]
+    },
+    "Atualizar Tags": {
+      "main": [[{"node": "Resposta", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+

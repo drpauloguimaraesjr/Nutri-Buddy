@@ -1,0 +1,15 @@
+# Backup das Regras Antigas do Firestore
+# Data: 10/11/2024
+# Projeto: NutriBuddy
+
+Este é um backup das regras originais caso precise restaurar.
+As regras antigas estão no arquivo: firestore.rules
+
+Para restaurar (se necessário):
+1. Copie o conteúdo de firestore.rules
+2. Cole no Firebase Console → Firestore Database → Regras
+3. Clique em Publicar
+
+IMPORTANTE: Estas regras antigas eram muito restritivas e 
+causavam o erro "Missing or insufficient permissions".
+

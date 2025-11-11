@@ -1,0 +1,166 @@
+{
+  "name": "NutriBuddy - Auto-resposta FINAL",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-new-conversation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-new-conversation"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "wait",
+      "name": "Aguardar 2min",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [450, 300],
+      "webhookId": "nutribuddy-new-conversation"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/conversations/{{ $json.conversationId }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {
+          "continueOnStatusCode": true
+        }
+      },
+      "id": "check-replied",
+      "name": "Verificar Resposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.hasPrescriberReply }}",
+              "operation": "equal",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "if-replied",
+      "name": "Prescritor Respondeu?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Prescritor já respondeu\"\n}"
+      },
+      "id": "response-already-replied",
+      "name": "Resposta: Já Respondido",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/conversations/{{ $json.conversationId }}/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "Olá! Recebi sua mensagem. Vou analisar e responder em breve. Enquanto isso, continue seguindo as orientações."
+            },
+            {
+              "name": "role",
+              "value": "prescriber"
+            },
+            {
+              "name": "isAutoReply",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "continueOnStatusCode": true
+        }
+      },
+      "id": "send-auto-reply",
+      "name": "Enviar Auto-resposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Auto-resposta enviada\"\n}"
+      },
+      "id": "response-sent",
+      "name": "Resposta: Enviado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Aguardar 2min", "type": "main", "index": 0}]]
+    },
+    "Aguardar 2min": {
+      "main": [[{"node": "Verificar Resposta", "type": "main", "index": 0}]]
+    },
+    "Verificar Resposta": {
+      "main": [[{"node": "Prescritor Respondeu?", "type": "main", "index": 0}]]
+    },
+    "Prescritor Respondeu?": {
+      "main": [
+        [{"node": "Resposta: Já Respondido", "type": "main", "index": 0}],
+        [{"node": "Enviar Auto-resposta", "type": "main", "index": 0}]
+      ]
+    },
+    "Enviar Auto-resposta": {
+      "main": [[{"node": "Resposta: Enviado", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+

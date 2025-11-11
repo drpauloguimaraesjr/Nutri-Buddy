@@ -1,0 +1,58 @@
+{
+  "name": "NutriBuddy - Sugestões Resposta FINAL",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-suggest-response",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-suggest-response"
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "temperature": 0.7
+        },
+        "text": "=Você é um nutricionista experiente. Com base no histórico de mensagens abaixo, sugira UMA resposta profissional e empática para o paciente.\n\nHistórico:\n{{ $json.messages }}\n\nSugira APENAS a resposta, sem explicações adicionais:"
+      },
+      "id": "openai",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Sugestão gerada com sucesso\"\n}"
+      },
+      "id": "response",
+      "name": "Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "OpenAI", "type": "main", "index": 0}]]
+    },
+    "OpenAI": {
+      "main": [[{"node": "Resposta", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+

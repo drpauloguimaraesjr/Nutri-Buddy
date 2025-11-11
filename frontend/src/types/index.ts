@@ -71,3 +71,50 @@ export interface NutritionPlan {
   updatedAt?: Date | null;
 }
 
+// WhatsApp Conversation Types
+export type ConversationStatus = 'active' | 'waiting' | 'needs_attention' | 'urgent';
+
+export interface WhatsAppMessage {
+  id: string;
+  conversationId: string;
+  patientId: string;
+  senderId: string; // uid do usuário que enviou
+  senderName: string;
+  senderType: 'patient' | 'system' | 'prescriber';
+  content: string;
+  timestamp: Date;
+  isFromPatient: boolean;
+  hasImage?: boolean;
+  imageUrl?: string;
+  sentiment?: 'positive' | 'neutral' | 'negative';
+  analyzed?: boolean;
+}
+
+export interface PatientScore {
+  patientId: string;
+  totalScore: number; // 0-100
+  adherencePercentage: number; // % de obediência à dieta
+  mealsLogged: number; // Total de refeições registradas
+  correctMeals: number; // Refeições dentro do plano
+  lastMealDate?: Date | null;
+  consecutiveDays: number; // Dias consecutivos seguindo o plano
+  badges: string[]; // ['streak_7', 'perfect_week', 'champion']
+  updatedAt: Date;
+}
+
+export interface WhatsAppConversation {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientPhone?: string;
+  prescriberId: string;
+  status: ConversationStatus;
+  score: PatientScore;
+  lastMessage?: WhatsAppMessage;
+  lastMessageAt?: Date | null;
+  unreadCount: number;
+  totalMessages: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+

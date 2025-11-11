@@ -41,6 +41,9 @@ service cloud.firestore {
       // Anyone authenticated can read their own user document
       allow read: if isOwner(userId);
       
+      // ADMINS can read ALL users (sem restrição de prescriberId)
+      allow read: if isAdmin();
+      
       // Users can create their own document during registration
       allow create: if isAuthenticated() && isOwner(userId) &&
                        request.resource.data.role in ['patient', 'prescriber', 'admin'];
@@ -49,14 +52,20 @@ service cloud.firestore {
       allow update: if isOwner(userId) &&
                        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
       
-      // Prescribers/Admins can manage patients assigned to them
-      allow read: if (isPrescriber() || isAdmin()) && resource.data.prescriberId == request.auth.uid;
+      // Prescribers can manage patients assigned to them
+      allow read: if isPrescriber() && resource.data.prescriberId == request.auth.uid;
       allow create: if (isPrescriber() || isAdmin()) &&
                        request.resource.data.role == 'patient' &&
                        request.resource.data.prescriberId == request.auth.uid;
-      allow update: if (isPrescriber() || isAdmin()) &&
+      
+      // ADMINS can update ANY user including changing role and prescriberId
+      allow update: if isAdmin();
+      
+      // Prescribers can update only their own patients (but not change role or prescriberId)
+      allow update: if isPrescriber() &&
                        resource.data.prescriberId == request.auth.uid &&
                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'prescriberId']);
+      
       allow list: if isPrescriber() || isAdmin();
     }
     

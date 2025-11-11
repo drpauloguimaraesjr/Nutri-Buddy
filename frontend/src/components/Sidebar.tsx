@@ -9,6 +9,7 @@ import {
   Settings, 
   X,
   FileText,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -24,6 +25,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/patients', icon: Users, label: 'Pacientes', roles: ['prescriber', 'admin'] },
+    { href: '/whatsapp', icon: MessageSquare, label: 'WhatsApp', roles: ['prescriber', 'admin'] },
     { href: '/plans', icon: FileText, label: 'Planos', roles: ['prescriber'] },
     { href: '/settings', icon: Settings, label: 'Configurações' },
   ];

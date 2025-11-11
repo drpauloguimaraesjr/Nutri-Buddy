@@ -1,0 +1,118 @@
+{
+  "name": "NutriBuddy - Follow-up Automático FINAL",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Agendar 10h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://web-production-c9eaf.up.railway.app/api/messages/conversations",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {
+          "continueOnStatusCode": true
+        }
+      },
+      "id": "get-conversations",
+      "name": "Buscar Conversas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const conversations = $input.first().json.conversations || [];\nconst now = new Date();\nconst threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));\n\nconst needsFollowup = conversations.filter(c => {\n  if (!c.lastMessageAt) return false;\n  const lastMessage = new Date(c.lastMessageAt);\n  return lastMessage < threeDaysAgo && c.status === 'open';\n});\n\nreturn needsFollowup.map(c => ({\n  json: {\n    conversationId: c.id,\n    patientName: c.patientName,\n    daysSinceLastMessage: Math.floor((now - new Date(c.lastMessageAt)) / (24 * 60 * 60 * 1000))\n  }\n}));"
+      },
+      "id": "filter-old",
+      "name": "Filtrar Antigas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/conversations/{{ $json.conversationId }}/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "=Olá! Não recebi notícias suas há {{ $json.daysSinceLastMessage }} dias. Como estão as coisas? Precisa de ajuda?"
+            },
+            {
+              "name": "role",
+              "value": "prescriber"
+            },
+            {
+              "name": "isAutoReply",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "continueOnStatusCode": true
+        }
+      },
+      "id": "send-followup",
+      "name": "Enviar Follow-up",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Agendar 10h": {
+      "main": [[{"node": "Buscar Conversas", "type": "main", "index": 0}]]
+    },
+    "Buscar Conversas": {
+      "main": [[{"node": "Filtrar Antigas", "type": "main", "index": 0}]]
+    },
+    "Filtrar Antigas": {
+      "main": [[{"node": "Enviar Follow-up", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+

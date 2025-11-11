@@ -1,0 +1,84 @@
+{
+  "name": "NutriBuddy - Resumo Diário FINAL",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Agendar 18h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://web-production-c9eaf.up.railway.app/api/messages/conversations",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {
+          "continueOnStatusCode": true
+        }
+      },
+      "id": "get-conversations",
+      "name": "Buscar Conversas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const conversations = $input.first().json.conversations || [];\n\nconst urgent = conversations.filter(c => c.priority === 'high' || c.status === 'urgent');\nconst total = conversations.length;\n\nreturn {\n  json: {\n    total,\n    urgentCount: urgent.length,\n    urgentList: urgent.map(c => `- ${c.patientName}: ${c.lastMessage || 'Sem mensagem'}`).join('\\n'),\n    date: new Date().toLocaleDateString('pt-BR')\n  }\n};"
+      },
+      "id": "process",
+      "name": "Processar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.prescriberEmail || 'seu-email@gmail.com' }}",
+        "subject": "=Resumo Diário NutriBuddy - {{ $json.date }}",
+        "message": "=<h2>Resumo Diário - NutriBuddy</h2>\n<p>Data: {{ $json.date }}</p>\n\n<h3>📊 Estatísticas:</h3>\n<ul>\n  <li>Total de conversas: {{ $json.total }}</li>\n  <li>Conversas urgentes: {{ $json.urgentCount }}</li>\n</ul>\n\n<h3>⚠️ Requer atenção:</h3>\n<pre>{{ $json.urgentList || 'Nenhuma conversa urgente' }}</pre>\n\n<p>Acesse o dashboard para mais detalhes.</p>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Enviar Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Agendar 18h": {
+      "main": [[{"node": "Buscar Conversas", "type": "main", "index": 0}]]
+    },
+    "Buscar Conversas": {
+      "main": [[{"node": "Processar Dados", "type": "main", "index": 0}]]
+    },
+    "Processar Dados": {
+      "main": [[{"node": "Enviar Email", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+
