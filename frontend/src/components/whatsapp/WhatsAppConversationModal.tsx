@@ -78,7 +78,7 @@ const WhatsAppConversationModal = ({ conversation, onClose }: WhatsAppConversati
 
     setMessages(mockMessages);
     setIsLoading(false);
-  }, [conversation.id, conversation.patientId, conversation.patientName, conversation.lastMessage]); // Fechamento do useCallback
+  }, [conversation.id, conversation.patientId, conversation.patientName, conversation.patientPhone, conversation.lastMessage, conversation.lastMessageAt]); // Fechamento do useCallback
 
   useEffect(() => {
     // Query para buscar mensagens da conversa
@@ -171,7 +171,7 @@ const WhatsAppConversationModal = ({ conversation, onClose }: WhatsAppConversati
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} size="large">
+    <Modal isOpen={true} onClose={onClose} size="xl">
       <div className="flex h-[80vh] flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
