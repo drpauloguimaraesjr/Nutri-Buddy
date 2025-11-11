@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Send, Loader2, Image as ImageIcon, TrendingUp } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -24,55 +24,7 @@ const WhatsAppConversationModal = ({ conversation, onClose }: WhatsAppConversati
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  useEffect(() => {
-    // Query para buscar mensagens da conversa
-    const messagesRef = collection(db, 'whatsappMessages');
-    const q = query(
-      messagesRef,
-      where('conversationId', '==', conversation.id),
-      orderBy('timestamp', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const messagesData: WhatsAppMessage[] = [];
-
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          messagesData.push({
-            id: doc.id,
-            conversationId: data.conversationId,
-            patientId: data.patientId,
-            senderId: data.senderId,
-            senderName: data.senderName,
-            senderType: data.senderType,
-            content: data.content,
-            timestamp: data.timestamp?.toDate() || new Date(),
-            isFromPatient: data.isFromPatient,
-            hasImage: data.hasImage,
-            imageUrl: data.imageUrl,
-            sentiment: data.sentiment,
-            analyzed: data.analyzed,
-          });
-        });
-
-        setMessages(messagesData);
-        setIsLoading(false);
-      },
-      (error) => {
-        console.error('Erro ao buscar mensagens:', error);
-        setIsLoading(false);
-        
-        // TEMPORÁRIO: Mensagens mock para demonstração
-        loadMockMessages();
-      }
-    );
-
-    return () => unsubscribe();
-  }, [conversation.id, loadMockMessages]);
-
-  const loadMockMessages = () => {
+  const loadMockMessages = useCallback(() => {
     const mockMessages: WhatsAppMessage[] = [
       {
         id: 'm1',
@@ -126,7 +78,55 @@ const WhatsAppConversationModal = ({ conversation, onClose }: WhatsAppConversati
 
     setMessages(mockMessages);
     setIsLoading(false);
-  };
+  }, [conversation.id, conversation.patientId, conversation.patientName, conversation.lastMessage]); // Fechamento do useCallback
+
+  useEffect(() => {
+    // Query para buscar mensagens da conversa
+    const messagesRef = collection(db, 'whatsappMessages');
+    const q = query(
+      messagesRef,
+      where('conversationId', '==', conversation.id),
+      orderBy('timestamp', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const messagesData: WhatsAppMessage[] = [];
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          messagesData.push({
+            id: doc.id,
+            conversationId: data.conversationId,
+            patientId: data.patientId,
+            senderId: data.senderId,
+            senderName: data.senderName,
+            senderType: data.senderType,
+            content: data.content,
+            timestamp: data.timestamp?.toDate() || new Date(),
+            isFromPatient: data.isFromPatient,
+            hasImage: data.hasImage,
+            imageUrl: data.imageUrl,
+            sentiment: data.sentiment,
+            analyzed: data.analyzed,
+          });
+        });
+
+        setMessages(messagesData);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error('Erro ao buscar mensagens:', error);
+        setIsLoading(false);
+        
+        // TEMPORÁRIO: Mensagens mock para demonstração
+        loadMockMessages();
+      }
+    );
+
+    return () => unsubscribe();
+  }, [conversation.id, loadMockMessages]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isSending || !user) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -19,68 +19,8 @@ export default function WhatsAppDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    // Query para buscar conversas do prescritor atual
-    const conversationsRef = collection(db, 'whatsappConversations');
-    const q = query(
-      conversationsRef,
-      where('prescriberId', '==', user.uid),
-      orderBy('lastMessageAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const conversationsData: WhatsAppConversation[] = [];
-
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          
-          conversationsData.push({
-            id: doc.id,
-            patientId: data.patientId,
-            patientName: data.patientName,
-            patientPhone: data.patientPhone,
-            prescriberId: data.prescriberId,
-            status: data.status,
-            score: {
-              ...data.score,
-              lastMealDate: data.score?.lastMealDate?.toDate() || null,
-              updatedAt: data.score?.updatedAt?.toDate() || new Date(),
-            },
-            lastMessage: data.lastMessage ? {
-              ...data.lastMessage,
-              timestamp: data.lastMessage.timestamp?.toDate() || new Date(),
-            } : undefined,
-            lastMessageAt: data.lastMessageAt?.toDate() || null,
-            unreadCount: data.unreadCount || 0,
-            totalMessages: data.totalMessages || 0,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            updatedAt: data.updatedAt?.toDate() || new Date(),
-          });
-        });
-
-        setConversations(conversationsData);
-        setIsLoading(false);
-        setIsRefreshing(false);
-      },
-      (error) => {
-        console.error('Erro ao buscar conversas:', error);
-        setIsLoading(false);
-        setIsRefreshing(false);
-        
-        // TEMPORÁRIO: Dados mock para desenvolvimento/demonstração
-        loadMockData();
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user?.uid, loadMockData]);
-
-  // Função para carregar dados mock (desenvolvimento)
-  const loadMockData = () => {
+  // Função para carregar dados mock (desenvolvimento) - MOVIDA PARA ANTES DO useEffect
+  const loadMockData = useCallback(() => {
     const mockConversations: WhatsAppConversation[] = [
       {
         id: '1',
@@ -252,7 +192,67 @@ export default function WhatsAppDashboardPage() {
     setConversations(mockConversations);
     setIsLoading(false);
     setIsRefreshing(false);
-  };
+  }, [user?.uid]); // Fechamento do useCallback com dependências
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    // Query para buscar conversas do prescritor atual
+    const conversationsRef = collection(db, 'whatsappConversations');
+    const q = query(
+      conversationsRef,
+      where('prescriberId', '==', user.uid),
+      orderBy('lastMessageAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const conversationsData: WhatsAppConversation[] = [];
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          
+          conversationsData.push({
+            id: doc.id,
+            patientId: data.patientId,
+            patientName: data.patientName,
+            patientPhone: data.patientPhone,
+            prescriberId: data.prescriberId,
+            status: data.status,
+            score: {
+              ...data.score,
+              lastMealDate: data.score?.lastMealDate?.toDate() || null,
+              updatedAt: data.score?.updatedAt?.toDate() || new Date(),
+            },
+            lastMessage: data.lastMessage ? {
+              ...data.lastMessage,
+              timestamp: data.lastMessage.timestamp?.toDate() || new Date(),
+            } : undefined,
+            lastMessageAt: data.lastMessageAt?.toDate() || null,
+            unreadCount: data.unreadCount || 0,
+            totalMessages: data.totalMessages || 0,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+          });
+        });
+
+        setConversations(conversationsData);
+        setIsLoading(false);
+        setIsRefreshing(false);
+      },
+      (error) => {
+        console.error('Erro ao buscar conversas:', error);
+        setIsLoading(false);
+        setIsRefreshing(false);
+        
+        // TEMPORÁRIO: Dados mock para desenvolvimento/demonstração
+        loadMockData();
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid, loadMockData]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
