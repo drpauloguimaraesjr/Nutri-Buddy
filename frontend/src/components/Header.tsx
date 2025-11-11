@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Menu, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from './ui/Button';
@@ -30,6 +31,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
           >
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
+          
+          <div className="hidden lg:flex items-center gap-3 mr-4">
+            <Image 
+              src="/logos/nutribuddy-icon.svg" 
+              alt="NutriBuddy" 
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+          </div>
           
           <div>
             <h1 className="text-xl font-bold text-gray-900">

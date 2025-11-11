@@ -1,0 +1,23 @@
+{
+  "name": "NutriBuddy",
+  "short_name": "NutriBuddy",
+  "description": "Sistema de nutrição personalizada com análise de DNA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/logos/nutribuddy-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
