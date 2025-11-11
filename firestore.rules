@@ -243,6 +243,48 @@ service cloud.firestore {
                      resource.data.userId == request.auth.uid;
     }
     
+    // WhatsApp Conversations collection
+    match /whatsappConversations/{conversationId} {
+      // Prescritor/Admin podem ler conversas dos seus pacientes
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        (isPrescriber() && resource.data.prescriberId == request.auth.uid) ||
+        resource.data.patientId == request.auth.uid
+      );
+      
+      // Prescritor/Admin podem criar e atualizar conversas
+      allow create: if isAuthenticated() && (
+        isPrescriber() || isAdmin()
+      );
+      
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (isPrescriber() && resource.data.prescriberId == request.auth.uid)
+      );
+      
+      // Listar conversas
+      allow list: if isPrescriber() || isAdmin();
+    }
+    
+    // WhatsApp Messages collection
+    match /whatsappMessages/{messageId} {
+      // Pode ler mensagens se faz parte da conversa
+      allow read: if isAuthenticated();
+      
+      // Pode criar mensagens
+      allow create: if isAuthenticated();
+      
+      // Pode atualizar apenas próprias mensagens ou se for Admin/Prescritor
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        isPrescriber() ||
+        resource.data.senderId == request.auth.uid
+      );
+      
+      // Listar mensagens
+      allow list: if isAuthenticated();
+    }
+    
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;

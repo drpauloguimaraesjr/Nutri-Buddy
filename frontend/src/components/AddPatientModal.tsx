@@ -79,10 +79,15 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
       const endpoint = `${apiBaseUrl}/api/prescriber/patients/create`;
       const token = await firebaseUser.getIdToken();
 
+      // Normalizar telefone (apenas números)
+      const normalizedPhone = formData.phone 
+        ? formData.phone.replace(/\D/g, '') 
+        : undefined;
+
       const payload = {
         name: formData.name.trim(),
         email: formData.email.trim(),
-        phone: formData.phone ? formData.phone.trim() : undefined,
+        phone: normalizedPhone,
         age: formData.age ? Number(formData.age) : null,
         height: formData.height ? Number(formData.height) : null,
         weight: formData.weight ? Number(formData.weight) : null,
@@ -188,12 +193,17 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
           />
 
           <Input
-            label="Telefone"
+            label="Telefone (WhatsApp)"
             type="tel"
             placeholder="(11) 99999-9999"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            onChange={(e) => {
+              // Permitir apenas números enquanto digita
+              const formatted = e.target.value.replace(/\D/g, '');
+              setFormData({ ...formData, phone: formatted });
+            }}
             icon={<Phone className="w-4 h-4" />}
+            helperText="Apenas números. Ex: 5511999998888"
           />
 
           <Input

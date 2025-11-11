@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { MessageCircle, TrendingUp, Award, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { WhatsAppConversation } from '@/types';
