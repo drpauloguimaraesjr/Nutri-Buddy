@@ -1,0 +1,260 @@
+{
+  "name": "Evolution: Enviar Mensagens para WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "nutribuddy-2fc9c",
+        "operation": "listen",
+        "collection": "whatsappMessages",
+        "filters": {
+          "conditions": [
+            {
+              "field": "senderType",
+              "operator": "==",
+              "value": "prescriber"
+            },
+            {
+              "field": "sent",
+              "operator": "==",
+              "value": false
+            }
+          ]
+        }
+      },
+      "name": "Firestore Trigger: Nova Mensagem Prescritor",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "1",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "nutribuddy-2fc9c",
+        "operation": "get",
+        "collection": "users",
+        "documentId": "={{$json.patientId}}"
+      },
+      "name": "Buscar Telefone do Paciente",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "1",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "phone",
+              "value": "={{$json.phone}}"
+            },
+            {
+              "name": "message",
+              "value": "={{$node['Firestore Trigger: Nova Mensagem Prescritor'].json.content}}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{$node['Firestore Trigger: Nova Mensagem Prescritor'].json.id}}"
+            }
+          ]
+        }
+      },
+      "name": "Preparar Dados para Envio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.EVOLUTION_API_URL}}/message/sendText/{{$env.EVOLUTION_INSTANCE_NAME}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{$json.phone}}"
+            },
+            {
+              "name": "text",
+              "value": "={{$json.message}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Enviar via Evolution API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.statusCode}}",
+              "operation": "equals",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "name": "Enviado com Sucesso?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "nutribuddy-2fc9c",
+        "operation": "update",
+        "collection": "whatsappMessages",
+        "documentId": "={{$node['Preparar Dados para Envio'].json.messageId}}",
+        "fields": {
+          "sent": true,
+          "sentAt": "={{new Date()}}",
+          "evolutionMessageId": "={{$json.key?.id || ''}}"
+        }
+      },
+      "name": "Marcar como Enviada",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [1250, 200],
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "1",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "nutribuddy-2fc9c",
+        "operation": "update",
+        "collection": "whatsappConversations",
+        "documentId": "={{$node['Firestore Trigger: Nova Mensagem Prescritor'].json.conversationId}}",
+        "fields": {
+          "lastMessage": {
+            "content": "={{$node['Preparar Dados para Envio'].json.message}}",
+            "timestamp": "={{new Date()}}",
+            "senderType": "prescriber"
+          },
+          "lastMessageAt": "={{new Date()}}",
+          "unreadCount": 0,
+          "updatedAt": "={{new Date()}}"
+        }
+      },
+      "name": "Atualizar Conversa (Última Mensagem)",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [1450, 200],
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "1",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": "nutribuddy-2fc9c",
+        "operation": "update",
+        "collection": "whatsappMessages",
+        "documentId": "={{$node['Preparar Dados para Envio'].json.messageId}}",
+        "fields": {
+          "sent": false,
+          "error": "={{$json.error || 'Erro ao enviar mensagem'}}",
+          "errorDetails": "={{JSON.stringify($json)}}"
+        }
+      },
+      "name": "Marcar como Erro",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [1250, 400],
+      "credentials": {
+        "googleServiceAccount": {
+          "id": "1",
+          "name": "Firebase Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "completed"
+            }
+          ]
+        }
+      },
+      "name": "Workflow Finalizado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    }
+  ],
+  "connections": {
+    "Firestore Trigger: Nova Mensagem Prescritor": {
+      "main": [[{ "node": "Buscar Telefone do Paciente", "type": "main", "index": 0 }]]
+    },
+    "Buscar Telefone do Paciente": {
+      "main": [[{ "node": "Preparar Dados para Envio", "type": "main", "index": 0 }]]
+    },
+    "Preparar Dados para Envio": {
+      "main": [[{ "node": "Enviar via Evolution API", "type": "main", "index": 0 }]]
+    },
+    "Enviar via Evolution API": {
+      "main": [[{ "node": "Enviado com Sucesso?", "type": "main", "index": 0 }]]
+    },
+    "Enviado com Sucesso?": {
+      "main": [
+        [{ "node": "Marcar como Enviada", "type": "main", "index": 0 }],
+        [{ "node": "Marcar como Erro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Marcar como Enviada": {
+      "main": [[{ "node": "Atualizar Conversa (Última Mensagem)", "type": "main", "index": 0 }]]
+    },
+    "Atualizar Conversa (Última Mensagem)": {
+      "main": [[{ "node": "Workflow Finalizado", "type": "main", "index": 0 }]]
+    },
+    "Marcar como Erro": {
+      "main": [[{ "node": "Workflow Finalizado", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
+
