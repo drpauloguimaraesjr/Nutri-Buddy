@@ -171,16 +171,16 @@ const WhatsAppConversationModal = ({ conversation, onClose }: WhatsAppConversati
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} size="xl">
+    <Modal isOpen={true} onClose={onClose} size="xl" title={`Conversa com ${conversation.patientName}`}>
       <div className="flex h-[80vh] flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold text-lg">
               {conversation.patientName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{conversation.patientName}</h2>
+              <div className="text-lg font-semibold text-gray-900">{conversation.patientName}</div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <span>{conversation.patientPhone}</span>
                 <span className="flex items-center gap-1">

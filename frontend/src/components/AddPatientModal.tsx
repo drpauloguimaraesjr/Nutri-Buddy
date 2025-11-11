@@ -192,19 +192,23 @@ export function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalP
             required
           />
 
-          <Input
-            label="Telefone (WhatsApp)"
-            type="tel"
-            placeholder="(11) 99999-9999"
-            value={formData.phone}
-            onChange={(e) => {
-              // Permitir apenas números enquanto digita
-              const formatted = e.target.value.replace(/\D/g, '');
-              setFormData({ ...formData, phone: formatted });
-            }}
-            icon={<Phone className="w-4 h-4" />}
-            helperText="Apenas números. Ex: 5511999998888"
-          />
+          <div>
+            <Input
+              label="Telefone (WhatsApp)"
+              type="tel"
+              placeholder="Ex: 5511999998888"
+              value={formData.phone}
+              onChange={(e) => {
+                // Permitir apenas números enquanto digita
+                const formatted = e.target.value.replace(/\D/g, '');
+                setFormData({ ...formData, phone: formatted });
+              }}
+              icon={<Phone className="w-4 h-4" />}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Apenas números (com DDI). Ex: 5511999998888
+            </p>
+          </div>
 
           <Input
             label="Idade"

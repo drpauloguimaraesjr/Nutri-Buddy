@@ -54,11 +54,11 @@ const WhatsAppConversationCard = ({ conversation, onClick }: WhatsAppConversatio
     : '🚨 Baixa';
 
   return (
-    <Card
-      className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-2 hover:border-purple-300"
-      onClick={onClick}
-    >
-      <CardContent className="p-4 space-y-3">
+    <div onClick={onClick} className="cursor-pointer">
+      <Card
+        className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-2 hover:border-purple-300"
+      >
+        <CardContent className="p-4 space-y-3">
         {/* Header com nome e score */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -146,6 +146,7 @@ const WhatsAppConversationCard = ({ conversation, onClick }: WhatsAppConversatio
         )}
       </CardContent>
     </Card>
+    </div>
   );
 };
 
