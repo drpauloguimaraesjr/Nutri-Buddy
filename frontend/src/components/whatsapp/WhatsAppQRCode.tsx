@@ -44,7 +44,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
             return;
           }
         }
-      } catch (backendErr) {
+      } catch {
         console.log('Backend não disponível, usando Evolution API diretamente');
       }
 
@@ -138,7 +138,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
             return;
           }
         }
-      } catch (backendErr) {
+      } catch {
         console.log('Backend não disponível, verificando direto na Evolution API');
       }
 

@@ -78,7 +78,7 @@ const WhatsAppConversationModal = ({ conversation, onClose }: WhatsAppConversati
 
     setMessages(mockMessages);
     setIsLoading(false);
-  }, [conversation.id, conversation.patientId, conversation.patientName, conversation.patientPhone, conversation.lastMessage, conversation.lastMessageAt]); // Fechamento do useCallback
+  }, [conversation.id, conversation.patientId, conversation.patientName, conversation.lastMessage, conversation.lastMessageAt]); // Fechamento do useCallback
 
   useEffect(() => {
     // Query para buscar mensagens da conversa
