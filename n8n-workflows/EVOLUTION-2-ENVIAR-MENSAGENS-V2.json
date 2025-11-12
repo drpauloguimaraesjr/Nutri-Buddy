@@ -1,0 +1,328 @@
+{
+  "name": "Evolution: Enviar Mensagens para WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule: Verificar a cada 30s",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents:runQuery",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"structuredQuery\": {\n    \"from\": [{\"collectionId\": \"whatsappMessages\"}],\n    \"where\": {\n      \"compositeFilter\": {\n        \"op\": \"AND\",\n        \"filters\": [\n          {\n            \"fieldFilter\": {\n              \"field\": {\"fieldPath\": \"senderType\"},\n              \"op\": \"EQUAL\",\n              \"value\": {\"stringValue\": \"prescriber\"}\n            }\n          },\n          {\n            \"fieldFilter\": {\n              \"field\": {\"fieldPath\": \"sent\"},\n              \"op\": \"EQUAL\",\n              \"value\": {\"booleanValue\": false}\n            }\n          }\n        ]\n      }\n    },\n    \"limit\": 10\n  }\n}",
+        "options": {}
+      },
+      "id": "http-find-pending-messages",
+      "name": "Buscar Mensagens Pendentes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.length > 0 && $json[0].document}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-has-messages",
+      "name": "Tem Mensagens Pendentes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair dados de todas as mensagens pendentes\nconst messages = $input.first().json;\nconst pendingMessages = [];\n\nfor (const item of messages) {\n  if (item.document) {\n    const doc = item.document;\n    const fields = doc.fields;\n    \n    // Extrair ID do documento\n    const docPath = doc.name;\n    const messageId = docPath.split('/').pop();\n    \n    pendingMessages.push({\n      messageId,\n      patientId: fields.patientId?.stringValue || '',\n      conversationId: fields.conversationId?.stringValue || '',\n      content: fields.content?.stringValue || '',\n      senderName: fields.senderName?.stringValue || ''\n    });\n  }\n}\n\nreturn pendingMessages;"
+      },
+      "id": "code-parse-messages",
+      "name": "Extrair Mensagens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-batch",
+      "name": "Processar Uma por Vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/users/{{$json.patientId}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {}
+      },
+      "id": "http-get-patient",
+      "name": "Buscar Telefone do Paciente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 200],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair telefone do paciente\nconst fields = $input.first().json.fields;\nconst phone = fields.phone?.stringValue || '';\nconst messageData = $('Processar Uma por Vez').item.json;\n\nreturn {\n  phone,\n  message: messageData.content,\n  messageId: messageData.messageId,\n  conversationId: messageData.conversationId\n};"
+      },
+      "id": "code-prepare-send",
+      "name": "Preparar Dados para Envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.EVOLUTION_API_URL || 'https://evolution-api.example.com'}}/message/sendText/{{$env.EVOLUTION_INSTANCE_NAME || 'instance1'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.EVOLUTION_API_KEY || 'your-api-key'}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{$json.phone}}\",\n  \"text\": \"{{$json.message}}\"\n}",
+        "options": {}
+      },
+      "id": "http-send-whatsapp",
+      "name": "Enviar via Evolution API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.statusCode || 200}}",
+              "operation": "equal",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "id": "if-sent-success",
+      "name": "Enviado com Sucesso?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1850, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappMessages/{{$node['Preparar Dados para Envio'].json.messageId}}?updateMask.fieldPaths=sent&updateMask.fieldPaths=sentAt",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"sent\": {\"booleanValue\": true},\n    \"sentAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-mark-sent",
+      "name": "Marcar como Enviada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2050, 100],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappConversations/{{$node['Preparar Dados para Envio'].json.conversationId}}?updateMask.fieldPaths=lastMessage&updateMask.fieldPaths=lastMessageAt&updateMask.fieldPaths=unreadCount&updateMask.fieldPaths=updatedAt",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"lastMessage\": {\n      \"mapValue\": {\n        \"fields\": {\n          \"content\": {\"stringValue\": \"{{$node['Preparar Dados para Envio'].json.message}}\"},\n          \"timestamp\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n          \"senderType\": {\"stringValue\": \"prescriber\"}\n        }\n      }\n    },\n    \"lastMessageAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n    \"unreadCount\": {\"integerValue\": 0},\n    \"updatedAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-update-conversation",
+      "name": "Atualizar Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2250, 100],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappMessages/{{$node['Preparar Dados para Envio'].json.messageId}}?updateMask.fieldPaths=sent&updateMask.fieldPaths=error",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"sent\": {\"booleanValue\": false},\n    \"error\": {\"stringValue\": \"{{$json.message || 'Erro ao enviar mensagem'}}\"}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-mark-error",
+      "name": "Marcar como Erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2050, 300],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "completed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-complete",
+      "name": "Workflow Finalizado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [2450, 200]
+    }
+  ],
+  "connections": {
+    "Schedule: Verificar a cada 30s": {
+      "main": [[{"node": "Buscar Mensagens Pendentes", "type": "main", "index": 0}]]
+    },
+    "Buscar Mensagens Pendentes": {
+      "main": [[{"node": "Tem Mensagens Pendentes?", "type": "main", "index": 0}]]
+    },
+    "Tem Mensagens Pendentes?": {
+      "main": [[{"node": "Extrair Mensagens", "type": "main", "index": 0}]]
+    },
+    "Extrair Mensagens": {
+      "main": [[{"node": "Processar Uma por Vez", "type": "main", "index": 0}]]
+    },
+    "Processar Uma por Vez": {
+      "main": [[{"node": "Buscar Telefone do Paciente", "type": "main", "index": 0}]]
+    },
+    "Buscar Telefone do Paciente": {
+      "main": [[{"node": "Preparar Dados para Envio", "type": "main", "index": 0}]]
+    },
+    "Preparar Dados para Envio": {
+      "main": [[{"node": "Enviar via Evolution API", "type": "main", "index": 0}]]
+    },
+    "Enviar via Evolution API": {
+      "main": [[{"node": "Enviado com Sucesso?", "type": "main", "index": 0}]]
+    },
+    "Enviado com Sucesso?": {
+      "main": [
+        [{"node": "Marcar como Enviada", "type": "main", "index": 0}],
+        [{"node": "Marcar como Erro", "type": "main", "index": 0}]
+      ]
+    },
+    "Marcar como Enviada": {
+      "main": [[{"node": "Atualizar Conversa", "type": "main", "index": 0}]]
+    },
+    "Atualizar Conversa": {
+      "main": [[{"node": "Workflow Finalizado", "type": "main", "index": 0}]]
+    },
+    "Marcar como Erro": {
+      "main": [[{"node": "Workflow Finalizado", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
+

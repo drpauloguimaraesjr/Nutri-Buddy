@@ -1,0 +1,373 @@
+{
+  "name": "Evolution: Receber Mensagens WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution-whatsapp",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-evolution",
+      "name": "Webhook Evolution API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.event}}",
+              "operation": "equals",
+              "value2": "messages.upsert"
+            }
+          ],
+          "boolean": [
+            {
+              "value1": "={{$json.data.key.fromMe}}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "if-message-received",
+      "name": "É Mensagem Recebida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{$json.data.key.remoteJid.replace('@s.whatsapp.net', '')}}",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{$json.data.message.conversation || $json.data.message.extendedTextMessage?.text || $json.data.message.imageMessage?.caption || 'Mensagem sem texto'}}",
+              "type": "string"
+            },
+            {
+              "id": "messageId",
+              "name": "messageId",
+              "value": "={{$json.data.key.id}}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{new Date($json.data.messageTimestamp * 1000).toISOString()}}",
+              "type": "string"
+            },
+            {
+              "id": "hasImage",
+              "name": "hasImage",
+              "value": "={{!!$json.data.message.imageMessage}}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-extract-data",
+      "name": "Extrair Dados da Mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents:runQuery",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"structuredQuery\": {\n    \"from\": [{\"collectionId\": \"users\"}],\n    \"where\": {\n      \"fieldFilter\": {\n        \"field\": {\"fieldPath\": \"phone\"},\n        \"op\": \"EQUAL\",\n        \"value\": {\"stringValue\": \"{{$json.phone}}\"}\n      }\n    },\n    \"limit\": 1\n  }\n}",
+        "options": {}
+      },
+      "id": "http-find-patient",
+      "name": "Buscar Paciente no Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 200],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.length > 0 && $json[0].document}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-patient-found",
+      "name": "Paciente Encontrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair dados do documento Firestore\nconst doc = $input.first().json[0].document;\nconst fields = doc.fields;\n\n// Extrair ID do documento\nconst docPath = doc.name;\nconst patientId = docPath.split('/').pop();\n\n// Extrair campos\nconst patientName = fields.name?.stringValue || '';\nconst prescriberId = fields.prescriberId?.stringValue || '';\nconst conversationId = prescriberId + '_' + patientId;\n\nreturn {\n  patientId,\n  patientName,\n  prescriberId,\n  conversationId\n};"
+      },
+      "id": "code-prepare-patient",
+      "name": "Preparar Dados do Paciente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 100]
+    },
+    {
+      "parameters": {
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappMessages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"conversationId\": {\"stringValue\": \"{{$json.conversationId}}\"},\n    \"patientId\": {\"stringValue\": \"{{$json.patientId}}\"},\n    \"senderId\": {\"stringValue\": \"{{$json.patientId}}\"},\n    \"senderName\": {\"stringValue\": \"{{$json.patientName}}\"},\n    \"senderType\": {\"stringValue\": \"patient\"},\n    \"content\": {\"stringValue\": \"{{$node['Extrair Dados da Mensagem'].json.message}}\"},\n    \"timestamp\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n    \"isFromPatient\": {\"booleanValue\": true},\n    \"hasImage\": {\"booleanValue\": {{$node['Extrair Dados da Mensagem'].json.hasImage}}},\n    \"analyzed\": {\"booleanValue\": false},\n    \"sent\": {\"booleanValue\": true},\n    \"sentAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-save-message",
+      "name": "Salvar Mensagem no Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1450, 100],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappConversations/{{$node['Preparar Dados do Paciente'].json.conversationId}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {}
+      },
+      "id": "http-get-conversation",
+      "name": "Buscar Conversa Existente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1650, 100],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.name !== undefined}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-conversation-exists",
+      "name": "Conversa Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1850, 100]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappConversations/{{$node['Preparar Dados do Paciente'].json.conversationId}}?updateMask.fieldPaths=lastMessage&updateMask.fieldPaths=lastMessageAt&updateMask.fieldPaths=unreadCount&updateMask.fieldPaths=totalMessages&updateMask.fieldPaths=updatedAt",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"lastMessage\": {\n      \"mapValue\": {\n        \"fields\": {\n          \"content\": {\"stringValue\": \"{{$node['Extrair Dados da Mensagem'].json.message}}\"},\n          \"timestamp\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n          \"senderType\": {\"stringValue\": \"patient\"}\n        }\n      }\n    },\n    \"lastMessageAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n    \"unreadCount\": {\"integerValue\": {{($json.fields.unreadCount?.integerValue || 0) + 1}}},\n    \"totalMessages\": {\"integerValue\": {{($json.fields.totalMessages?.integerValue || 0) + 1}}},\n    \"updatedAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-update-conversation",
+      "name": "Atualizar Conversa Existente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2050, 0],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappConversations?documentId={{$node['Preparar Dados do Paciente'].json.conversationId}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"patientId\": {\"stringValue\": \"{{$node['Preparar Dados do Paciente'].json.patientId}}\"},\n    \"patientName\": {\"stringValue\": \"{{$node['Preparar Dados do Paciente'].json.patientName}}\"},\n    \"patientPhone\": {\"stringValue\": \"{{$node['Extrair Dados da Mensagem'].json.phone}}\"},\n    \"prescriberId\": {\"stringValue\": \"{{$node['Preparar Dados do Paciente'].json.prescriberId}}\"},\n    \"status\": {\"stringValue\": \"active\"},\n    \"score\": {\n      \"mapValue\": {\n        \"fields\": {\n          \"totalScore\": {\"integerValue\": 50},\n          \"adherencePercentage\": {\"integerValue\": 50},\n          \"mealsLogged\": {\"integerValue\": 0},\n          \"correctMeals\": {\"integerValue\": 0},\n          \"consecutiveDays\": {\"integerValue\": 0},\n          \"badges\": {\"arrayValue\": {\"values\": []}}\n        }\n      }\n    },\n    \"lastMessage\": {\n      \"mapValue\": {\n        \"fields\": {\n          \"content\": {\"stringValue\": \"{{$node['Extrair Dados da Mensagem'].json.message}}\"},\n          \"timestamp\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n          \"senderType\": {\"stringValue\": \"patient\"}\n        }\n      }\n    },\n    \"lastMessageAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n    \"unreadCount\": {\"integerValue\": 1},\n    \"totalMessages\": {\"integerValue\": 1},\n    \"createdAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n    \"updatedAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-create-conversation",
+      "name": "Criar Nova Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2050, 200],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "success",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-success",
+      "name": "Resposta Sucesso",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [2250, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2450, 100]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error",
+              "name": "error",
+              "value": "Paciente não encontrado no sistema",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-not-found",
+      "name": "Paciente Não Encontrado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Evolution API": {
+      "main": [[{"node": "É Mensagem Recebida?", "type": "main", "index": 0}]]
+    },
+    "É Mensagem Recebida?": {
+      "main": [[{"node": "Extrair Dados da Mensagem", "type": "main", "index": 0}]]
+    },
+    "Extrair Dados da Mensagem": {
+      "main": [[{"node": "Buscar Paciente no Firestore", "type": "main", "index": 0}]]
+    },
+    "Buscar Paciente no Firestore": {
+      "main": [[{"node": "Paciente Encontrado?", "type": "main", "index": 0}]]
+    },
+    "Paciente Encontrado?": {
+      "main": [
+        [{"node": "Preparar Dados do Paciente", "type": "main", "index": 0}],
+        [{"node": "Paciente Não Encontrado", "type": "main", "index": 0}]
+      ]
+    },
+    "Preparar Dados do Paciente": {
+      "main": [[{"node": "Salvar Mensagem no Firestore", "type": "main", "index": 0}]]
+    },
+    "Salvar Mensagem no Firestore": {
+      "main": [[{"node": "Buscar Conversa Existente", "type": "main", "index": 0}]]
+    },
+    "Buscar Conversa Existente": {
+      "main": [[{"node": "Conversa Existe?", "type": "main", "index": 0}]]
+    },
+    "Conversa Existe?": {
+      "main": [
+        [{"node": "Atualizar Conversa Existente", "type": "main", "index": 0}],
+        [{"node": "Criar Nova Conversa", "type": "main", "index": 0}]
+      ]
+    },
+    "Atualizar Conversa Existente": {
+      "main": [[{"node": "Resposta Sucesso", "type": "main", "index": 0}]]
+    },
+    "Criar Nova Conversa": {
+      "main": [[{"node": "Resposta Sucesso", "type": "main", "index": 0}]]
+    },
+    "Resposta Sucesso": {
+      "main": [[{"node": "Webhook Response", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {}
+}
+

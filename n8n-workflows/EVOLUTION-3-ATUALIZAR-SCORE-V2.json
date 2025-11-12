@@ -1,0 +1,313 @@
+{
+  "name": "Evolution: Atualizar Score ao Registrar Refeição",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule: Verificar a cada 5min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents:runQuery",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"structuredQuery\": {\n    \"from\": [{\"collectionId\": \"meals\"}],\n    \"orderBy\": [\n      {\n        \"field\": {\"fieldPath\": \"createdAt\"},\n        \"direction\": \"DESCENDING\"\n      }\n    ],\n    \"limit\": 200\n  }\n}",
+        "options": {}
+      },
+      "id": "http-get-meals",
+      "name": "Buscar Últimas 200 Refeições",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agrupar refeições por paciente\nconst meals = $input.first().json;\nconst patientMeals = new Map();\n\nfor (const item of meals) {\n  if (item.document) {\n    const doc = item.document;\n    const fields = doc.fields;\n    \n    const userId = fields.userId?.stringValue || '';\n    if (!userId) continue;\n    \n    if (!patientMeals.has(userId)) {\n      patientMeals.set(userId, []);\n    }\n    \n    patientMeals.get(userId).push({\n      createdAt: fields.createdAt?.timestampValue || new Date().toISOString(),\n      followsPlan: fields.followsPlan?.booleanValue !== false,\n      hasImage: !!fields.imageUrl?.stringValue,\n      quality: fields.quality?.integerValue || 80\n    });\n  }\n}\n\n// Converter Map para array\nconst results = [];\nfor (const [userId, meals] of patientMeals.entries()) {\n  results.push({\n    userId,\n    meals\n  });\n}\n\nreturn results;"
+      },
+      "id": "code-group-meals",
+      "name": "Agrupar por Paciente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-batch",
+      "name": "Processar Um Paciente por Vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calcular score baseado nas refeições\nconst { userId, meals } = $input.first().json;\n\n// Se não houver refeições, retornar score inicial\nif (!meals || meals.length === 0) {\n  return {\n    patientId: userId,\n    totalScore: 50,\n    adherencePercentage: 50,\n    mealsLogged: 0,\n    correctMeals: 0,\n    consecutiveDays: 0,\n    badges: [],\n    lastMealDate: null,\n    updatedAt: new Date().toISOString()\n  };\n}\n\n// Processar dados das refeições\nconst mealData = meals.map(m => ({\n  timestamp: new Date(m.createdAt),\n  isCorrect: m.followsPlan,\n  hasImage: m.hasImage,\n  quality: m.quality\n}));\n\n// Contador de refeições\nconst mealsLogged = mealData.length;\nconst correctMeals = mealData.filter(m => m.isCorrect).length;\nconst mealsWithImages = mealData.filter(m => m.hasImage).length;\n\n// Cálculo de aderência (% de refeições corretas)\nconst adherencePercentage = mealsLogged > 0 \n  ? Math.round((correctMeals / mealsLogged) * 100)\n  : 0;\n\n// Cálculo de dias consecutivos\nconst mealsByDay = new Map();\nmealData.forEach(meal => {\n  const dayKey = meal.timestamp.toISOString().split('T')[0];\n  if (!mealsByDay.has(dayKey)) {\n    mealsByDay.set(dayKey, []);\n  }\n  mealsByDay.get(dayKey).push(meal);\n});\n\nconst sortedDays = Array.from(mealsByDay.keys()).sort().reverse();\nlet consecutiveDays = 0;\nconst today = new Date().toISOString().split('T')[0];\nlet currentDate = new Date(today);\n\nfor (let i = 0; i < 30; i++) {\n  const dateKey = currentDate.toISOString().split('T')[0];\n  const dayMeals = mealsByDay.get(dateKey) || [];\n  const hasCorrectMeal = dayMeals.some(m => m.isCorrect);\n  \n  if (hasCorrectMeal) {\n    consecutiveDays++;\n  } else {\n    break;\n  }\n  \n  currentDate.setDate(currentDate.getDate() - 1);\n}\n\n// Última refeição\nconst sortedMeals = [...mealData].sort((a, b) => b.timestamp - a.timestamp);\nconst lastMealDate = sortedMeals.length > 0 ? sortedMeals[0].timestamp.toISOString() : null;\n\n// Componentes do score (total 100 pontos)\nconst idealWeeklyMeals = 21; // 3 refeições por dia x 7 dias\nconst mealFrequencyScore = Math.min((mealsLogged / (idealWeeklyMeals * 2)) * 30, 30);\nconst adherenceScore = (adherencePercentage / 100) * 40;\nconst consistencyScore = Math.min((consecutiveDays / 7) * 20, 20);\n\nconst avgQuality = mealData.reduce((sum, m) => {\n  const baseQuality = m.quality || (m.isCorrect ? 80 : 40);\n  const imageBonus = m.hasImage ? 10 : 0;\n  return sum + Math.min(baseQuality + imageBonus, 100);\n}, 0) / mealData.length;\n\nconst qualityScore = (avgQuality / 100) * 10;\n\nconst totalScore = Math.min(\n  100,\n  Math.round(mealFrequencyScore + adherenceScore + consistencyScore + qualityScore)\n);\n\n// Calcular badges\nconst badges = [];\n\nif (adherencePercentage === 100 && consecutiveDays >= 7) {\n  badges.push('champion');\n}\nif (consecutiveDays >= 7) {\n  badges.push('streak_7');\n}\nif (consecutiveDays >= 30) {\n  badges.push('streak_30');\n}\nif (mealsLogged >= 50) {\n  badges.push('star_50');\n}\nif (adherencePercentage >= 90 && mealsLogged >= 20) {\n  badges.push('focused_90');\n}\nif (totalScore >= 85) {\n  badges.push('high_performer');\n}\n\nreturn {\n  patientId: userId,\n  totalScore,\n  adherencePercentage,\n  mealsLogged,\n  correctMeals,\n  consecutiveDays,\n  badges,\n  lastMealDate,\n  updatedAt: new Date().toISOString()\n};"
+      },
+      "id": "code-calculate-score",
+      "name": "Calcular Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents:runQuery",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"structuredQuery\": {\n    \"from\": [{\"collectionId\": \"whatsappConversations\"}],\n    \"where\": {\n      \"fieldFilter\": {\n        \"field\": {\"fieldPath\": \"patientId\"},\n        \"op\": \"EQUAL\",\n        \"value\": {\"stringValue\": \"{{$json.patientId}}\"}\n      }\n    },\n    \"limit\": 1\n  }\n}",
+        "options": {}
+      },
+      "id": "http-find-conversation",
+      "name": "Buscar Conversa WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 300],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.length > 0 && $json[0].document}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-conversation-exists",
+      "name": "Conversa Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair dados da conversa\nconst doc = $input.first().json[0].document;\nconst fields = doc.fields;\nconst scoreData = $('Calcular Score').item.json;\n\n// Extrair ID do documento\nconst docPath = doc.name;\nconst conversationId = docPath.split('/').pop();\n\n// Extrair badges anteriores\nconst previousBadges = fields.score?.mapValue?.fields?.badges?.arrayValue?.values?.map(\n  v => v.stringValue\n) || [];\n\nreturn {\n  conversationId,\n  patientName: fields.patientName?.stringValue || '',\n  previousBadges,\n  newBadges: scoreData.badges,\n  newScore: scoreData.totalScore,\n  scoreData\n};"
+      },
+      "id": "code-parse-conversation",
+      "name": "Extrair Dados da Conversa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappConversations/{{$json.conversationId}}?updateMask.fieldPaths=score&updateMask.fieldPaths=updatedAt",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"score\": {\n      \"mapValue\": {\n        \"fields\": {\n          \"totalScore\": {\"integerValue\": {{$json.scoreData.totalScore}}},\n          \"adherencePercentage\": {\"integerValue\": {{$json.scoreData.adherencePercentage}}},\n          \"mealsLogged\": {\"integerValue\": {{$json.scoreData.mealsLogged}}},\n          \"correctMeals\": {\"integerValue\": {{$json.scoreData.correctMeals}}},\n          \"consecutiveDays\": {\"integerValue\": {{$json.scoreData.consecutiveDays}}},\n          \"badges\": {\n            \"arrayValue\": {\n              \"values\": {{JSON.stringify($json.scoreData.badges.map(b => ({stringValue: b})))}}\n            }\n          },\n          \"updatedAt\": {\"timestampValue\": \"{{$json.scoreData.updatedAt}}\"}\n        }\n      }\n    },\n    \"updatedAt\": {\"timestampValue\": \"{{new Date().toISOString()}}\"}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-update-score",
+      "name": "Atualizar Score na Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1850, 200],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verificar se conquistou novos badges\nconst previousBadges = $node['Extrair Dados da Conversa'].json.previousBadges;\nconst newBadges = $node['Extrair Dados da Conversa'].json.newBadges;\n\nconst conqueredBadges = newBadges.filter(badge => !previousBadges.includes(badge));\n\nreturn {\n  ...$input.first().json,\n  conversationId: $node['Extrair Dados da Conversa'].json.conversationId,\n  patientName: $node['Extrair Dados da Conversa'].json.patientName,\n  patientId: $node['Calcular Score'].json.patientId,\n  newScore: $node['Extrair Dados da Conversa'].json.newScore,\n  conqueredBadges,\n  hasNewBadges: conqueredBadges.length > 0\n};"
+      },
+      "id": "code-check-badges",
+      "name": "Verificar Novos Badges",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.hasNewBadges}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-new-badges",
+      "name": "Conquistou Novo Badge?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2250, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mapear badges para mensagens\nconst badgeMessages = {\n  champion: '🏆 CAMPEÃO! 100% de aderência por 1 semana!',\n  streak_7: '🔥 7 DIAS CONSECUTIVOS! Você está no fogo!',\n  streak_30: '💪 30 DIAS CONSECUTIVOS! Você é DEDICADO!',\n  star_50: '⭐ ESTRELA! 50+ refeições registradas!',\n  focused_90: '🎯 FOCADO! 90%+ de aderência!',\n  high_performer: '🚀 ALTO DESEMPENHO! Score acima de 85!',\n  top_3: '👑 TOP 3 DO MÊS! Você é REI/RAINHA!'\n};\n\nconst badges = $input.first().json.conqueredBadges || [];\nconst messages = badges.map(badge => badgeMessages[badge] || `🎉 Novo badge conquistado: ${badge}`);\n\nconst patientName = $input.first().json.patientName || 'Paciente';\nconst newScore = $input.first().json.newScore || 0;\n\nconst congratsMessage = `🎉 *PARABÉNS ${patientName.toUpperCase()}!*\\n\\nVocê acabou de conquistar:\\n\\n${messages.join('\\n')}\\n\\nContinue assim! Seu score atual é *${newScore}*! 💪`;\n\nreturn {\n  conversationId: $input.first().json.conversationId,\n  patientId: $input.first().json.patientId,\n  message: congratsMessage\n};"
+      },
+      "id": "code-create-message",
+      "name": "Criar Mensagem de Parabéns",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://firestore.googleapis.com/v1/projects/nutribuddy-2fc9c/databases/(default)/documents/whatsappMessages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"conversationId\": {\"stringValue\": \"{{$json.conversationId}}\"},\n    \"patientId\": {\"stringValue\": \"{{$json.patientId}}\"},\n    \"senderId\": {\"stringValue\": \"system\"},\n    \"senderName\": {\"stringValue\": \"Sistema NutriBuddy\"},\n    \"senderType\": {\"stringValue\": \"system\"},\n    \"content\": {\"stringValue\": \"{{$json.message}}\"},\n    \"timestamp\": {\"timestampValue\": \"{{new Date().toISOString()}}\"},\n    \"isFromPatient\": {\"booleanValue\": false},\n    \"analyzed\": {\"booleanValue\": true},\n    \"sent\": {\"booleanValue\": false}\n  }\n}",
+        "options": {}
+      },
+      "id": "http-save-congrats",
+      "name": "Salvar Mensagem de Parabéns",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2650, 100],
+      "credentials": {
+        "googleApi": {
+          "id": "1",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "completed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-complete",
+      "name": "Workflow Finalizado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [2850, 200]
+    }
+  ],
+  "connections": {
+    "Schedule: Verificar a cada 5min": {
+      "main": [[{"node": "Buscar Últimas 200 Refeições", "type": "main", "index": 0}]]
+    },
+    "Buscar Últimas 200 Refeições": {
+      "main": [[{"node": "Agrupar por Paciente", "type": "main", "index": 0}]]
+    },
+    "Agrupar por Paciente": {
+      "main": [[{"node": "Processar Um Paciente por Vez", "type": "main", "index": 0}]]
+    },
+    "Processar Um Paciente por Vez": {
+      "main": [[{"node": "Calcular Score", "type": "main", "index": 0}]]
+    },
+    "Calcular Score": {
+      "main": [[{"node": "Buscar Conversa WhatsApp", "type": "main", "index": 0}]]
+    },
+    "Buscar Conversa WhatsApp": {
+      "main": [[{"node": "Conversa Existe?", "type": "main", "index": 0}]]
+    },
+    "Conversa Existe?": {
+      "main": [[{"node": "Extrair Dados da Conversa", "type": "main", "index": 0}]]
+    },
+    "Extrair Dados da Conversa": {
+      "main": [[{"node": "Atualizar Score na Conversa", "type": "main", "index": 0}]]
+    },
+    "Atualizar Score na Conversa": {
+      "main": [[{"node": "Verificar Novos Badges", "type": "main", "index": 0}]]
+    },
+    "Verificar Novos Badges": {
+      "main": [[{"node": "Conquistou Novo Badge?", "type": "main", "index": 0}]]
+    },
+    "Conquistou Novo Badge?": {
+      "main": [
+        [{"node": "Criar Mensagem de Parabéns", "type": "main", "index": 0}],
+        [{"node": "Workflow Finalizado", "type": "main", "index": 0}]
+      ]
+    },
+    "Criar Mensagem de Parabéns": {
+      "main": [[{"node": "Salvar Mensagem de Parabéns", "type": "main", "index": 0}]]
+    },
+    "Salvar Mensagem de Parabéns": {
+      "main": [[{"node": "Workflow Finalizado", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
+
