@@ -9,6 +9,7 @@ const patientRoutes = require('./routes/patient');
 const n8nRoutes = require('./routes/n8n');
 const adminRoutes = require('./routes/admin');
 const messagesRoutes = require('./routes/messages');
+const whatsappRoutes = require('./routes/whatsapp');
 
 // Import Firebase config to initialize
 const { db } = require('./config/firebase');
@@ -56,6 +57,7 @@ app.use('/api/patient', patientRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
