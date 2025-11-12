@@ -13,6 +13,44 @@ NutriBuddy/
 
 ---
 
+## ⚡️ Novidade: Novo Frontend Integrado!
+
+O frontend agora está integrado na versão moderna do Vercel:  
+[https://nutri-buddy-novo.vercel.app](https://nutri-buddy-novo.vercel.app)
+
+**Principais mudanças para facilitar a integração N8N + Backend + Frontend:**
+
+- Interface mais responsiva e moderna, compatível com todos dispositivos.
+- Todas as funcionalidades (cadastro, login, dashboards, convite, fluxo de pacientes e prescritores) já migradas para a nova interface.
+- A comunicação com backend e N8N foi revisada para garantir total compatibilidade: endpoints, tokens e regras continuam funcionando conforme configurado nas páginas anteriores e workflow.
+- Variáveis de ambiente obrigatórias (`FIREBASE_TOKEN`, `WEBHOOK_SECRET`, etc.) permanecem na configuração do N8N, sem alteração.
+- Não há perda de nenhuma funcionalidade, apenas melhoria de interface, agilidade e centralização.
+
+**O que fazer:**
+
+1. **Acesse pelo link acima (`nutri-buddy-novo` no Vercel), ou utilize a `frontend-replit.html` para rodar localmente se preferir.**  
+   No frontend, você pode configurar a URL da API e inserir o token do Firebase normalmente.
+
+2. O **backend** (`NutriBuddy-API`) permanece igual, instale e execute conforme instruções abaixo.  
+   Confira se a variável `API_URL` está igual no backend, N8N e frontend para evitar qualquer diferença.
+
+3. O **workflow N8N** não muda:  
+   - Importe `N8N-WORKFLOW.json`
+   - Configure as variáveis (`WEBHOOK_SECRET`, `FIREBASE_TOKEN`)
+   - O endpoint Webhook `/webhook-nutribuddy` segue funcionando normalmente
+   - O fluxo de dados (eventos, requisições, respostas) segue igual ao especificado anteriormente
+
+4. **Garanta que todos os serviços (backend, N8N, frontend) estejam utilizando URLs e tokens compatíveis.**  
+   Para uso local, configure o frontend para `http://localhost:3000` na API.
+
+---
+
+⏩ **Resumo Final:**  
+Toda a estrutura foi modernizada para integrar com o novo frontend no Vercel (`nutri-buddy-novo`). O workflow N8N, backend e funcionalidades históricas mantiveram total compatibilidade — tudo ficou mais conectado, didático e fácil de usar.  
+Se precisar de detalhes ou exemplos de fluxo, veja também `APLICAR-AGORA.md` e `INSTRUCOES-REPLIT.md`.
+
+*
+
 ## 🎯 Setup em 3 Etapas
 
 ### 1️⃣ BACKEND (NutriBuddy API)

@@ -16,7 +16,11 @@
 
 ---
 
-## 🎯 FASE 1: IMPORTAR WORKFLOWS N8N (10 min)
+## 🎯 FASE 1: IMPORTAR WORKFLOWS N8N V2 (15 min)
+
+### **⚠️ IMPORTANTE: NOVA VERSÃO DOS WORKFLOWS**
+
+Os workflows foram **recriados** para usar **HTTP Request + Firestore REST API**, garantindo compatibilidade total!
 
 ### **Passo 1.1: Acessar N8N**
 ```
@@ -24,24 +28,55 @@ URL: https://n8n-production-3eae.up.railway.app/
 Fazer login com suas credenciais
 ```
 
-### **Passo 1.2: Importar Workflow 1 - Receber Mensagens**
+### **Passo 1.2: Deletar Workflows Antigos (se existirem)**
+
+Se você importou workflows anteriormente que não funcionaram:
+```
+1. Workflows → Ver lista
+2. Workflows com nodes "?" (não funcionando)
+3. Clicar ⋮ (três pontinhos) → Delete
+4. Confirmar exclusão
+```
+
+### **Passo 1.3: Importar Workflow 1 - Receber Mensagens V2**
 
 **Arquivo:**
 ```
 Caminho: /Users/drpgjr.../NutriBuddy/n8n-workflows/
-Arquivo: EVOLUTION-1-RECEBER-MENSAGENS.json
+Arquivo: EVOLUTION-1-RECEBER-MENSAGENS-V2.json ⭐ (NOVO)
 ```
 
 **Processo:**
-1. Clicar em **"Create Workflow"** (botão laranja)
+1. Clicar em **"Add Workflow"** (botão laranja)
 2. Menu **(⋮)** no canto superior direito
 3. Selecionar **"Import from File..."**
 4. Navegar até a pasta `n8n-workflows/`
-5. Selecionar: **EVOLUTION-1-RECEBER-MENSAGENS.json**
+5. Selecionar: **EVOLUTION-1-RECEBER-MENSAGENS-V2.json**
 6. Clicar **"Open"**
-7. Verificar se nodes apareceram
-8. Clicar **"Save"** (Ctrl+S / Cmd+S)
-9. Voltar para "Workflows"
+7. Aguardar carregar
+8. **IMPORTANTE:** Configurar credenciais (próximo passo)
+
+**Configurar Credenciais:**
+
+Após importar, alguns nodes terão aviso vermelho. **Para cada node HTTP Request:**
+```
+1. Clicar no node
+2. Aba "Credentials" ou "Parameters"
+3. Campo "Credential for Google API"
+4. Selecionar: "Google Service Account account"
+5. ✅ Aviso vermelho desaparece
+```
+
+**Nodes que precisam de credencial:**
+- Buscar Paciente no Firestore
+- Salvar Mensagem no Firestore
+- Buscar Conversa Existente
+- Atualizar Conversa Existente
+- Criar Nova Conversa
+
+**Depois:**
+9. Clicar **"Save"** (Ctrl+S / Cmd+S)
+10. ✅ Verificar que não há mais avisos vermelhos
 
 **O que faz este workflow:**
 - Recebe mensagens do WhatsApp via webhook
@@ -50,120 +85,123 @@ Arquivo: EVOLUTION-1-RECEBER-MENSAGENS.json
 - Cria ou atualiza conversa na collection `whatsappConversations`
 - Dashboard atualiza em tempo real
 
-### **Passo 1.3: Importar Workflow 2 - Enviar Mensagens**
+### **Passo 1.4: Importar Workflow 2 - Enviar Mensagens V2**
 
 **Arquivo:**
 ```
 Caminho: /Users/drpgjr.../NutriBuddy/n8n-workflows/
-Arquivo: EVOLUTION-2-ENVIAR-MENSAGENS.json
+Arquivo: EVOLUTION-2-ENVIAR-MENSAGENS-V2.json ⭐ (NOVO)
 ```
 
 **Processo:**
-1. Repetir mesmo processo do Workflow 1
-2. Selecionar: **EVOLUTION-2-ENVIAR-MENSAGENS.json**
-3. Importar e salvar
+1. Repetir processo de importação
+2. Selecionar: **EVOLUTION-2-ENVIAR-MENSAGENS-V2.json**
+3. **Configurar credenciais** em todos os nodes HTTP Request
+4. Salvar
 
 **O que faz este workflow:**
-- Monitora collection `whatsappMessages` no Firestore
-- Detecta mensagens pendentes de envio
+- **Trigger:** Schedule (verifica a cada 30 segundos)
+- Busca mensagens com `sent: false` no Firestore
 - Envia via Evolution API para WhatsApp
 - Marca mensagem como enviada
 - Atualiza timestamp de envio
 
-### **Passo 1.4: Importar Workflow 3 - Atualizar Score**
+**⚠️ EXTRA: Variáveis de Ambiente**
+
+Este workflow precisa de variáveis Evolution API. Configure depois (Fase 3).
+
+### **Passo 1.5: Importar Workflow 3 - Atualizar Score V2**
 
 **Arquivo:**
 ```
 Caminho: /Users/drpgjr.../NutriBuddy/n8n-workflows/
-Arquivo: EVOLUTION-3-ATUALIZAR-SCORE-REFEICAO.json
+Arquivo: EVOLUTION-3-ATUALIZAR-SCORE-V2.json ⭐ (NOVO)
 ```
 
 **Processo:**
-1. Repetir mesmo processo
-2. Selecionar: **EVOLUTION-3-ATUALIZAR-SCORE-REFEICAO.json**
-3. Importar e salvar
+1. Repetir processo de importação
+2. Selecionar: **EVOLUTION-3-ATUALIZAR-SCORE-V2.json**
+3. **Configurar credenciais** em todos os nodes HTTP Request
+4. Salvar
 
 **O que faz este workflow:**
-- Monitora collection `meals` no Firestore
-- Quando refeição é registrada → calcula score
+- **Trigger:** Schedule (verifica a cada 5 minutos)
+- Busca últimas 200 refeições
+- Calcula score por paciente (aderência, dias consecutivos, badges)
 - Atualiza score na conversa do paciente
-- Verifica se conquistou badge novo
-- Se sim → envia mensagem de parabéns automática
+- Se conquistou badge novo → cria mensagem de parabéns automática
 
-### **Passo 1.5: Verificar Importação**
+### **Passo 1.6: Verificar Importação**
 
 **Checklist:**
-- [ ] Total de workflows agora: 8 (5 antigos + 3 novos)
-- [ ] Workflow "Evolution: Receber Mensagens WhatsApp" apareceu
-- [ ] Workflow "Evolution: Enviar Mensagens" apareceu
-- [ ] Workflow "Evolution: Atualizar Score Refeição" apareceu
-- [ ] Workflows antigos continuam intactos
+- [ ] Workflow "Evolution: Receber Mensagens WhatsApp" importado
+- [ ] Workflow "Evolution: Enviar Mensagens para WhatsApp" importado
+- [ ] Workflow "Evolution: Atualizar Score ao Registrar Refeição" importado
+- [ ] Todos os nodes HTTP Request têm credencial configurada
+- [ ] Nenhum node com aviso vermelho (?)
+- [ ] Todos os workflows salvos
 
-**Status dos novos workflows:**
+**Status dos workflows:**
 - Estado inicial: **Inactive** (toggle cinza/vermelho)
 - Isso é CORRETO! Não ativar ainda!
 
+**📖 Guia completo:** Veja `n8n-workflows/GUIA-IMPORTACAO-V2.md` para instruções detalhadas
+
 ---
 
-## 🔑 FASE 2: CONFIGURAR CREDENCIAIS FIREBASE (5 min)
+## 🔑 FASE 2: CONFIGURAR CREDENCIAIS FIREBASE (CONCLUÍDO) ✅
 
-### **Passo 2.1: Obter Service Account JSON**
+### **✅ JÁ FOI FEITO!**
 
-**Firebase Console:**
-```
-1. Acessar: https://console.firebase.google.com
-2. Projeto: nutribuddy-2fc9c
-3. ⚙️ Configurações (Project Settings)
-4. Aba: "Service accounts"
-5. Botão: "Generate new private key"
-6. Baixar arquivo JSON
-7. Abrir arquivo e copiar todo conteúdo
-```
+Você já configurou a credencial **"Google Service Account account"** na primeira parte desta sessão!
 
-**Estrutura do JSON:**
-```json
-{
-  "type": "service_account",
-  "project_id": "nutribuddy-2fc9c",
-  "private_key_id": "...",
-  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-xxxxx@nutribuddy-2fc9c.iam.gserviceaccount.com",
-  "client_id": "...",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "..."
-}
-```
+**O que foi configurado:**
+- ✅ Credencial "Google Service Account API" criada
+- ✅ Region: Americas (Council Bluffs) - us-central1
+- ✅ Service Account Email: firebase-adminsdk-fbsvc@nutribuddy-2fc9c.iam.gserviceaccount.com
+- ✅ Private Key: Configurada do arquivo JSON
+- ✅ Testada e funcionando
 
-### **Passo 2.2: Adicionar Credencial no N8N**
+### **Passo 2.1: Verificar Credencial Existente**
 
 **No N8N:**
 ```
 1. Menu lateral → Settings (ícone ⚙️)
 2. Aba: "Credentials"
-3. Botão: "Add Credential"
-4. Buscar: "Google Service Account"
-5. Selecionar
-6. Nome: "Firebase Service Account"
-7. Colar JSON completo no campo
-8. Botão: "Save"
+3. Deve aparecer: "Google Service Account account" ✅
+4. Status: Saved (salvo)
 ```
 
-### **Passo 2.3: Conectar Credencial aos Workflows**
+**Se NÃO aparecer:**
 
-**Para cada workflow (1, 2 e 3):**
+Siga os passos abaixo para criar novamente:
+
 ```
-1. Abrir workflow
-2. Clicar em node "Firestore" (terá alerta vermelho)
-3. Aba "Parameters"
-4. Campo "Credential to connect with"
-5. Selecionar: "Firebase Service Account"
-6. Clicar "Save" no workflow
-7. Alerta vermelho deve sumir ✅
+1. Settings → Credentials → "Add Credential"
+2. Buscar: "Google Service Account"
+3. Selecionar: "Google Service Account API"
+4. Preencher:
+   - Region: Americas (Council Bluffs) - us-central1
+   - Service Account Email: firebase-adminsdk-fbsvc@nutribuddy-2fc9c.iam.gserviceaccount.com
+   - Private Key: (colar do arquivo JSON)
+5. Salvar
 ```
 
-**Repetir para TODOS os nodes Firestore em todos os 3 workflows!**
+### **Passo 2.2: Credencial Já Conectada nos Workflows**
+
+**Quando você importou os workflows V2:**
+- Todos os nodes HTTP Request já referenciam a credencial
+- Você só precisou selecionar "Google Service Account account" em cada node
+- ✅ Se fez isso na Fase 1, está pronto!
+
+**Para verificar:**
+```
+1. Abrir qualquer workflow V2
+2. Clicar em node HTTP Request (ex: "Buscar Paciente no Firestore")
+3. Verificar campo "Credential for Google API"
+4. Deve mostrar: "Google Service Account account" ✅
+5. Sem avisos vermelhos = está correto!
+```
 
 ---
 
