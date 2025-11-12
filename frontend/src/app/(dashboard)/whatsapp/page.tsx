@@ -7,8 +7,10 @@ import { db } from '@/lib/firebase';
 import { WhatsAppConversation } from '@/types';
 import WhatsAppKanbanBoard from '@/components/whatsapp/WhatsAppKanbanBoard';
 import WhatsAppConversationModal from '@/components/whatsapp/WhatsAppConversationModal';
+import { WhatsAppQRCode } from '@/components/whatsapp/WhatsAppQRCode';
 import { Button } from '@/components/ui/Button';
-import { RefreshCw, Loader2 } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
+import { RefreshCw, Loader2, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { generateMockMealData, calculatePatientScore } from '@/lib/scoreCalculator';
 
@@ -18,6 +20,7 @@ export default function WhatsAppDashboardPage() {
   const [selectedConversation, setSelectedConversation] = useState<WhatsAppConversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
 
   // Função para carregar dados mock (desenvolvimento) - MOVIDA PARA ANTES DO useEffect
   const loadMockData = useCallback(() => {
@@ -297,15 +300,25 @@ export default function WhatsAppDashboardPage() {
             Acompanhe as conversas e o progresso dos seus pacientes em tempo real
           </p>
         </div>
-        <Button
-          onClick={handleRefresh}
-          variant="outline"
-          disabled={isRefreshing}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setShowQRCodeModal(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Configurar WhatsApp
+          </Button>
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            disabled={isRefreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -320,6 +333,22 @@ export default function WhatsAppDashboardPage() {
           conversation={selectedConversation}
           onClose={closeModal}
         />
+      )}
+
+      {/* Modal de Configuração WhatsApp */}
+      {showQRCodeModal && (
+        <Modal
+          isOpen={showQRCodeModal}
+          onClose={() => setShowQRCodeModal(false)}
+          title="Configurar WhatsApp"
+        >
+          <WhatsAppQRCode
+            onConnected={() => {
+              setShowQRCodeModal(false);
+              handleRefresh();
+            }}
+          />
+        </Modal>
       )}
     </motion.div>
   );
