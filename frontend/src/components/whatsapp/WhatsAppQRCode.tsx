@@ -15,21 +15,77 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [retryCount, setRetryCount] = useState(0);
 
-  // Buscar QR Code
+  // Buscar QR Code diretamente da Evolution API
   const fetchQRCode = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      const response = await fetch('/api/whatsapp/qrcode', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      // Tenta buscar via backend primeiro
+      try {
+        const response = await fetch('/api/whatsapp/qrcode', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.base64) {
+            setQrCode(data.base64);
+            setConnectionStatus('connecting');
+            return;
+          } else if (data.status === 'connected') {
+            setConnectionStatus('connected');
+            if (onConnected) onConnected();
+            return;
+          }
+        }
+      } catch (backendErr) {
+        console.log('Backend não disponível, usando Evolution API diretamente');
+      }
+
+      // Se backend não funcionar, tenta diretamente na Evolution API
+      const evolutionUrl = process.env.NEXT_PUBLIC_EVOLUTION_API_URL || 'https://nutribuddy-evolution-api.onrender.com';
+      const evolutionKey = process.env.NEXT_PUBLIC_EVOLUTION_API_KEY || 'NutriBuddy2024_MinhaChaveSecreta!';
+      const instanceName = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE_NAME || 'nutribuddy';
+
+      const response = await fetch(
+        `${evolutionUrl}/instance/connect/${instanceName}`,
+        {
+          method: 'GET',
+          headers: {
+            'apikey': evolutionKey,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
       if (!response.ok) {
+        // Se der 404 ou erro, pode ser que já está conectado
+        const statusCheck = await fetch(
+          `${evolutionUrl}/instance/connectionState/${instanceName}`,
+          {
+            method: 'GET',
+            headers: {
+              'apikey': evolutionKey,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (statusCheck.ok) {
+          const statusData = await statusCheck.json();
+          if (statusData.state === 'open' || statusData.state === 'connected') {
+            setConnectionStatus('connected');
+            if (onConnected) onConnected();
+            return;
+          }
+        }
+
         throw new Error('Erro ao buscar QR Code');
       }
 
@@ -38,13 +94,17 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
       if (data.base64) {
         setQrCode(data.base64);
         setConnectionStatus('connecting');
-      } else if (data.status === 'connected') {
+      } else if (data.pairingCode) {
+        setQrCode(data.pairingCode);
+        setConnectionStatus('connecting');
+      } else {
+        // Pode estar já conectado
         setConnectionStatus('connected');
         if (onConnected) onConnected();
       }
     } catch (err) {
       console.error('Erro ao buscar QR Code:', err);
-      setError('Erro ao carregar QR Code. Tente novamente.');
+      setError('Erro ao carregar QR Code. Verifique se a Evolution API está rodando.');
     } finally {
       setLoading(false);
     }
@@ -53,25 +113,62 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
   // Verificar status da conexão
   const checkConnectionStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/whatsapp/status', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      // Tenta via backend primeiro
+      try {
+        const response = await fetch('/api/whatsapp/status', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
 
-      if (!response.ok) return;
+        if (response.ok) {
+          const data = await response.json();
 
-      const data = await response.json();
+          if (data.status === 'connected') {
+            setConnectionStatus('connected');
+            if (onConnected) onConnected();
+            return;
+          } else if (data.status === 'connecting') {
+            setConnectionStatus('connecting');
+            return;
+          } else {
+            setConnectionStatus('disconnected');
+            return;
+          }
+        }
+      } catch (backendErr) {
+        console.log('Backend não disponível, verificando direto na Evolution API');
+      }
 
-      if (data.status === 'connected') {
-        setConnectionStatus('connected');
-        if (onConnected) onConnected();
-      } else if (data.status === 'connecting') {
-        setConnectionStatus('connecting');
-      } else {
-        setConnectionStatus('disconnected');
+      // Se backend falhar, tenta Evolution API diretamente
+      const evolutionUrl = process.env.NEXT_PUBLIC_EVOLUTION_API_URL || 'https://nutribuddy-evolution-api.onrender.com';
+      const evolutionKey = process.env.NEXT_PUBLIC_EVOLUTION_API_KEY || 'NutriBuddy2024_MinhaChaveSecreta!';
+      const instanceName = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE_NAME || 'nutribuddy';
+
+      const response = await fetch(
+        `${evolutionUrl}/instance/connectionState/${instanceName}`,
+        {
+          method: 'GET',
+          headers: {
+            'apikey': evolutionKey,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.state === 'open' || data.state === 'connected') {
+          setConnectionStatus('connected');
+          if (onConnected) onConnected();
+        } else if (data.state === 'connecting') {
+          setConnectionStatus('connecting');
+        } else {
+          setConnectionStatus('disconnected');
+        }
       }
     } catch (err) {
       console.error('Erro ao verificar status:', err);
