@@ -624,7 +624,7 @@ export default function PatientDetailPage() {
   };
 
   const renderActivationTab = () => {
-    const whatsappNumber = '5511999999999'; // SUBSTITUA pelo seu número
+    const whatsappNumber = '5547992727770'; // Número da Clínica
     const activationMessage = `Oi! Sou ${patient?.name || 'paciente'}, estou aqui para iniciar meu acompanhamento nutricional VIP com você! 😊`;
     const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(activationMessage)}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(whatsappLink)}`;
