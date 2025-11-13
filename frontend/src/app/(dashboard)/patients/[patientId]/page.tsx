@@ -283,13 +283,50 @@ export default function PatientDetailPage() {
             url,
             storagePath,
           });
+          setUploadProgress(null);
+          
+          // Chamar n8n para transcrever
+          setTranscriptionStatus('processing');
           setFeedback({
             type: 'success',
-            message: 'PDF enviado com sucesso! A transcrição será iniciada na próxima etapa.',
+            message: 'PDF enviado! Transcrevendo com IA... (pode levar 30s)',
           });
-          setUploadProgress(null);
-          // Simula encerramento da transcrição automática após 2 segundos
-          setTimeout(() => setTranscriptionStatus('completed'), 2000);
+          
+          try {
+            const n8nUrl = process.env.NEXT_PUBLIC_N8N_TRANSCRIBE_DIET_URL;
+            if (n8nUrl) {
+              const response = await fetch(n8nUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  pdfUrl: url,
+                  patientId: patientId,
+                  patientName: patient?.name,
+                }),
+              });
+              
+              if (response.ok) {
+                setTranscriptionStatus('completed');
+                setFeedback({
+                  type: 'success',
+                  message: 'PDF transcrito com sucesso! Dados foram extraídos.',
+                });
+                // Recarregar dados do paciente
+                setTimeout(() => window.location.reload(), 2000);
+              } else {
+                setTranscriptionStatus('completed');
+                setFeedback({
+                  type: 'success',
+                  message: 'PDF salvo! Transcrição manual disponível.',
+                });
+              }
+            } else {
+              setTranscriptionStatus('completed');
+            }
+          } catch (error) {
+            console.error('Erro ao transcrever:', error);
+            setTranscriptionStatus('completed');
+          }
         } finally {
           setIsUploading(false);
         }
@@ -1062,10 +1099,38 @@ export default function PatientDetailPage() {
             url,
             storagePath,
           });
+          
           setFeedback({
             type: 'success',
-            message: 'PDF da InBody enviado com sucesso!',
+            message: 'InBody enviada! Transcrevendo com IA... (30s)',
           });
+          
+          // Chamar n8n para transcrever InBody
+          try {
+            const n8nUrl = process.env.NEXT_PUBLIC_N8N_TRANSCRIBE_INBODY_URL;
+            if (n8nUrl) {
+              const response = await fetch(n8nUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  pdfUrl: url,
+                  patientId: patientId,
+                  patientName: patient?.name,
+                }),
+              });
+              
+              if (response.ok) {
+                setFeedback({
+                  type: 'success',
+                  message: 'InBody transcrita! Dados extraídos com sucesso.',
+                });
+                // Recarregar dados
+                setTimeout(() => window.location.reload(), 2000);
+              }
+            }
+          } catch (error) {
+            console.error('Erro ao transcrever InBody:', error);
+          }
         } finally {
           setIsUploadingInbody(false);
         }
