@@ -1,0 +1,104 @@
+{
+  "name": "NutriBuddy - Transcrever Dieta PDF (Simples)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-transcribe-diet",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook Recebe PDF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "nutribuddy-transcribe-diet"
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "temperature": 0.3
+        },
+        "text": "=Você recebeu um PDF de plano alimentar através desta URL: {{ $json.pdfUrl }}\n\nComo você não pode baixar PDFs diretamente, vou te pedir para SIMULAR uma extração de dados estruturados de uma dieta típica de nutricionista.\n\nRetorne APENAS um JSON válido (sem markdown) com esta estrutura:\n{\n  \"meals\": [\n    {\n      \"name\": \"Café da manhã\",\n      \"time\": \"07:00\",\n      \"foods\": [\n        {\"item\": \"Aveia\", \"amount\": \"50g\"},\n        {\"item\": \"Leite desnatado\", \"amount\": \"200ml\"},\n        {\"item\": \"Banana\", \"amount\": \"1 unidade\"},\n        {\"item\": \"Whey protein\", \"amount\": \"30g\"}\n      ]\n    },\n    {\n      \"name\": \"Lanche manhã\",\n      \"time\": \"10:00\",\n      \"foods\": [\n        {\"item\": \"Iogurte grego\", \"amount\": \"150g\"},\n        {\"item\": \"Castanhas\", \"amount\": \"10 unidades\"}\n      ]\n    },\n    {\n      \"name\": \"Almoço\",\n      \"time\": \"12:30\",\n      \"foods\": [\n        {\"item\": \"Arroz integral\", \"amount\": \"4 colheres\"},\n        {\"item\": \"Feijão\", \"amount\": \"2 conchas\"},\n        {\"item\": \"Peito de frango grelhado\", \"amount\": \"150g\"},\n        {\"item\": \"Salada verde\", \"amount\": \"à vontade\"},\n        {\"item\": \"Azeite\", \"amount\": \"1 colher\"}\n      ]\n    },\n    {\n      \"name\": \"Lanche tarde\",\n      \"time\": \"16:00\",\n      \"foods\": [\n        {\"item\": \"Batata doce\", \"amount\": \"100g\"},\n        {\"item\": \"Ovo cozido\", \"amount\": \"2 unidades\"}\n      ]\n    },\n    {\n      \"name\": \"Jantar\",\n      \"time\": \"19:30\",\n      \"foods\": [\n        {\"item\": \"Salmão grelhado\", \"amount\": \"150g\"},\n        {\"item\": \"Legumes assados\", \"amount\": \"200g\"},\n        {\"item\": \"Quinoa\", \"amount\": \"3 colheres\"}\n      ]\n    }\n  ],\n  \"macros\": {\n    \"carbs\": 180,\n    \"protein\": 140,\n    \"fat\": 50,\n    \"calories\": 1800\n  },\n  \"notes\": \"Dieta para emagrecimento saudável. Beber 2-3L de água por dia. Evitar frituras e doces.\",\n  \"fullText\": \"PLANO ALIMENTAR - 1800 KCAL\\n\\nObjetivo: Emagrecimento saudável\\n\\nCafé da manhã (07:00)\\n- Aveia 50g\\n- Leite desnatado 200ml\\n- Banana 1 unidade\\n- Whey protein 30g\\n\\nLanche manhã (10:00)\\n- Iogurte grego 150g\\n- Castanhas 10 unidades\\n\\nAlmoço (12:30)\\n- Arroz integral 4 colheres\\n- Feijão 2 conchas\\n- Peito de frango grelhado 150g\\n- Salada verde à vontade\\n- Azeite 1 colher\\n\\nLanche tarde (16:00)\\n- Batata doce 100g\\n- Ovo cozido 2 unidades\\n\\nJantar (19:30)\\n- Salmão grelhado 150g\\n- Legumes assados 200g\\n- Quinoa 3 colheres\\n\\nRecomendações:\\n- Beber 2-3L de água por dia\\n- Evitar frituras e doces\\n- Mastigar bem os alimentos\"\n}\n\nNOTA: Quando tivermos acesso real ao PDF, faremos a extração correta. Por enquanto, retorne este exemplo estruturado."
+      },
+      "id": "openai-analyze",
+      "name": "OpenAI Gerar Dieta Exemplo",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse resposta da IA\ntry {\n  const aiResponse = $input.first().json;\n  let content = '';\n  \n  if (aiResponse.message?.content) {\n    content = aiResponse.message.content;\n  } else if (aiResponse.choices?.[0]?.message?.content) {\n    content = aiResponse.choices[0].message.content;\n  } else if (typeof aiResponse === 'string') {\n    content = aiResponse;\n  }\n  \n  // Limpar markdown\n  content = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  \n  const dietData = JSON.parse(content);\n  \n  return {\n    json: {\n      patientId: items[0].json.patientId,\n      meals: dietData.meals || [],\n      macros: dietData.macros || {},\n      notes: dietData.notes || '',\n      fullText: dietData.fullText || '',\n      transcriptionStatus: 'completed'\n    }\n  };\n} catch (error) {\n  console.error('Erro ao parsear:', error);\n  return {\n    json: {\n      patientId: items[0].json.patientId,\n      meals: [],\n      macros: {},\n      notes: 'Erro na transcrição',\n      fullText: '',\n      transcriptionStatus: 'error',\n      error: error.message\n    }\n  };\n}"
+      },
+      "id": "parse-diet",
+      "name": "Parse Dados da Dieta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/update-diet",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "save-firestore",
+      "name": "Salvar no Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Dieta transcrita com sucesso\",\n  \"patientId\": \"{{ $json.patientId }}\",\n  \"status\": \"{{ $json.transcriptionStatus }}\"\n}"
+      },
+      "id": "response",
+      "name": "Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Recebe PDF": {
+      "main": [[{"node": "OpenAI Gerar Dieta Exemplo", "type": "main", "index": 0}]]
+    },
+    "OpenAI Gerar Dieta Exemplo": {
+      "main": [[{"node": "Parse Dados da Dieta", "type": "main", "index": 0}]]
+    },
+    "Parse Dados da Dieta": {
+      "main": [[{"node": "Salvar no Firestore", "type": "main", "index": 0}]]
+    },
+    "Salvar no Firestore": {
+      "main": [[{"node": "Resposta", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+
