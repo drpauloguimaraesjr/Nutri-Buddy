@@ -4,6 +4,7 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 const { db, admin } = require('../config/firebase');
 const { sendOnboardingEmail, sendLoginVoucher } = require('../services/email');
 const { validateAndFixPatient } = require('../services/patient-validator');
+const aiProfileService = require('../services/ai-profiles');
 
 const ALLOWED_ROLES_TO_CREATE = ['patient', 'prescriber'];
 
@@ -740,6 +741,216 @@ router.get('/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [PRESCRIBER] Error fetching stats:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/prescriber/ai-profiles/types
+ * Listar todos os tipos de perfil de IA disponíveis
+ */
+router.get('/ai-profiles/types', async (req, res) => {
+  try {
+    console.log('🤖 [PRESCRIBER] Fetching AI profile types');
+    
+    const profileTypes = aiProfileService.getAllProfileTypes();
+    
+    res.json({
+      success: true,
+      data: profileTypes
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error fetching AI profile types:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/prescriber/patients/:patientId/ai-profile
+ * Buscar perfil de IA de um paciente específico
+ */
+router.get('/patients/:patientId/ai-profile', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const prescriberId = req.user.uid;
+    
+    console.log('🤖 [PRESCRIBER] Fetching AI profile for patient:', patientId);
+    
+    // Verificar se o paciente pertence a este prescritor
+    const connection = await db.collection('connections')
+      .where('prescriberId', '==', prescriberId)
+      .where('patientId', '==', patientId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+    
+    if (connection.empty) {
+      return res.status(403).json({
+        success: false,
+        error: 'Patient not found or not connected to this prescriber'
+      });
+    }
+    
+    const profile = await aiProfileService.getOrCreateDefaultProfile(patientId);
+    
+    res.json({
+      success: true,
+      data: profile
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error fetching patient AI profile:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/prescriber/patients/:patientId/ai-profile
+ * Criar ou atualizar perfil de IA de um paciente
+ */
+router.post('/patients/:patientId/ai-profile', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const prescriberId = req.user.uid;
+    const config = req.body;
+    
+    console.log('🤖 [PRESCRIBER] Saving AI profile for patient:', patientId);
+    
+    // Verificar se o paciente pertence a este prescritor
+    const connection = await db.collection('connections')
+      .where('prescriberId', '==', prescriberId)
+      .where('patientId', '==', patientId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+    
+    if (connection.empty) {
+      return res.status(403).json({
+        success: false,
+        error: 'Patient not found or not connected to this prescriber'
+      });
+    }
+    
+    // Validar configuração
+    if (!config.profileType) {
+      return res.status(400).json({
+        success: false,
+        error: 'profileType is required'
+      });
+    }
+    
+    const profile = await aiProfileService.savePatientAIProfile(
+      patientId,
+      config,
+      prescriberId
+    );
+    
+    console.log('✅ [PRESCRIBER] AI profile saved successfully');
+    
+    res.json({
+      success: true,
+      data: profile,
+      message: 'AI profile saved successfully'
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error saving AI profile:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/prescriber/patients/:patientId/ai-profile
+ * Deletar perfil de IA de um paciente (volta ao padrão)
+ */
+router.delete('/patients/:patientId/ai-profile', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const prescriberId = req.user.uid;
+    
+    console.log('🤖 [PRESCRIBER] Deleting AI profile for patient:', patientId);
+    
+    // Verificar se o paciente pertence a este prescritor
+    const connection = await db.collection('connections')
+      .where('prescriberId', '==', prescriberId)
+      .where('patientId', '==', patientId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+    
+    if (connection.empty) {
+      return res.status(403).json({
+        success: false,
+        error: 'Patient not found or not connected to this prescriber'
+      });
+    }
+    
+    await aiProfileService.deletePatientAIProfile(patientId);
+    
+    console.log('✅ [PRESCRIBER] AI profile deleted successfully');
+    
+    res.json({
+      success: true,
+      message: 'AI profile deleted successfully, patient will use default profile'
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error deleting AI profile:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/prescriber/patients/:patientId/ai-profile/generate-prompt
+ * Gerar prompt personalizado baseado no perfil do paciente
+ */
+router.post('/patients/:patientId/ai-profile/generate-prompt', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const { context } = req.body;
+    const prescriberId = req.user.uid;
+    
+    console.log('🤖 [PRESCRIBER] Generating AI prompt for patient:', patientId);
+    
+    // Verificar se o paciente pertence a este prescritor
+    const connection = await db.collection('connections')
+      .where('prescriberId', '==', prescriberId)
+      .where('patientId', '==', patientId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+    
+    if (connection.empty) {
+      return res.status(403).json({
+        success: false,
+        error: 'Patient not found or not connected to this prescriber'
+      });
+    }
+    
+    const profile = await aiProfileService.getOrCreateDefaultProfile(patientId);
+    const prompt = aiProfileService.generateAIPrompt(profile, context);
+    
+    res.json({
+      success: true,
+      data: {
+        prompt,
+        profile: profile.config
+      }
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error generating AI prompt:', error);
     res.status(500).json({
       success: false,
       error: error.message

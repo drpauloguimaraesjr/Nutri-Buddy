@@ -135,3 +135,36 @@ export interface PatientGoals {
   weightHistory?: WeightEntry[];
 }
 
+// AI Profile Types
+export type AIProfileType = 
+  | 'welcoming' // 🤗 Acolhedor e Suave
+  | 'motivational' // 🔥 Motivacional e Energético
+  | 'direct' // 💪 Firme e Direto
+  | 'humorous' // 😄 Descontraído com Humor
+  | 'mindful' // 🧘 Zen e Mindful
+  | 'educational' // 📚 Educativo e Técnico
+  | 'coach' // 🎯 Coach Esportivo
+  | 'partner'; // 🤝 Parceiro de Jornada
+
+export type MessageFrequency = 'high' | 'medium' | 'low'; // 3-4x/dia, 2x/dia, 1x/dia
+export type EmojiLevel = 'high' | 'medium' | 'low'; // Muitos, moderado, poucos
+export type FeedbackStyle = 'positive' | 'balanced' | 'analytical'; // Sempre positivo, balanceado, analítico
+export type ResponseTiming = 'immediate' | 'scheduled' | 'respectful'; // Imediato, programado, não envia à noite
+
+export interface AIProfileConfig {
+  profileType: AIProfileType;
+  messageFrequency: MessageFrequency;
+  emojiLevel: EmojiLevel;
+  feedbackStyle: FeedbackStyle;
+  responseTiming: ResponseTiming;
+  customInstructions?: string; // Instruções adicionais do nutricionista
+}
+
+export interface PatientAIProfile {
+  patientId: string;
+  config: AIProfileConfig;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string; // UID do nutricionista
+}
+

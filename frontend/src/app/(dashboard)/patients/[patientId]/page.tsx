@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, ChangeEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { AlertCircle, Bot, CheckCircle2, Download, FileText, Loader2, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
 import type { UserRole } from '@/types';
+import AIProfileConfig from '@/components/patient/AIProfileConfig';
 
 type PatientTab = 'profile' | 'goals' | 'body' | 'config' | 'diet' | 'notes';
 
@@ -65,6 +66,59 @@ export default function PatientDetailPage() {
   const [trainingPlanText, setTrainingPlanText] = useState('');
   const [planFile, setPlanFile] = useState<UploadedPlanFile | null>(null);
   const [transcriptionStatus, setTranscriptionStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
+  
+  // Estados para aba METAS
+  const [targetWeight, setTargetWeight] = useState<number>(75);
+  const [initialWeight, setInitialWeight] = useState<number>(85);
+  const [objective, setObjective] = useState<string>('lose_weight');
+  const [weeklyGoals, setWeeklyGoals] = useState<string[]>([
+    'Beber 2L de água por dia',
+    'Fazer 4 refeições',
+    'Treinar 3x na semana'
+  ]);
+  
+  // Estados para aba PERFIL
+  const [allergies, setAllergies] = useState<string[]>([]);
+  const [otherAllergies, setOtherAllergies] = useState<string>('');
+  const [healthConditions, setHealthConditions] = useState<string[]>([]);
+  const [medications, setMedications] = useState<string>('');
+  const [foodStyle, setFoodStyle] = useState<string>('');
+  const [dislikedFoods, setDislikedFoods] = useState<string>('');
+  const [favoriteFoods, setFavoriteFoods] = useState<string>('');
+  const [activityLevel, setActivityLevel] = useState<string>('moderate');
+  const [sleepQuality, setSleepQuality] = useState<string>('good');
+  const [stressLevel, setStressLevel] = useState<string>('moderate');
+  const [waterIntake, setWaterIntake] = useState<string>('good');
+  
+  // Estados para aba NOTAS
+  const [noteText, setNoteText] = useState<string>('');
+  const [noteType, setNoteType] = useState<string>('consultation');
+  const [noteImportant, setNoteImportant] = useState<boolean>(false);
+  
+  // Estados para aba CONFIG (Personalidade IA)
+  const [aiTone, setAiTone] = useState<string>('light');
+  const [aiUseEmojis, setAiUseEmojis] = useState<boolean>(true);
+  const [aiShortMessages, setAiShortMessages] = useState<boolean>(true);
+  const [aiAskQuestions, setAiAskQuestions] = useState<boolean>(true);
+  const [aiUseSlang, setAiUseSlang] = useState<boolean>(false);
+  const [aiCiteScience, setAiCiteScience] = useState<boolean>(false);
+  const [aiPhraseSuccess, setAiPhraseSuccess] = useState<string>('');
+  const [aiPhraseFail, setAiPhraseFail] = useState<string>('');
+  const [aiPhraseMotivation, setAiPhraseMotivation] = useState<string>('');
+  const [aiTopics, setAiTopics] = useState<string[]>(['Hidratação', 'Mastigar devagar']);
+  
+  // Estados para aba FÍSICO
+  const [bodyFat, setBodyFat] = useState<number>(18);
+  const [measurements, setMeasurements] = useState({
+    waist: 85,
+    hip: 95,
+    chest: 100,
+    armRight: 35,
+    armLeft: 34,
+    thighRight: 58,
+    thighLeft: 57,
+    calf: 38,
+  });
 
   useEffect(() => {
     if (!patientId) return;
@@ -122,6 +176,52 @@ export default function PatientDetailPage() {
           setPlanFile(null);
         }
         setTranscriptionStatus(mappedPatient.planTranscriptionStatus ?? 'idle');
+        
+        // Carregar dados de METAS
+        setTargetWeight(data.targetWeight ?? 75);
+        setInitialWeight(data.initialWeight ?? data.weight ?? 85);
+        setObjective(data.objective ?? 'lose_weight');
+        setWeeklyGoals(data.weeklyGoals ?? []);
+        
+        // Carregar dados de PERFIL
+        setAllergies(data.allergies ?? []);
+        setOtherAllergies(data.otherAllergies ?? '');
+        setHealthConditions(data.healthConditions ?? []);
+        setMedications(data.medications ?? '');
+        setFoodStyle(data.foodStyle ?? '');
+        setDislikedFoods(data.dislikedFoods ?? '');
+        setFavoriteFoods(data.favoriteFoods ?? '');
+        setActivityLevel(data.activityLevel ?? 'moderate');
+        setSleepQuality(data.sleepQuality ?? 'good');
+        setStressLevel(data.stressLevel ?? 'moderate');
+        setWaterIntake(data.waterIntake ?? 'good');
+        
+        // Carregar dados de CONFIG (IA)
+        if (data.aiPersonality) {
+          setAiTone(data.aiPersonality.tone ?? 'light');
+          setAiUseEmojis(data.aiPersonality.useEmojis ?? true);
+          setAiShortMessages(data.aiPersonality.shortMessages ?? true);
+          setAiAskQuestions(data.aiPersonality.askQuestions ?? true);
+          setAiUseSlang(data.aiPersonality.useSlang ?? false);
+          setAiCiteScience(data.aiPersonality.citeScience ?? false);
+          setAiPhraseSuccess(data.aiPersonality.phrases?.success ?? '');
+          setAiPhraseFail(data.aiPersonality.phrases?.fail ?? '');
+          setAiPhraseMotivation(data.aiPersonality.phrases?.motivation ?? '');
+          setAiTopics(data.aiPersonality.topics ?? []);
+        }
+        
+        // Carregar dados de FÍSICO
+        setBodyFat(data.bodyFat ?? 18);
+        setMeasurements(data.measurements ?? {
+          waist: 85,
+          hip: 95,
+          chest: 100,
+          armRight: 35,
+          armLeft: 34,
+          thighRight: 58,
+          thighLeft: 57,
+          calf: 38,
+        });
       } catch (error) {
         console.error('Erro ao carregar paciente:', error);
         setFeedback({
@@ -252,6 +352,191 @@ export default function PatientDetailPage() {
     }
   };
 
+  // Salvar METAS
+  const handleSaveGoals = async () => {
+    if (!patientId) return;
+
+    try {
+      setIsSaving(true);
+      setFeedback(null);
+
+      const docRef = doc(db, 'users', patientId);
+      await updateDoc(docRef, {
+        targetWeight,
+        initialWeight,
+        objective,
+        weeklyGoals,
+        goalsUpdatedAt: serverTimestamp(),
+      });
+
+      setFeedback({
+        type: 'success',
+        message: 'Metas salvas com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao salvar metas:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível salvar as metas.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Salvar PERFIL
+  const handleSaveProfile = async () => {
+    if (!patientId) return;
+
+    try {
+      setIsSaving(true);
+      setFeedback(null);
+
+      const docRef = doc(db, 'users', patientId);
+      await updateDoc(docRef, {
+        allergies,
+        otherAllergies,
+        healthConditions,
+        medications,
+        foodStyle,
+        dislikedFoods,
+        favoriteFoods,
+        activityLevel,
+        sleepQuality,
+        stressLevel,
+        waterIntake,
+        profileUpdatedAt: serverTimestamp(),
+      });
+
+      setFeedback({
+        type: 'success',
+        message: 'Perfil salvo com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível salvar o perfil.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Adicionar NOTA
+  const handleAddNote = async () => {
+    if (!patientId || !noteText.trim()) return;
+
+    try {
+      setIsSaving(true);
+      setFeedback(null);
+
+      const noteData = {
+        patientId,
+        prescriberId: user?.uid,
+        prescriberName: user?.displayName || 'Prescritor',
+        type: noteType,
+        content: noteText,
+        important: noteImportant,
+        createdAt: serverTimestamp(),
+      };
+
+      // Adicionar na subcoleção notes
+      const notesRef = collection(db, 'users', patientId, 'notes');
+      await addDoc(notesRef, noteData);
+
+      setFeedback({
+        type: 'success',
+        message: 'Nota adicionada com sucesso!',
+      });
+      
+      // Limpar formulário
+      setNoteText('');
+      setNoteType('consultation');
+      setNoteImportant(false);
+    } catch (error) {
+      console.error('Erro ao adicionar nota:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível adicionar a nota.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Salvar CONFIG (Personalidade IA)
+  const handleSaveAIConfig = async () => {
+    if (!patientId) return;
+
+    try {
+      setIsSaving(true);
+      setFeedback(null);
+
+      const docRef = doc(db, 'users', patientId);
+      await updateDoc(docRef, {
+        aiPersonality: {
+          tone: aiTone,
+          useEmojis: aiUseEmojis,
+          shortMessages: aiShortMessages,
+          askQuestions: aiAskQuestions,
+          useSlang: aiUseSlang,
+          citeScience: aiCiteScience,
+          phrases: {
+            success: aiPhraseSuccess,
+            fail: aiPhraseFail,
+            motivation: aiPhraseMotivation,
+          },
+          topics: aiTopics,
+        },
+        aiConfigUpdatedAt: serverTimestamp(),
+      });
+
+      setFeedback({
+        type: 'success',
+        message: 'Personalidade da IA configurada para este paciente!',
+      });
+    } catch (error) {
+      console.error('Erro ao salvar config IA:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível salvar a configuração.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Salvar FÍSICO (medidas)
+  const handleSaveBody = async () => {
+    if (!patientId) return;
+
+    try {
+      setIsSaving(true);
+      setFeedback(null);
+
+      const docRef = doc(db, 'users', patientId);
+      await updateDoc(docRef, {
+        bodyFat,
+        measurements,
+        bodyUpdatedAt: serverTimestamp(),
+      });
+
+      setFeedback({
+        type: 'success',
+        message: 'Medidas salvas com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao salvar medidas:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível salvar as medidas.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const canManageRole = user?.role === 'admin' || user?.role === 'prescriber';
 
   const handleRoleUpdate = async (newRole: UserRole) => {
@@ -362,7 +647,7 @@ export default function PatientDetailPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Peso Meta</p>
-                  <p className="text-3xl font-bold text-gray-900">75kg</p>
+                  <p className="text-3xl font-bold text-gray-900">{targetWeight}kg</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
                   <span className="text-2xl">🎯</span>
@@ -378,7 +663,7 @@ export default function PatientDetailPage() {
                 <div>
                   <p className="text-sm text-gray-600">Falta Perder</p>
                   <p className="text-3xl font-bold text-purple-600">
-                    {patient?.weight ? `${(patient.weight - 75).toFixed(1)}kg` : '--'}
+                    {patient?.weight ? `${(patient.weight - targetWeight).toFixed(1)}kg` : '--'}
                   </p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
@@ -396,14 +681,14 @@ export default function PatientDetailPage() {
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">Progresso da Meta</h3>
                 <span className="text-sm font-medium text-purple-600">
-                  {patient?.weight ? Math.round(((85 - patient.weight) / (85 - 75)) * 100) : 0}% concluído
+                  {patient?.weight ? Math.round(((initialWeight - patient.weight) / (initialWeight - targetWeight)) * 100) : 0}% concluído
                 </span>
               </div>
               <div className="h-4 rounded-full bg-gray-200">
                 <div
                   className="h-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
                   style={{
-                    width: `${patient?.weight ? Math.min(((85 - patient.weight) / (85 - 75)) * 100, 100) : 0}%`,
+                    width: `${patient?.weight ? Math.min(((initialWeight - patient.weight) / (initialWeight - targetWeight)) * 100, 100) : 0}%`,
                   }}
                 />
               </div>
@@ -412,17 +697,17 @@ export default function PatientDetailPage() {
             <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
               <div>
                 <p className="text-xs text-gray-600">Peso Inicial</p>
-                <p className="text-lg font-semibold text-gray-900">85kg</p>
+                <p className="text-lg font-semibold text-gray-900">{initialWeight}kg</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-gray-600">Progresso</p>
                 <p className="text-lg font-semibold text-purple-600">
-                  {patient?.weight ? `-${(85 - patient.weight).toFixed(1)}kg` : '--'}
+                  {patient?.weight ? `-${(initialWeight - patient.weight).toFixed(1)}kg` : '--'}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-600">Meta Final</p>
-                <p className="text-lg font-semibold text-gray-900">75kg</p>
+                <p className="text-lg font-semibold text-gray-900">{targetWeight}kg</p>
               </div>
             </div>
           </CardContent>
@@ -432,7 +717,11 @@ export default function PatientDetailPage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Objetivo Principal</h3>
-            <select className="w-full rounded-lg border border-gray-200 bg-white p-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200">
+            <select 
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white p-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+            >
               <option value="lose_weight">Perder peso</option>
               <option value="gain_muscle">Ganhar massa muscular</option>
               <option value="maintain">Manter peso atual</option>
@@ -441,6 +730,31 @@ export default function PatientDetailPage() {
               <option value="gain_weight">Ganhar peso</option>
               <option value="recomp">Recomposição corporal</option>
             </select>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Peso Inicial (kg)
+                </label>
+                <input
+                  type="number"
+                  value={initialWeight}
+                  onChange={(e) => setInitialWeight(Number(e.target.value))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Peso Meta (kg)
+                </label>
+                <input
+                  type="number"
+                  value={targetWeight}
+                  onChange={(e) => setTargetWeight(Number(e.target.value))}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -455,19 +769,30 @@ export default function PatientDetailPage() {
               </Button>
             </div>
             <div className="space-y-2">
-              {['Beber 2L de água por dia', 'Fazer 4 refeições', 'Treinar 3x na semana'].map(
-                (goal, index) => (
-                  <label
-                    key={index}
-                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3"
+              {weeklyGoals.map((goal, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3"
+                >
+                  <input
+                    type="checkbox"
+                    defaultChecked
+                    className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                  />
+                  <span className="flex-1 text-sm text-gray-700">{goal}</span>
+                  <button
+                    onClick={() => setWeeklyGoals(weeklyGoals.filter((_, i) => i !== index))}
+                    className="text-red-600 hover:text-red-700"
                   >
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
-                    />
-                    <span className="flex-1 text-sm text-gray-700">{goal}</span>
-                  </label>
-                )
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              
+              {weeklyGoals.length === 0 && (
+                <p className="text-center text-sm text-gray-400 py-4">
+                  Nenhuma meta semanal adicionada ainda
+                </p>
               )}
             </div>
           </CardContent>
@@ -499,6 +824,14 @@ export default function PatientDetailPage() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Botão Salvar Metas */}
+        <div className="flex justify-end">
+          <Button onClick={handleSaveGoals} isLoading={isSaving} size="lg">
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Salvar Metas
+          </Button>
+        </div>
       </div>
     );
   };
@@ -547,7 +880,7 @@ export default function PatientDetailPage() {
             <CardContent className="p-6">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Gordura</p>
-                <p className="text-2xl font-bold text-blue-600">18%</p>
+                <p className="text-2xl font-bold text-blue-600">{bodyFat}%</p>
               </div>
             </CardContent>
           </Card>
@@ -564,25 +897,33 @@ export default function PatientDetailPage() {
               </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-3">
               {[
-                { label: 'Cintura', value: '85cm', icon: '⭕' },
-                { label: 'Quadril', value: '95cm', icon: '⭕' },
-                { label: 'Peito', value: '100cm', icon: '💪' },
-                { label: 'Braço D', value: '35cm', icon: '💪' },
-                { label: 'Braço E', value: '34cm', icon: '💪' },
-                { label: 'Coxa D', value: '58cm', icon: '🦵' },
-                { label: 'Coxa E', value: '57cm', icon: '🦵' },
-                { label: 'Panturrilha', value: '38cm', icon: '🦵' },
-              ].map((measure, index) => (
+                { label: 'Cintura', key: 'waist', icon: '⭕' },
+                { label: 'Quadril', key: 'hip', icon: '⭕' },
+                { label: 'Peito', key: 'chest', icon: '💪' },
+                { label: 'Braço D', key: 'armRight', icon: '💪' },
+                { label: 'Braço E', key: 'armLeft', icon: '💪' },
+                { label: 'Coxa D', key: 'thighRight', icon: '🦵' },
+                { label: 'Coxa E', key: 'thighLeft', icon: '🦵' },
+                { label: 'Panturrilha', key: 'calf', icon: '🦵' },
+              ].map((measure) => (
                 <div
-                  key={index}
+                  key={measure.key}
                   className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3"
                 >
                   <span className="text-2xl">{measure.icon}</span>
                   <div className="flex-1">
                     <p className="text-xs text-gray-600">{measure.label}</p>
-                    <p className="text-lg font-semibold text-gray-900">{measure.value}</p>
+                    <input
+                      type="number"
+                      value={measurements[measure.key as keyof typeof measurements]}
+                      onChange={(e) => setMeasurements({
+                        ...measurements,
+                        [measure.key]: Number(e.target.value)
+                      })}
+                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm font-semibold text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
                   </div>
                 </div>
               ))}
@@ -598,7 +939,12 @@ export default function PatientDetailPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2 rounded-lg border border-gray-200 bg-gradient-to-br from-blue-50 to-blue-100 p-4">
                 <p className="text-sm text-blue-700">% de Gordura</p>
-                <p className="text-3xl font-bold text-blue-900">18%</p>
+                <input
+                  type="number"
+                  value={bodyFat}
+                  onChange={(e) => setBodyFat(Number(e.target.value))}
+                  className="w-20 text-3xl font-bold text-blue-900 bg-transparent border-b border-blue-300 focus:border-blue-500 focus:outline-none"
+                />
                 <p className="text-xs text-blue-600">Meta: 15%</p>
               </div>
 
@@ -722,6 +1068,14 @@ export default function PatientDetailPage() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Botão Salvar */}
+        <div className="flex justify-end">
+          <Button onClick={handleSaveBody} isLoading={isSaving} size="lg">
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Salvar Medidas
+          </Button>
+        </div>
       </div>
     );
   };
@@ -811,6 +1165,14 @@ export default function PatientDetailPage() {
                     >
                       <input
                         type="checkbox"
+                        checked={allergies.includes(allergy)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setAllergies([...allergies, allergy]);
+                          } else {
+                            setAllergies(allergies.filter(a => a !== allergy));
+                          }
+                        }}
                         className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                       />
                       <span className="text-sm text-gray-700">{allergy}</span>
@@ -824,6 +1186,8 @@ export default function PatientDetailPage() {
                   Outras Alergias (descreva)
                 </label>
                 <textarea
+                  value={otherAllergies}
+                  onChange={(e) => setOtherAllergies(e.target.value)}
                   placeholder="Ex: Alergia a corantes artificiais..."
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={2}
@@ -852,6 +1216,14 @@ export default function PatientDetailPage() {
                       >
                         <input
                           type="checkbox"
+                          checked={healthConditions.includes(condition)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setHealthConditions([...healthConditions, condition]);
+                            } else {
+                              setHealthConditions(healthConditions.filter(c => c !== condition));
+                            }
+                          }}
                           className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                         />
                         <span className="text-sm text-gray-700">{condition}</span>
@@ -864,6 +1236,8 @@ export default function PatientDetailPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Medicamentos em Uso</label>
                 <textarea
+                  value={medications}
+                  onChange={(e) => setMedications(e.target.value)}
                   placeholder="Liste os medicamentos que o paciente toma regularmente..."
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={3}
@@ -881,7 +1255,11 @@ export default function PatientDetailPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Estilo Alimentar</label>
-                <select className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200">
+                <select 
+                  value={foodStyle}
+                  onChange={(e) => setFoodStyle(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                >
                   <option value="">Nenhum</option>
                   <option value="vegetarian">Vegetariano</option>
                   <option value="vegan">Vegano</option>
@@ -897,6 +1275,8 @@ export default function PatientDetailPage() {
                   Alimentos que NÃO Gosta
                 </label>
                 <textarea
+                  value={dislikedFoods}
+                  onChange={(e) => setDislikedFoods(e.target.value)}
                   placeholder="Ex: Brócolis, berinjela, fígado..."
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={2}
@@ -906,6 +1286,8 @@ export default function PatientDetailPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Alimentos Favoritos</label>
                 <textarea
+                  value={favoriteFoods}
+                  onChange={(e) => setFavoriteFoods(e.target.value)}
                   placeholder="Ex: Frango, batata doce, abacate..."
                   className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={2}
@@ -925,7 +1307,11 @@ export default function PatientDetailPage() {
                 <label className="block text-sm font-medium text-gray-700">
                   Nível de Atividade Física
                 </label>
-                <select className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200">
+                <select 
+                  value={activityLevel}
+                  onChange={(e) => setActivityLevel(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                >
                   <option value="sedentary">Sedentário (pouco ou nenhum exercício)</option>
                   <option value="light">Leve (1-2x por semana)</option>
                   <option value="moderate">Moderado (3-4x por semana)</option>
@@ -936,7 +1322,11 @@ export default function PatientDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Qualidade do Sono</label>
-                <select className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200">
+                <select 
+                  value={sleepQuality}
+                  onChange={(e) => setSleepQuality(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                >
                   <option value="poor">Ruim (menos de 5h)</option>
                   <option value="fair">Regular (5-6h)</option>
                   <option value="good">Bom (7-8h)</option>
@@ -946,7 +1336,11 @@ export default function PatientDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nível de Estresse</label>
-                <select className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200">
+                <select 
+                  value={stressLevel}
+                  onChange={(e) => setStressLevel(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                >
                   <option value="low">Baixo</option>
                   <option value="moderate">Moderado</option>
                   <option value="high">Alto</option>
@@ -955,7 +1349,11 @@ export default function PatientDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Consumo de Água/Dia</label>
-                <select className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200">
+                <select 
+                  value={waterIntake}
+                  onChange={(e) => setWaterIntake(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                >
                   <option value="low">Menos de 1L</option>
                   <option value="moderate">1-2L</option>
                   <option value="good">2-3L</option>
@@ -968,7 +1366,7 @@ export default function PatientDetailPage() {
 
         {/* Botão Salvar */}
         <div className="flex justify-end">
-          <Button size="lg">
+          <Button onClick={handleSaveProfile} isLoading={isSaving} size="lg">
             <CheckCircle2 className="mr-2 h-4 w-4" />
             Salvar Perfil
           </Button>
@@ -989,11 +1387,10 @@ export default function PatientDetailPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-purple-900">
-                  Personalidade da IA para este Paciente
+                  Personalidade da IA para {patient?.name}
                 </h3>
                 <p className="mt-1 text-sm text-purple-700">
-                  Configure como a IA deve conversar especificamente com {patient?.name}. Cada paciente
-                  pode ter uma abordagem diferente: firme, leve, motivacional, com zoeira, etc.
+                  Configure como a IA deve conversar com este paciente especificamente.
                 </p>
               </div>
             </div>
@@ -1013,25 +1410,25 @@ export default function PatientDetailPage() {
                 {
                   value: 'firm',
                   label: 'Firme e Direto',
-                  description: 'Para pacientes que precisam de limites claros',
+                  description: 'Limites claros',
                   emoji: '💪',
                 },
                 {
                   value: 'light',
                   label: 'Leve e Acolhedor',
-                  description: 'Para pacientes ansiosos ou sensíveis',
+                  description: 'Sensível',
                   emoji: '🤗',
                 },
                 {
                   value: 'motivational',
-                  label: 'Motivacional e Energético',
-                  description: 'Para pacientes desmotivados',
+                  label: 'Motivacional',
+                  description: 'Energético',
                   emoji: '🔥',
                 },
                 {
                   value: 'playful',
-                  label: 'Descontraído e Zoeira',
-                  description: 'Para pacientes que gostam de humor',
+                  label: 'Zoeira',
+                  description: 'Humor',
                   emoji: '😄',
                 },
               ].map((tone) => (
@@ -1043,7 +1440,8 @@ export default function PatientDetailPage() {
                     type="radio"
                     name="tone"
                     value={tone.value}
-                    defaultChecked={tone.value === 'light'}
+                    checked={aiTone === tone.value}
+                    onChange={(e) => setAiTone(e.target.value)}
                     className="mt-1 h-4 w-4 text-purple-600 focus:ring-2 focus:ring-purple-500"
                   />
                   <div className="flex-1">
@@ -1059,219 +1457,84 @@ export default function PatientDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Estilo de Comunicação */}
+        {/* Estilo */}
         <Card>
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-6 space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">Estilo de Comunicação</h3>
 
-            <div className="space-y-3">
-              {[
-                { label: 'Usar emojis', description: 'Deixar conversas mais leves' },
-                { label: 'Mensagens curtas', description: 'Respostas objetivas e diretas' },
-                { label: 'Fazer perguntas', description: 'Engajar o paciente na conversa' },
-                { label: 'Usar gírias/informal', description: 'Linguagem mais próxima' },
-                { label: 'Citar ciência', description: 'Basear respostas em estudos' },
-              ].map((style, index) => (
-                <label
-                  key={index}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 cursor-pointer hover:bg-gray-100"
-                >
-                  <div>
-                    <span className="font-medium text-gray-900">{style.label}</span>
-                    <p className="text-sm text-gray-600">{style.description}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    defaultChecked={index < 2}
-                    className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
-                  />
-                </label>
-              ))}
-            </div>
+            {[
+              { label: 'Usar emojis', state: aiUseEmojis, setState: setAiUseEmojis },
+              { label: 'Mensagens curtas', state: aiShortMessages, setState: setAiShortMessages },
+              { label: 'Fazer perguntas', state: aiAskQuestions, setState: setAiAskQuestions },
+              { label: 'Usar gírias/informal', state: aiUseSlang, setState: setAiUseSlang },
+              { label: 'Citar ciência', state: aiCiteScience, setState: setAiCiteScience },
+            ].map((style, index) => (
+              <label
+                key={index}
+                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 cursor-pointer hover:bg-gray-100"
+              >
+                <span className="font-medium text-gray-900">{style.label}</span>
+                <input
+                  type="checkbox"
+                  checked={style.state}
+                  onChange={(e) => style.setState(e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                />
+              </label>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Frases Personalizadas */}
+        {/* Frases */}
         <Card>
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Frases Personalizadas</h3>
-              <Button variant="outline" size="sm">
-                <Plus className="mr-1 h-4 w-4" />
-                Adicionar Frase
-              </Button>
-            </div>
+          <CardContent className="p-6 space-y-3">
+            <h3 className="text-lg font-semibold text-gray-900">Frases Personalizadas</h3>
 
-            <div className="space-y-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Quando paciente acerta
-                </label>
-                <textarea
-                  defaultValue="Isso aí, {nome}! Você está arrasando! Continue assim que os resultados vêm! 💪"
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Quando paciente erra/desliza
-                </label>
-                <textarea
-                  defaultValue="Relaxa, {nome}. Um dia não define sua jornada. O importante é voltar no próximo dia. Vamos juntos?"
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Quando paciente está desmotivado
-                </label>
-                <textarea
-                  defaultValue="Eu sei que tá difícil, {nome}. Mas lembra por que você começou? Você é capaz, eu acredito em você!"
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-              <p>
-                <strong>Dica:</strong> Use <code className="rounded bg-blue-100 px-1">{`{nome}`}</code> para
-                inserir o nome do paciente automaticamente.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Gatilhos Específicos */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Gatilhos Específicos</h3>
-              <Button variant="outline" size="sm">
-                <Plus className="mr-1 h-4 w-4" />
-                Adicionar Gatilho
-              </Button>
-            </div>
-
-            <p className="text-sm text-gray-600">
-              Configure respostas automáticas quando o paciente mencionar palavras/frases específicas.
-            </p>
-
-            <div className="space-y-3">
-              {[
-                {
-                  trigger: 'com fome',
-                  response: 'Beber água ajuda! E que tal um lanche leve? Tenho sugestões aqui.',
-                  alert: false,
-                },
-                {
-                  trigger: 'quero desistir',
-                  response: 'Calma! Vamos conversar. Me conta o que está acontecendo?',
-                  alert: true,
-                },
-              ].map((gatilho, index) => (
-                <div
-                  key={index}
-                  className={`rounded-lg border p-4 ${
-                    gatilho.alert ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <code className="rounded bg-white px-2 py-1 text-sm font-medium text-gray-900">
-                      &quot;{gatilho.trigger}&quot;
-                    </code>
-                    {gatilho.alert && (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                        Alertar Prescritor
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-700">→ {gatilho.response}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tópicos Importantes para Este Paciente */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Tópicos Importantes para Este Paciente
-            </h3>
-
-            <div className="flex flex-wrap gap-2">
-              {[
-                'Hidratação',
-                'Mastigar devagar',
-                'Preparar marmitas',
-                'Evitar beliscar',
-                'Fazer exercícios',
-                'Dormir bem',
-              ].map((topic) => (
-                <label
-                  key={topic}
-                  className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 cursor-pointer hover:bg-purple-50 hover:border-purple-300"
-                >
-                  <input
-                    type="checkbox"
-                    defaultChecked={['Hidratação', 'Mastigar devagar'].includes(topic)}
-                    className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">{topic}</span>
-                </label>
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quando acerta
+              </label>
+              <textarea
+                value={aiPhraseSuccess}
+                onChange={(e) => setAiPhraseSuccess(e.target.value)}
+                placeholder="Ex: Isso aí! Você está arrasando! 💪"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                rows={2}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Tópico personalizado
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quando erra
               </label>
-              <input
-                type="text"
-                placeholder="Ex: Evitar doces à noite"
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              <textarea
+                value={aiPhraseFail}
+                onChange={(e) => setAiPhraseFail(e.target.value)}
+                placeholder="Ex: Relaxa! Um dia não define sua jornada."
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quando desmotivado
+              </label>
+              <textarea
+                value={aiPhraseMotivation}
+                onChange={(e) => setAiPhraseMotivation(e.target.value)}
+                placeholder="Ex: Eu sei que tá difícil. Mas você é capaz!"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                rows={2}
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Teste da IA */}
-        <Card className="border-2 border-purple-200 bg-purple-50">
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-purple-600" />
-              <h3 className="text-lg font-semibold text-purple-900">Testar Personalidade</h3>
-            </div>
-
-            <textarea
-              placeholder="Digite uma mensagem de teste (ex: 'Oi, comi muito hoje')"
-              className="w-full rounded-lg border border-purple-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300"
-              rows={2}
-            />
-
-            <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-100">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Ver como a IA responderia
-            </Button>
-
-            <div className="rounded-lg border border-purple-300 bg-white p-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Resposta da IA:</p>
-              <p className="text-sm text-gray-600 italic">
-                (Clique no botão acima para ver como a IA responderia com as configurações atuais)
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Botão Salvar */}
+        {/* Botões */}
         <div className="flex justify-end gap-3">
           <Button variant="outline">Restaurar Padrões</Button>
-          <Button size="lg">
+          <Button onClick={handleSaveAIConfig} isLoading={isSaving} size="lg">
             <CheckCircle2 className="mr-2 h-4 w-4" />
             Salvar Configurações
           </Button>
@@ -1289,6 +1552,8 @@ export default function PatientDetailPage() {
             <h3 className="text-lg font-semibold text-gray-900">Adicionar Nota</h3>
 
             <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
               placeholder="Escreva uma anotação sobre este paciente..."
               className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
               rows={4}
@@ -1296,7 +1561,11 @@ export default function PatientDetailPage() {
 
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
-                <select className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200">
+                <select 
+                  value={noteType}
+                  onChange={(e) => setNoteType(e.target.value)}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                >
                   <option value="consultation">📋 Consulta</option>
                   <option value="whatsapp">💬 WhatsApp</option>
                   <option value="alert">⚠️ Alerta</option>
@@ -1308,12 +1577,17 @@ export default function PatientDetailPage() {
                 </select>
 
                 <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 cursor-pointer hover:bg-gray-100">
-                  <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-purple-600" />
+                  <input 
+                    type="checkbox" 
+                    checked={noteImportant}
+                    onChange={(e) => setNoteImportant(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-purple-600" 
+                  />
                   <span className="text-sm text-gray-700">Marcar como importante</span>
                 </label>
               </div>
 
-              <Button>
+              <Button onClick={handleAddNote} isLoading={isSaving}>
                 <Plus className="mr-1 h-4 w-4" />
                 Adicionar Nota
               </Button>

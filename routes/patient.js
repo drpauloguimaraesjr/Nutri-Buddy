@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, requirePatient } = require('../middleware/auth');
 const { db } = require('../config/firebase');
+const aiProfileService = require('../services/ai-profiles');
 
 // Todas as rotas requerem autenticação + role patient
 router.use(verifyToken);
@@ -326,6 +327,31 @@ router.get('/meals/today', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ [PATIENT] Error fetching today meals:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patient/ai-profile
+ * Buscar perfil de IA do paciente
+ */
+router.get('/ai-profile', async (req, res) => {
+  try {
+    const patientId = req.user.uid;
+    
+    console.log('🤖 [PATIENT] Fetching AI profile for:', patientId);
+    
+    const profile = await aiProfileService.getOrCreateDefaultProfile(patientId);
+    
+    res.json({
+      success: true,
+      data: profile
+    });
+  } catch (error) {
+    console.error('❌ [PATIENT] Error fetching AI profile:', error);
     res.status(500).json({
       success: false,
       error: error.message
