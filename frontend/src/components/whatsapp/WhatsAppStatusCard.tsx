@@ -9,8 +9,7 @@ interface WhatsAppStatusCardProps {
 }
 
 export function WhatsAppStatusCard({ 
-  onOpenQRCode, 
-  refreshInterval = 30000 
+  onOpenQRCode
 }: WhatsAppStatusCardProps) {
   const [status, setStatus] = useState<'checking' | 'connected' | 'disconnected' | 'error'>('checking');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
