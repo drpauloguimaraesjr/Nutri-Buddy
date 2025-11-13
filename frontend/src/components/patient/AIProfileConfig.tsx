@@ -264,7 +264,7 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
     );
   }
 
-  const currentProfileMetadata = PROFILE_TYPES.find(p => p.value === selectedProfile)?.metadata;
+  // const currentProfileMetadata = PROFILE_TYPES.find(p => p.value === selectedProfile)?.metadata;
 
   return (
     <div className="space-y-6">
@@ -358,7 +358,7 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
                     </div>
                     <div className="rounded-lg bg-blue-50 p-3">
                       <p className="font-medium text-blue-900 mb-1">Exemplo de resposta:</p>
-                      <p className="text-blue-800 italic">"{metadata.example}"</p>
+                      <p className="text-blue-800 italic">&quot;{metadata.example}&quot;</p>
                     </div>
                   </div>
                 )}

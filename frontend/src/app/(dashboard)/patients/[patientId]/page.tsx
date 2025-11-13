@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, ChangeEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { AlertCircle, Bot, CheckCircle2, Copy, Download, FileText, Loader2, Mail, Plus, QrCode, Send, Sparkles, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, Bot, CheckCircle2, Copy, Download, FileText, Loader2, Mail, Plus, QrCode, Sparkles, Trash2, Upload } from 'lucide-react';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { motion } from 'framer-motion';
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
 import type { UserRole } from '@/types';
-import AIProfileConfig from '@/components/patient/AIProfileConfig';
 
 type PatientTab = 'profile' | 'goals' | 'body' | 'config' | 'diet' | 'notes' | 'activation';
 
