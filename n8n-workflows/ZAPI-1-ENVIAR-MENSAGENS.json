@@ -1,0 +1,154 @@
+{
+  "name": "NutriBuddy - Z-API: Enviar Mensagens WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "A cada 30 segundos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://web-production-c9eaf.up.railway.app/api/whatsapp/pending-messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-pending",
+      "name": "Buscar Mensagens Pendentes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.count }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "if-has-messages",
+      "name": "Tem Mensagens?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "messages",
+        "options": {}
+      },
+      "id": "split-messages",
+      "name": "Separar Mensagens",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "mode": "each",
+        "batchSize": 1
+      },
+      "id": "loop-control",
+      "name": "Processar Uma por Vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/whatsapp/send-pending",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messageId\": \"{{ $json.id }}\",\n  \"patientId\": \"{{ $json.patientId }}\",\n  \"content\": \"{{ $json.content }}\",\n  \"imageUrl\": \"{{ $json.imageUrl || '' }}\"\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "send-via-zapi",
+      "name": "Enviar via Z-API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "wait-between",
+      "name": "Aguardar 1s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1450, 200],
+      "webhookId": "zapi-send-wait"
+    }
+  ],
+  "connections": {
+    "A cada 30 segundos": {
+      "main": [[{"node": "Buscar Mensagens Pendentes", "type": "main", "index": 0}]]
+    },
+    "Buscar Mensagens Pendentes": {
+      "main": [[{"node": "Tem Mensagens?", "type": "main", "index": 0}]]
+    },
+    "Tem Mensagens?": {
+      "main": [[{"node": "Separar Mensagens", "type": "main", "index": 0}]]
+    },
+    "Separar Mensagens": {
+      "main": [[{"node": "Processar Uma por Vez", "type": "main", "index": 0}]]
+    },
+    "Processar Uma por Vez": {
+      "main": [[{"node": "Enviar via Z-API", "type": "main", "index": 0}]]
+    },
+    "Enviar via Z-API": {
+      "main": [[{"node": "Aguardar 1s", "type": "main", "index": 0}]]
+    },
+    "Aguardar 1s": {
+      "main": [[{"node": "Processar Uma por Vez", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+

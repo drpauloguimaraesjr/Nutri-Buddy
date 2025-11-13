@@ -1,0 +1,361 @@
+/* =============================================================
+   NUTRIBUDDY - WHATSAPP STATUS CARD STYLES
+   ============================================================= */
+
+.whatsapp-status-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  border-left: 4px solid #25D366;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 100px;
+}
+
+.whatsapp-status-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Status-specific border colors */
+.whatsapp-status-card.status-disconnected {
+  border-left-color: #dc3545;
+}
+
+.whatsapp-status-card.status-error {
+  border-left-color: #ffc107;
+}
+
+.whatsapp-status-card.status-checking {
+  border-left-color: #6c757d;
+}
+
+/* ========================================
+   ICON CONTAINER
+   ======================================== */
+.card-icon-container {
+  position: relative;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon {
+  font-size: 40px;
+  position: relative;
+  z-index: 2;
+}
+
+.status-icon.icon-checking {
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Pulse ring for connected status */
+.pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  border: 3px solid rgba(37, 211, 102, 0.5);
+  border-radius: 50%;
+  animation: pulse 2s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    width: 56px;
+    height: 56px;
+    opacity: 1;
+  }
+  100% {
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   CARD CONTENT
+   ======================================== */
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-content h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Refresh button */
+.refresh-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.refresh-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
+  transform: rotate(180deg);
+}
+
+/* Status text */
+.status-text {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-text.connected {
+  color: #155724;
+}
+
+.status-text.disconnected {
+  color: #721c24;
+}
+
+.status-text.checking {
+  color: #6c757d;
+}
+
+.status-text.error {
+  color: #856404;
+}
+
+/* Phone number */
+.phone-mini {
+  font-size: 13px;
+  color: #666;
+  margin: 4px 0 0 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* Error hint */
+.error-hint {
+  font-size: 12px;
+  color: #999;
+  margin: 4px 0 0 0;
+  font-style: italic;
+}
+
+/* Last update */
+.last-update {
+  font-size: 11px;
+  color: #999;
+  margin: 8px 0 0 0;
+}
+
+/* ========================================
+   RECONNECT BUTTON
+   ======================================== */
+.btn-reconnect {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #25D366 0%, #1da851 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
+}
+
+.btn-reconnect:hover {
+  background: linear-gradient(135deg, #1da851 0%, #128c3f 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 211, 102, 0.4);
+}
+
+.btn-reconnect:active {
+  transform: translateY(0);
+}
+
+/* ========================================
+   CONNECTION INDICATOR (dot)
+   ======================================== */
+.connection-indicator {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.connection-indicator.connected {
+  background: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+  animation: blink-green 2s ease-in-out infinite;
+}
+
+@keyframes blink-green {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.connection-indicator.disconnected {
+  background: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+
+.connection-indicator.checking {
+  background: #6c757d;
+  animation: pulse-gray 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-gray {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+.connection-indicator.error {
+  background: #ffc107;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 768px) {
+  .whatsapp-status-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .card-icon-container {
+    width: 48px;
+    height: 48px;
+  }
+
+  .status-icon {
+    font-size: 32px;
+  }
+
+  .card-content h4 {
+    font-size: 16px;
+  }
+
+  .status-text {
+    font-size: 14px;
+  }
+
+  .btn-reconnect {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* ========================================
+   DARK MODE
+   ======================================== */
+@media (prefers-color-scheme: dark) {
+  .whatsapp-status-card {
+    background: #2a2a2a;
+    border-left-color: #25D366;
+  }
+
+  .whatsapp-status-card.status-disconnected {
+    border-left-color: #ff6b6b;
+  }
+
+  .card-content h4 {
+    color: #e0e0e0;
+  }
+
+  .status-text.connected {
+    color: #4ade80;
+  }
+
+  .status-text.disconnected {
+    color: #ff6b6b;
+  }
+
+  .phone-mini,
+  .error-hint,
+  .last-update {
+    color: #b0b0b0;
+  }
+
+  .refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* =============================================================
+   VARIANTE: Card compacto para sidebar
+   ============================================================= */
+.whatsapp-status-card.compact {
+  padding: 12px;
+  min-height: auto;
+}
+
+.whatsapp-status-card.compact .card-icon-container {
+  width: 40px;
+  height: 40px;
+}
+
+.whatsapp-status-card.compact .status-icon {
+  font-size: 28px;
+}
+
+.whatsapp-status-card.compact .card-content h4 {
+  font-size: 15px;
+}
+
+.whatsapp-status-card.compact .status-text {
+  font-size: 13px;
+}
+
+.whatsapp-status-card.compact .btn-reconnect {
+  padding: 5px 10px;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+/* =============================================================
+   FIM DO ARQUIVO
+   ============================================================= */
+

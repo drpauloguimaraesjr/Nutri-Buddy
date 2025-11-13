@@ -14,79 +14,29 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
   const [error, setError] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [retryCount, setRetryCount] = useState(0);
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Buscar QR Code diretamente da Evolution API
+  // Buscar QR Code via Z-API
   const fetchQRCode = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Tenta buscar via backend primeiro
-      try {
-        const response = await fetch('/api/whatsapp/qrcode', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
+      console.log('📱 Buscando QR Code Z-API');
 
-        if (response.ok) {
-          const data = await response.json();
-
-          if (data.base64) {
-            setQrCode(data.base64);
-            setConnectionStatus('connecting');
-            return;
-          } else if (data.status === 'connected') {
-            setConnectionStatus('connected');
-            if (onConnected) onConnected();
-            return;
-          }
-        }
-      } catch {
-        console.log('Backend não disponível, usando Evolution API diretamente');
-      }
-
-      // Se backend não funcionar, tenta diretamente na Evolution API
-      const evolutionUrl = process.env.NEXT_PUBLIC_EVOLUTION_API_URL || 'https://nutribuddy-evolution-api.onrender.com';
-      const evolutionKey = process.env.NEXT_PUBLIC_EVOLUTION_API_KEY || 'NutriBuddy2024_MinhaChaveSecreta!';
-      const instanceName = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE_NAME || 'nutribuddy';
-
-      const response = await fetch(
-        `${evolutionUrl}/instance/connect/${instanceName}`,
-        {
-          method: 'GET',
-          headers: {
-            'apikey': evolutionKey,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/qrcode`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
 
       if (!response.ok) {
-        // Se der 404 ou erro, pode ser que já está conectado
-        const statusCheck = await fetch(
-          `${evolutionUrl}/instance/connectionState/${instanceName}`,
-          {
-            method: 'GET',
-            headers: {
-              'apikey': evolutionKey,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (statusCheck.ok) {
-          const statusData = await statusCheck.json();
-          if (statusData.state === 'open' || statusData.state === 'connected') {
-            setConnectionStatus('connected');
-            if (onConnected) onConnected();
-            return;
-          }
-        }
-
-        throw new Error('Erro ao buscar QR Code');
+        throw new Error(`Erro HTTP: ${response.status}`);
       }
 
       const data = await response.json();
@@ -94,92 +44,69 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
       if (data.base64) {
         setQrCode(data.base64);
         setConnectionStatus('connecting');
-      } else if (data.pairingCode) {
-        setQrCode(data.pairingCode);
-        setConnectionStatus('connecting');
-      } else {
-        // Pode estar já conectado
+        console.log('✅ QR Code recebido');
+      } else if (data.status === 'connected') {
         setConnectionStatus('connected');
+        setPhoneNumber(data.phone || '');
+        console.log('✅ WhatsApp já conectado');
         if (onConnected) onConnected();
+      } else {
+        setError('Não foi possível gerar QR Code');
       }
     } catch (err) {
-      console.error('Erro ao buscar QR Code:', err);
-      setError('Erro ao carregar QR Code. Verifique se a Evolution API está rodando.');
+      console.error('❌ Erro ao buscar QR Code:', err);
+      setError('Erro ao carregar QR Code. Verifique se o backend está rodando.');
     } finally {
       setLoading(false);
     }
   }, [onConnected]);
 
-  // Verificar status da conexão
+  // Verificar status da conexão via Z-API
   const checkConnectionStatus = useCallback(async () => {
     try {
-      // Tenta via backend primeiro
-      try {
-        const response = await fetch('/api/whatsapp/status', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-
-          if (data.status === 'connected') {
-            setConnectionStatus('connected');
-            if (onConnected) onConnected();
-            return;
-          } else if (data.status === 'connecting') {
-            setConnectionStatus('connecting');
-            return;
-          } else {
-            setConnectionStatus('disconnected');
-            return;
-          }
-        }
-      } catch {
-        console.log('Backend não disponível, verificando direto na Evolution API');
-      }
-
-      // Se backend falhar, tenta Evolution API diretamente
-      const evolutionUrl = process.env.NEXT_PUBLIC_EVOLUTION_API_URL || 'https://nutribuddy-evolution-api.onrender.com';
-      const evolutionKey = process.env.NEXT_PUBLIC_EVOLUTION_API_KEY || 'NutriBuddy2024_MinhaChaveSecreta!';
-      const instanceName = process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE_NAME || 'nutribuddy';
-
-      const response = await fetch(
-        `${evolutionUrl}/instance/connectionState/${instanceName}`,
-        {
-          method: 'GET',
-          headers: {
-            'apikey': evolutionKey,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
 
       if (response.ok) {
         const data = await response.json();
         
-        if (data.state === 'open' || data.state === 'connected') {
+        if (data.connected) {
           setConnectionStatus('connected');
+          setPhoneNumber(data.phone || '');
+          setQrCode(''); // Limpar QR Code quando conectar
+          console.log('✅ Status: Conectado');
           if (onConnected) onConnected();
-        } else if (data.state === 'connecting') {
-          setConnectionStatus('connecting');
         } else {
           setConnectionStatus('disconnected');
+          setPhoneNumber('');
+          console.log('⚠️ Status: Desconectado');
         }
       }
     } catch (err) {
-      console.error('Erro ao verificar status:', err);
+      console.error('❌ Erro ao verificar status:', err);
+      setConnectionStatus('disconnected');
     }
   }, [onConnected]);
 
-  // Desconectar WhatsApp
+  // Desconectar WhatsApp via Z-API
   const handleDisconnect = async () => {
+    if (!window.confirm('Deseja realmente desconectar o WhatsApp?')) {
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch('/api/whatsapp/disconnect', {
+      
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/disconnect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,9 +117,13 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
       if (response.ok) {
         setConnectionStatus('disconnected');
         setQrCode('');
+        setPhoneNumber('');
+        console.log('✅ WhatsApp desconectado');
+      } else {
+        setError('Erro ao desconectar. Tente novamente.');
       }
     } catch (err) {
-      console.error('Erro ao desconectar:', err);
+      console.error('❌ Erro ao desconectar:', err);
       setError('Erro ao desconectar. Tente novamente.');
     } finally {
       setLoading(false);
@@ -205,23 +136,25 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
     checkConnectionStatus();
   }, [fetchQRCode, checkConnectionStatus]);
 
-  // Auto-refresh do QR Code (expira a cada 30 segundos)
+  // Auto-refresh do QR Code (expira a cada 60 segundos)
   useEffect(() => {
-    if (connectionStatus === 'connecting' && qrCode) {
+    if (connectionStatus === 'connecting' && qrCode && autoRefresh) {
+      console.log('⏱️ Auto-refresh do QR Code ativado (60s)');
       const interval = setInterval(() => {
         setRetryCount(prev => prev + 1);
+        console.log('🔄 Renovando QR Code...');
         fetchQRCode();
-      }, 30000); // 30 segundos
+      }, 60000); // 60 segundos
 
       return () => clearInterval(interval);
     }
-  }, [connectionStatus, qrCode, fetchQRCode]);
+  }, [connectionStatus, qrCode, autoRefresh, fetchQRCode]);
 
-  // Verificar status periodicamente
+  // Verificar status periodicamente (a cada 10 segundos)
   useEffect(() => {
     const interval = setInterval(() => {
       checkConnectionStatus();
-    }, 5000); // 5 segundos
+    }, 10000); // 10 segundos
 
     return () => clearInterval(interval);
   }, [checkConnectionStatus]);
@@ -241,7 +174,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
     return (
       <Card className="p-8">
         <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="rounded-full bg-green-100 p-4">
+          <div className="rounded-full bg-green-100 p-4 animate-pulse">
             <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -250,12 +183,18 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
           <p className="text-gray-600 text-center">
             Seu WhatsApp está conectado e pronto para enviar mensagens.
           </p>
+          {phoneNumber && (
+            <p className="text-sm text-green-600 font-mono">
+              📞 {phoneNumber}
+            </p>
+          )}
           <Button
             onClick={handleDisconnect}
             variant="outline"
             className="mt-4"
+            disabled={loading}
           >
-            Desconectar
+            {loading ? 'Desconectando...' : 'Desconectar'}
           </Button>
         </div>
       </Card>
@@ -295,8 +234,21 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
                 {retryCount > 0 && `QR Code atualizado ${retryCount} vez${retryCount > 1 ? 'es' : ''}`}
               </p>
               <p className="text-xs text-gray-500">
-                O QR Code é atualizado automaticamente a cada 30 segundos
+                ⏱️ QR Code expira em 60 segundos
               </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="autoRefresh"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="w-4 h-4 text-green-600 rounded"
+              />
+              <label htmlFor="autoRefresh" className="text-sm text-gray-600">
+                Renovar QR Code automaticamente
+              </label>
             </div>
 
             <Button

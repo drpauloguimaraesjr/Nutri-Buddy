@@ -8,6 +8,7 @@ import { WhatsAppConversation } from '@/types';
 import WhatsAppKanbanBoard from '@/components/whatsapp/WhatsAppKanbanBoard';
 import WhatsAppConversationModal from '@/components/whatsapp/WhatsAppConversationModal';
 import { WhatsAppQRCode } from '@/components/whatsapp/WhatsAppQRCode';
+import { WhatsAppStatusCard } from '@/components/whatsapp/WhatsAppStatusCard';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { RefreshCw, Loader2, Settings } from 'lucide-react';
@@ -319,6 +320,14 @@ export default function WhatsAppDashboardPage() {
             Atualizar
           </Button>
         </div>
+      </div>
+
+      {/* WhatsApp Status Card */}
+      <div className="max-w-md">
+        <WhatsAppStatusCard 
+          onOpenQRCode={() => setShowQRCodeModal(true)}
+          refreshInterval={30000}
+        />
       </div>
 
       {/* Kanban Board */}

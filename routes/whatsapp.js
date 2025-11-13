@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../middleware/auth');
-
-// Evolution API Configuration
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'https://nutribuddy-evolution-api.onrender.com';
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || 'NutriBuddy2024_MinhaChaveSecreta!';
-const EVOLUTION_INSTANCE_NAME = process.env.EVOLUTION_INSTANCE_NAME || 'nutribuddy';
+const whatsappService = require('../services/whatsapp-service');
+const { db } = require('../config/firebase');
+const admin = require('firebase-admin');
 
 /**
  * GET /api/whatsapp/qrcode
- * Busca QR Code para conectar WhatsApp
+ * Busca QR Code para conectar WhatsApp via Z-API
  */
 router.get('/qrcode', verifyToken, async (req, res) => {
   try {
@@ -21,32 +19,37 @@ router.get('/qrcode', verifyToken, async (req, res) => {
       });
     }
 
-    // Busca QR Code do Evolution API
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/instance/connect/${EVOLUTION_INSTANCE_NAME}`,
-      {
-        method: 'GET',
-        headers: {
-          'apikey': EVOLUTION_API_KEY,
-          'Content-Type': 'application/json'
-        }
+    console.log('📱 Solicitação de QR Code Z-API');
+
+    // Busca QR Code via Z-API
+    const result = await whatsappService.getQRCodeBase64();
+
+    if (result.success) {
+      res.json({
+        success: true,
+        base64: result.base64,
+        expiresIn: result.expiresIn,
+        status: 'connecting'
+      });
+    } else {
+      // Se não conseguir QR Code, pode estar já conectado
+      const statusResult = await whatsappService.getConnectionStatus();
+      
+      if (statusResult.connected) {
+        return res.json({
+          success: true,
+          status: 'connected',
+          phone: statusResult.phone
+        });
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`Evolution API error: ${response.status}`);
+      res.status(result.statusCode || 500).json({
+        success: false,
+        error: result.error
+      });
     }
-
-    const data = await response.json();
-
-    res.json({
-      success: true,
-      base64: data.base64 || null,
-      code: data.code || null,
-      status: data.status || 'connecting'
-    });
   } catch (error) {
-    console.error('Erro ao buscar QR Code:', error);
+    console.error('❌ Erro ao buscar QR Code:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao buscar QR Code',
@@ -57,7 +60,7 @@ router.get('/qrcode', verifyToken, async (req, res) => {
 
 /**
  * GET /api/whatsapp/status
- * Verifica status da conexão WhatsApp
+ * Verifica status da conexão WhatsApp via Z-API
  */
 router.get('/status', verifyToken, async (req, res) => {
   try {
@@ -68,32 +71,17 @@ router.get('/status', verifyToken, async (req, res) => {
       });
     }
 
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/instance/connectionState/${EVOLUTION_INSTANCE_NAME}`,
-      {
-        method: 'GET',
-        headers: {
-          'apikey': EVOLUTION_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    console.log('📊 Verificando status Z-API');
 
-    if (!response.ok) {
-      throw new Error(`Evolution API error: ${response.status}`);
-    }
+    const result = await whatsappService.getConnectionStatus();
 
-    const data = await response.json();
-
-    res.json({
-      success: true,
-      status: data.state || 'disconnected',
-      instance: data.instance || {}
-    });
+    res.json(result);
   } catch (error) {
-    console.error('Erro ao verificar status:', error);
+    console.error('❌ Erro ao verificar status:', error);
     res.status(500).json({
       success: false,
+      connected: false,
+      status: 'disconnected',
       error: 'Erro ao verificar status',
       details: error.message
     });
@@ -102,7 +90,7 @@ router.get('/status', verifyToken, async (req, res) => {
 
 /**
  * POST /api/whatsapp/disconnect
- * Desconecta WhatsApp
+ * Desconecta WhatsApp via Z-API
  */
 router.post('/disconnect', verifyToken, async (req, res) => {
   try {
@@ -113,27 +101,13 @@ router.post('/disconnect', verifyToken, async (req, res) => {
       });
     }
 
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/instance/logout/${EVOLUTION_INSTANCE_NAME}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'apikey': EVOLUTION_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    console.log('🔌 Desconectando WhatsApp Z-API');
 
-    if (!response.ok) {
-      throw new Error(`Evolution API error: ${response.status}`);
-    }
+    const result = await whatsappService.disconnectWhatsApp();
 
-    res.json({
-      success: true,
-      message: 'WhatsApp desconectado com sucesso'
-    });
+    res.json(result);
   } catch (error) {
-    console.error('Erro ao desconectar:', error);
+    console.error('❌ Erro ao desconectar:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao desconectar WhatsApp',
@@ -144,7 +118,7 @@ router.post('/disconnect', verifyToken, async (req, res) => {
 
 /**
  * POST /api/whatsapp/send
- * Envia mensagem via WhatsApp
+ * Envia mensagem via WhatsApp Z-API
  */
 router.post('/send', verifyToken, async (req, res) => {
   try {
@@ -157,37 +131,25 @@ router.post('/send', verifyToken, async (req, res) => {
       });
     }
 
-    // Formata número para padrão internacional
-    const formattedPhone = phone.replace(/\D/g, '');
+    console.log(`📤 Enviando mensagem para ${phone}`);
 
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE_NAME}`,
-      {
-        method: 'POST',
-        headers: {
-          'apikey': EVOLUTION_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          number: `${formattedPhone}@s.whatsapp.net`,
-          text: message
-        })
-      }
-    );
+    const result = await whatsappService.sendTextMessage(phone, message);
 
-    if (!response.ok) {
-      throw new Error(`Evolution API error: ${response.status}`);
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Mensagem enviada com sucesso',
+        messageId: result.messageId,
+        to: result.to
+      });
+    } else {
+      res.status(result.statusCode || 500).json({
+        success: false,
+        error: result.error
+      });
     }
-
-    const data = await response.json();
-
-    res.json({
-      success: true,
-      message: 'Mensagem enviada com sucesso',
-      data
-    });
   } catch (error) {
-    console.error('Erro ao enviar mensagem:', error);
+    console.error('❌ Erro ao enviar mensagem:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao enviar mensagem',
@@ -197,68 +159,38 @@ router.post('/send', verifyToken, async (req, res) => {
 });
 
 /**
- * POST /api/whatsapp/webhook/configure
- * Configura webhook do Evolution para n8n
+ * POST /api/whatsapp/restart
+ * Reinicia instância Z-API
  */
-router.post('/webhook/configure', verifyToken, async (req, res) => {
+router.post('/restart', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'prescriber') {
       return res.status(403).json({
         success: false,
-        error: 'Apenas prescritores podem configurar webhook'
+        error: 'Apenas prescritores podem reiniciar'
       });
     }
 
-    const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 
-      'https://n8n-production-7690.up.railway.app/webhook/evolution-whatsapp';
+    console.log('🔄 Reiniciando instância Z-API');
 
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/webhook/set/${EVOLUTION_INSTANCE_NAME}`,
-      {
-        method: 'POST',
-        headers: {
-          'apikey': EVOLUTION_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          url: N8N_WEBHOOK_URL,
-          webhook_by_events: false,
-          webhook_base64: false,
-          events: [
-            'MESSAGES_UPSERT',
-            'MESSAGES_UPDATE',
-            'CONNECTION_UPDATE'
-          ]
-        })
-      }
-    );
+    const result = await whatsappService.restartInstance();
 
-    if (!response.ok) {
-      throw new Error(`Evolution API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    res.json({
-      success: true,
-      message: 'Webhook configurado com sucesso',
-      data
-    });
+    res.json(result);
   } catch (error) {
-    console.error('Erro ao configurar webhook:', error);
+    console.error('❌ Erro ao reiniciar:', error);
     res.status(500).json({
       success: false,
-      error: 'Erro ao configurar webhook',
+      error: 'Erro ao reiniciar instância',
       details: error.message
     });
   }
 });
 
 /**
- * GET /api/whatsapp/instance/info
- * Busca informações da instância
+ * GET /api/whatsapp/health
+ * Health check Z-API
  */
-router.get('/instance/info', verifyToken, async (req, res) => {
+router.get('/health', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'prescriber') {
       return res.status(403).json({
@@ -267,34 +199,160 @@ router.get('/instance/info', verifyToken, async (req, res) => {
       });
     }
 
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/instance/fetchInstances`,
-      {
-        method: 'GET',
-        headers: {
-          'apikey': EVOLUTION_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    const result = await whatsappService.healthCheck();
 
-    if (!response.ok) {
-      throw new Error(`Evolution API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    res.json({
-      success: true,
-      instances: data
-    });
+    res.json(result);
   } catch (error) {
-    console.error('Erro ao buscar instâncias:', error);
+    console.error('❌ Erro no health check:', error);
     res.status(500).json({
       success: false,
-      error: 'Erro ao buscar informações',
+      error: 'Erro no health check',
       details: error.message
     });
+  }
+});
+
+/**
+ * POST /webhooks/zapi-whatsapp
+ * Webhook para receber mensagens do Z-API
+ * NOTA: Este endpoint NÃO usa verifyToken pois é chamado pelo Z-API
+ */
+router.post('/webhooks/zapi-whatsapp', async (req, res) => {
+  try {
+    console.log('📩 Webhook Z-API recebido:', JSON.stringify(req.body, null, 2));
+
+    const {
+      phone,           // Número que enviou
+      fromMe,          // true se você enviou, false se recebeu
+      text,            // Objeto com texto
+      image,           // Objeto com imagem
+      messageId,       // ID da mensagem
+      chatId,          // ID do chat
+      type,            // Tipo do webhook
+      senderName,      // Nome do contato
+    } = req.body;
+
+    // Ignorar mensagens enviadas por você
+    if (fromMe) {
+      console.log('⏩ Mensagem enviada por mim, ignorando');
+      return res.status(200).json({ received: true });
+    }
+
+    // Ignorar webhooks de status
+    if (type === 'MessageStatus') {
+      console.log('⏩ Status de mensagem, ignorando');
+      return res.status(200).json({ received: true });
+    }
+
+    // Extrair dados
+    const phoneNumber = phone.replace('@c.us', '').replace('@s.whatsapp.net', '');
+    const messageContent = text?.message || image?.caption || 'Mensagem sem texto';
+    const hasImage = !!image;
+    const imageUrl = hasImage ? image.imageUrl : null;
+
+    console.log(`📨 Mensagem de ${senderName} (${phoneNumber}): ${messageContent}`);
+
+    // Buscar paciente por telefone
+    const patientsSnapshot = await db.collection('users')
+      .where('phone', '==', phoneNumber)
+      .where('role', '==', 'patient')
+      .limit(1)
+      .get();
+
+    if (patientsSnapshot.empty) {
+      console.log('⚠️ Paciente não encontrado:', phoneNumber);
+      return res.status(200).json({ received: true, patientNotFound: true });
+    }
+
+    const patientDoc = patientsSnapshot.docs[0];
+    const patient = { id: patientDoc.id, ...patientDoc.data() };
+
+    // Criar ID da conversa
+    const conversationId = `${patient.prescriberId}_${patient.id}`;
+
+    // Salvar mensagem no Firestore
+    await db.collection('whatsappMessages').add({
+      conversationId,
+      patientId: patient.id,
+      patientName: patient.name || senderName,
+      prescriberId: patient.prescriberId,
+      content: messageContent,
+      hasImage,
+      imageUrl,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      senderType: 'patient',
+      isFromPatient: true,
+      analyzed: false,
+      sent: true,
+      zapiMessageId: messageId
+    });
+
+    // Atualizar/criar conversa
+    await db.collection('whatsappConversations')
+      .doc(conversationId)
+      .set({
+        patientId: patient.id,
+        prescriberId: patient.prescriberId,
+        lastMessage: messageContent,
+        lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+        hasUnreadMessages: true,
+        unreadCount: admin.firestore.FieldValue.increment(1)
+      }, { merge: true });
+
+    console.log('✅ Mensagem salva no Firestore');
+
+    res.status(200).json({ 
+      received: true,
+      patientId: patient.id 
+    });
+
+  } catch (error) {
+    console.error('❌ Erro no webhook zapi-whatsapp:', error);
+    // Mesmo com erro, responder 200 para Z-API não reenviar
+    res.status(200).json({ received: true, error: error.message });
+  }
+});
+
+/**
+ * POST /webhooks/zapi-status
+ * Webhook para receber status de conexão do Z-API
+ * NOTA: Este endpoint NÃO usa verifyToken pois é chamado pelo Z-API
+ */
+router.post('/webhooks/zapi-status', async (req, res) => {
+  try {
+    console.log('📩 Webhook Z-API Status:', JSON.stringify(req.body, null, 2));
+
+    const { event, state, status, phone } = req.body;
+
+    // Salvar evento no Firestore para histórico
+    await db.collection('whatsappEvents').add({
+      event,
+      state,
+      status,
+      phone,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      source: 'z-api'
+    });
+
+    // Atualizar status geral
+    await db.collection('systemConfig').doc('whatsapp').set({
+      connected: state === 'CONNECTED' || status === 'open',
+      phone: phone || null,
+      lastEvent: event,
+      lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+      provider: 'z-api'
+    }, { merge: true });
+
+    if (state === 'CONNECTED' || status === 'open') {
+      console.log('✅ WhatsApp CONECTADO:', phone);
+    } else if (state === 'DISCONNECTED' || status === 'close') {
+      console.log('⚠️ WhatsApp DESCONECTADO');
+    }
+
+    res.status(200).json({ received: true });
+  } catch (error) {
+    console.error('❌ Erro no webhook zapi-status:', error);
+    res.status(200).json({ received: true, error: error.message });
   }
 });
 
