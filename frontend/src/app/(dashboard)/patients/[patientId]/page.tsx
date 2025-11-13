@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, ChangeEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { AlertCircle, Bot, CheckCircle2, Download, FileText, Loader2, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, Bot, CheckCircle2, Copy, Download, FileText, Loader2, Mail, Plus, QrCode, Send, Sparkles, Trash2, Upload } from 'lucide-react';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { motion } from 'framer-motion';
@@ -13,7 +13,7 @@ import { db, storage } from '@/lib/firebase';
 import type { UserRole } from '@/types';
 import AIProfileConfig from '@/components/patient/AIProfileConfig';
 
-type PatientTab = 'profile' | 'goals' | 'body' | 'config' | 'diet' | 'notes';
+type PatientTab = 'profile' | 'goals' | 'body' | 'config' | 'diet' | 'notes' | 'activation';
 
 interface PatientDetail {
   id: string;
@@ -52,7 +52,7 @@ export default function PatientDetailPage() {
     return Array.isArray(value) ? value[0] : value;
   }, [params]);
 
-  const [activeTab, setActiveTab] = useState<PatientTab>('diet');
+  const [activeTab, setActiveTab] = useState<PatientTab>('activation');
   const [isFetching, setIsFetching] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -119,6 +119,8 @@ export default function PatientDetailPage() {
     thighLeft: 57,
     calf: 38,
   });
+  const [inbodyFile, setInbodyFile] = useState<UploadedPlanFile | null>(null);
+  const [isUploadingInbody, setIsUploadingInbody] = useState(false);
 
   useEffect(() => {
     if (!patientId) return;
@@ -598,6 +600,8 @@ export default function PatientDetailPage() {
 
     // Renderizar conteúdo por aba
     switch (activeTab) {
+      case 'activation':
+        return renderActivationTab();
       case 'goals':
         return renderGoalsTab();
       case 'body':
@@ -617,6 +621,174 @@ export default function PatientDetailPage() {
         </div>
       );
     }
+  };
+
+  const renderActivationTab = () => {
+    const whatsappNumber = '5511999999999'; // SUBSTITUA pelo seu número
+    const activationMessage = `Oi! Sou ${patient?.name || 'paciente'}, estou aqui para iniciar meu acompanhamento nutricional VIP com você! 😊`;
+    const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(activationMessage)}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(whatsappLink)}`;
+
+    const handleCopyLink = () => {
+      navigator.clipboard.writeText(whatsappLink);
+      setFeedback({
+        type: 'success',
+        message: 'Link copiado! Envie para o paciente.',
+      });
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <Card className="border-l-4 border-l-green-500 bg-green-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500">
+                <QrCode className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-green-900">
+                  Ativar Paciente no WhatsApp
+                </h3>
+                <p className="mt-1 text-sm text-green-700">
+                  Envie o QR Code ou link para {patient?.name} iniciar a conversação.
+                  O paciente manda a primeira mensagem (Meta não bloqueia!) 🎯
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* QR Code */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">QR Code de Ativação</h3>
+            
+            <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8">
+              <img 
+                src={qrCodeUrl} 
+                alt="QR Code WhatsApp"
+                className="h-64 w-64 rounded-lg border-4 border-white shadow-lg"
+              />
+              
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">Paciente escaneia e envia!</p>
+                <p className="text-sm text-gray-600">
+                  WhatsApp abre com mensagem pronta
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Button 
+                variant="outline" 
+                onClick={() => window.print()}
+                className="w-full"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Imprimir QR Code
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = qrCodeUrl;
+                  link.download = `qrcode-${patient?.name}.png`;
+                  link.click();
+                }}
+                className="w-full"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Baixar QR Code
+              </Button>
+
+              <Button
+                onClick={handleCopyLink}
+                className="w-full"
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copiar Link
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Link Direto */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Link Direto (WhatsApp Web)</h3>
+            
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <p className="mb-2 text-sm font-medium text-gray-700">Cole este link para o paciente:</p>
+              <code className="block break-all rounded bg-white p-3 text-xs text-gray-800">
+                {whatsappLink}
+              </code>
+            </div>
+
+            <Button onClick={handleCopyLink} className="w-full">
+              <Copy className="mr-2 h-4 w-4" />
+              Copiar Link para Enviar
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Mensagem que será enviada */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Mensagem de Ativação</h3>
+            
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <p className="mb-2 text-sm font-medium text-green-700">
+                Quando o paciente escanear/clicar, WhatsApp abre com:
+              </p>
+              <div className="rounded-lg bg-white p-4 shadow-sm">
+                <p className="text-gray-800">{activationMessage}</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+              <p>
+                <strong>💡 Como funciona:</strong> Quando o paciente clica no link ou escaneia 
+                o QR Code, o WhatsApp dele abre automaticamente com esta mensagem pronta. 
+                Ele só precisa apertar ENVIAR! ✅
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Enviar por Email */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Enviar por Email</h3>
+            
+            <p className="text-sm text-gray-600">
+              Envie o QR Code por email para {patient?.email}
+            </p>
+
+            <Button className="w-full">
+              <Mail className="mr-2 h-4 w-4" />
+              Enviar QR Code por Email
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Status */}
+        <Card className="border-l-4 border-l-yellow-500 bg-yellow-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <div>
+                <p className="font-semibold text-yellow-900">Aguardando Ativação</p>
+                <p className="mt-1 text-sm text-yellow-700">
+                  Paciente ainda não enviou a primeira mensagem. Envie o QR Code ou link acima.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   };
 
   const renderGoalsTab = () => {
@@ -836,9 +1008,114 @@ export default function PatientDetailPage() {
     );
   };
 
+  const handleInbodyUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !patientId) return;
+
+    const isPdf = file.type === 'application/pdf';
+    if (!isPdf) {
+      setFeedback({
+        type: 'error',
+        message: 'Por favor, selecione um arquivo PDF.',
+      });
+      return;
+    }
+
+    const storagePath = `prescribers/${user?.uid}/patients/${patientId}/inbody/${Date.now()}-${file.name}`;
+    const fileRef = ref(storage, storagePath);
+    const uploadTask = uploadBytesResumable(fileRef, file);
+
+    setIsUploadingInbody(true);
+    setFeedback(null);
+
+    uploadTask.on(
+      'state_changed',
+      () => {},
+      (error) => {
+        console.error('Erro no upload:', error);
+        setIsUploadingInbody(false);
+        setFeedback({
+          type: 'error',
+          message: 'Erro ao enviar PDF da InBody.',
+        });
+      },
+      async () => {
+        try {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          setInbodyFile({
+            name: file.name,
+            url,
+            storagePath,
+          });
+          setFeedback({
+            type: 'success',
+            message: 'PDF da InBody enviado com sucesso!',
+          });
+        } finally {
+          setIsUploadingInbody(false);
+        }
+      }
+    );
+  };
+
   const renderBodyTab = () => {
     return (
       <div className="space-y-6">
+        {/* Upload InBody */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Bioimpedância InBody 770</h3>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 p-6 text-center transition hover:border-purple-400 hover:bg-purple-100 cursor-pointer">
+                <Upload className="h-10 w-10 text-purple-500" />
+                <div>
+                  <p className="font-medium text-gray-900">Upload PDF InBody</p>
+                  <p className="text-sm text-gray-500">Dados da bioimpedância</p>
+                </div>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleInbodyUpload}
+                  disabled={isUploadingInbody}
+                />
+              </label>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <FileText className="h-4 w-4" />
+                  PDF Carregado
+                </h4>
+
+                {inbodyFile ? (
+                  <div className="flex items-center justify-between rounded-lg bg-purple-50 p-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{inbodyFile.name}</p>
+                      <p className="text-xs text-purple-600">InBody pronto</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {inbodyFile.url && (
+                        <a
+                          href={inbodyFile.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Ver
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">Nenhum PDF enviado.</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Resumo Principal */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -2029,6 +2306,7 @@ export default function PatientDetailPage() {
         <CardContent className="p-3">
           <div className="flex flex-wrap gap-2">
             {[
+              { key: 'activation', label: '🚀 Ativação' },
               { key: 'profile', label: 'Perfil' },
               { key: 'goals', label: 'Metas' },
               { key: 'body', label: 'Físico' },
