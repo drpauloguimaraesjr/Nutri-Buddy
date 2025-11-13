@@ -681,11 +681,27 @@ export default function PatientDetailPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <Button 
                 variant="outline" 
-                onClick={() => window.print()}
+                onClick={async () => {
+                  try {
+                    const response = await fetch(qrCodeUrl);
+                    const blob = await response.blob();
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    await navigator.clipboard.write([item]);
+                    setFeedback({
+                      type: 'success',
+                      message: 'QR Code copiado! Cole no WhatsApp/Email.',
+                    });
+                  } catch (error) {
+                    setFeedback({
+                      type: 'error',
+                      message: 'Erro ao copiar. Use o botão "Baixar".',
+                    });
+                  }
+                }}
                 className="w-full"
               >
-                <Download className="mr-2 h-4 w-4" />
-                Imprimir QR Code
+                <Copy className="mr-2 h-4 w-4" />
+                Copiar Imagem QR Code
               </Button>
               
               <Button 
