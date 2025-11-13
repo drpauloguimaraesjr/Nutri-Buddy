@@ -21,9 +21,6 @@ const ZAPI_URL = `${ZAPI_BASE_URL}/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TO
 async function getQRCodeBase64() {
   try {
     const response = await axios.get(`${ZAPI_URL}/qr-code/image`, {
-      headers: { 
-        'Client-Token': ZAPI_TOKEN 
-      },
       responseType: 'arraybuffer',
       timeout: 10000
     });
@@ -61,9 +58,6 @@ async function getQRCodeBase64() {
 async function getConnectionStatus() {
   try {
     const response = await axios.get(`${ZAPI_URL}/status`, {
-      headers: { 
-        'Client-Token': ZAPI_TOKEN 
-      },
       timeout: 10000
     });
 
@@ -117,8 +111,7 @@ async function sendTextMessage(to, message) {
       message: message
     }, {
       headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': ZAPI_TOKEN
+        'Content-Type': 'application/json'
       },
       timeout: 15000
     });
@@ -158,8 +151,7 @@ async function sendImageMessage(to, imageUrl, caption = '') {
       caption: caption
     }, {
       headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': ZAPI_TOKEN
+        'Content-Type': 'application/json'
       },
       timeout: 20000
     });
@@ -190,9 +182,6 @@ async function sendImageMessage(to, imageUrl, caption = '') {
 async function disconnectWhatsApp() {
   try {
     const response = await axios.delete(`${ZAPI_URL}/logout`, {
-      headers: { 
-        'Client-Token': ZAPI_TOKEN 
-      },
       timeout: 10000
     });
 
@@ -219,9 +208,6 @@ async function disconnectWhatsApp() {
 async function restartInstance() {
   try {
     const response = await axios.post(`${ZAPI_URL}/restart`, {}, {
-      headers: { 
-        'Client-Token': ZAPI_TOKEN 
-      },
       timeout: 15000
     });
 
@@ -254,8 +240,7 @@ async function checkPhoneExists(phone) {
       phone: formattedPhone
     }, {
       headers: {
-        'Content-Type': 'application/json',
-        'Client-Token': ZAPI_TOKEN
+        'Content-Type': 'application/json'
       },
       timeout: 10000
     });
