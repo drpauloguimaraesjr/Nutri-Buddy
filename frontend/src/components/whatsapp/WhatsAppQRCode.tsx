@@ -27,12 +27,12 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
 
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
       
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/qrcode`, {
+      // Tentar endpoint de teste primeiro (sem auth)
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/qrcode-test`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -66,12 +66,12 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
     try {
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
       
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status`, {
+      // Usar endpoint de teste (sem auth)
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status-test`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
       });
 
       if (response.ok) {

@@ -24,12 +24,12 @@ export function WhatsAppStatusCard({
     try {
       setIsRefreshing(true);
       
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status`, {
+      // Usar endpoint de teste (sem auth)
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status-test`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
       });
 
       if (response.ok) {

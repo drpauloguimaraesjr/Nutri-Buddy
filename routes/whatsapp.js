@@ -6,6 +6,49 @@ const { db } = require('../config/firebase');
 const admin = require('firebase-admin');
 
 /**
+ * GET /api/whatsapp/qrcode-test
+ * Busca QR Code SEM AUTENTICAÇÃO (apenas para testes)
+ */
+router.get('/qrcode-test', async (req, res) => {
+  try {
+    console.log('📱 Solicitação de QR Code Z-API (TESTE - sem auth)');
+
+    const result = await whatsappService.getQRCodeBase64();
+
+    if (result.success) {
+      res.json({
+        success: true,
+        base64: result.base64,
+        expiresIn: result.expiresIn,
+        status: 'connecting'
+      });
+    } else {
+      const statusResult = await whatsappService.getConnectionStatus();
+      
+      if (statusResult.connected) {
+        return res.json({
+          success: true,
+          status: 'connected',
+          phone: statusResult.phone
+        });
+      }
+
+      res.status(result.statusCode || 500).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar QR Code:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar QR Code',
+      details: error.message
+    });
+  }
+});
+
+/**
  * GET /api/whatsapp/qrcode
  * Busca QR Code para conectar WhatsApp via Z-API
  */
@@ -53,6 +96,29 @@ router.get('/qrcode', verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erro ao buscar QR Code',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/whatsapp/status-test
+ * Verifica status SEM AUTENTICAÇÃO (apenas para testes)
+ */
+router.get('/status-test', async (req, res) => {
+  try {
+    console.log('📊 Verificando status Z-API (TESTE - sem auth)');
+
+    const result = await whatsappService.getConnectionStatus();
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Erro ao verificar status:', error);
+    res.status(500).json({
+      success: false,
+      connected: false,
+      status: 'disconnected',
+      error: 'Erro ao verificar status',
       details: error.message
     });
   }
