@@ -51,7 +51,7 @@ export default function PatientDetailPage() {
     return Array.isArray(value) ? value[0] : value;
   }, [params]);
 
-  const [activeTab, setActiveTab] = useState<PatientTab>('activation');
+  const [activeTab, setActiveTab] = useState<PatientTab>('diet');
   const [isFetching, setIsFetching] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -309,19 +309,21 @@ export default function PatientDetailPage() {
                 setTranscriptionStatus('completed');
                 setFeedback({
                   type: 'success',
-                  message: 'PDF transcrito com sucesso! Dados foram extraídos.',
+                  message: 'PDF transcrito com sucesso! IA está processando em background (30-60s). Recarregue a página em 1 minuto para ver os dados.',
                 });
-                // Recarregar dados do paciente
-                setTimeout(() => window.location.reload(), 2000);
               } else {
                 setTranscriptionStatus('completed');
                 setFeedback({
                   type: 'success',
-                  message: 'PDF salvo! Transcrição manual disponível.',
+                  message: 'PDF salvo! Configure as variáveis N8N no Vercel para ativar transcrição automática.',
                 });
               }
             } else {
               setTranscriptionStatus('completed');
+              setFeedback({
+                type: 'success',
+                message: 'PDF salvo! Configure NEXT_PUBLIC_N8N_TRANSCRIBE_DIET_URL no Vercel para ativar IA.',
+              });
             }
           } catch (error) {
             console.error('Erro ao transcrever:', error);
@@ -1122,11 +1124,19 @@ export default function PatientDetailPage() {
               if (response.ok) {
                 setFeedback({
                   type: 'success',
-                  message: 'InBody transcrita! Dados extraídos com sucesso.',
+                  message: 'InBody enviada! IA processando em background (30-60s). Recarregue em 1 minuto.',
                 });
-                // Recarregar dados
-                setTimeout(() => window.location.reload(), 2000);
+              } else {
+                setFeedback({
+                  type: 'success',
+                  message: 'InBody salva! Configure variáveis N8N no Vercel para ativar transcrição.',
+                });
               }
+            } else {
+              setFeedback({
+                type: 'success',
+                message: 'InBody salva! Configure NEXT_PUBLIC_N8N_TRANSCRIBE_INBODY_URL no Vercel.',
+              });
             }
           } catch (error) {
             console.error('Erro ao transcrever InBody:', error);
