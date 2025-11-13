@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 interface WhatsAppStatusCardProps {
@@ -20,7 +20,7 @@ export function WhatsAppStatusCard({
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
   // Verificar status
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     try {
       setIsRefreshing(true);
       
@@ -41,14 +41,13 @@ export function WhatsAppStatusCard({
       } else {
         setStatus('error');
       }
-    } catch (error) {
+    } catch {
       // Silenciar erro de fetch - servidor pode estar offline
-      // console.error('Erro ao verificar status WhatsApp:', error);
       setStatus('error');
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [apiBaseUrl]);
 
   // Auto-refresh - DESABILITADO até backend estar rodando
   useEffect(() => {

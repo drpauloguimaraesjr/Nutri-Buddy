@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, ChangeEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { AlertCircle, Bot, CheckCircle2, Download, FileText, Loader2, MessageSquare, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, Bot, CheckCircle2, Download, FileText, Loader2, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { motion } from 'framer-motion';
@@ -1139,7 +1139,7 @@ export default function PatientDetailPage() {
 
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
               <p>
-                <strong>Dica:</strong> Use <code className="rounded bg-blue-100 px-1">{'{nome}'}</code> para
+                <strong>Dica:</strong> Use <code className="rounded bg-blue-100 px-1">{`{nome}`}</code> para
                 inserir o nome do paciente automaticamente.
               </p>
             </div>
@@ -1182,7 +1182,7 @@ export default function PatientDetailPage() {
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <code className="rounded bg-white px-2 py-1 text-sm font-medium text-gray-900">
-                      "{gatilho.trigger}"
+                      &quot;{gatilho.trigger}&quot;
                     </code>
                     {gatilho.alert && (
                       <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">

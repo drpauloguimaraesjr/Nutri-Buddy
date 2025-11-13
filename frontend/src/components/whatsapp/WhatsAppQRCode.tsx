@@ -89,9 +89,8 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
           console.log('⚠️ Status: Desconectado');
         }
       }
-    } catch (err) {
+    } catch {
       // Silenciar erro de fetch - servidor pode estar offline
-      // console.error('❌ Erro ao verificar status:', err);
       setConnectionStatus('disconnected');
     }
   }, [onConnected]);
