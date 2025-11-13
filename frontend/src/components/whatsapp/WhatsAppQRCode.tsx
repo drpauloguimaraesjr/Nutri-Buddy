@@ -132,9 +132,10 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
 
   // Buscar QR Code na montagem
   useEffect(() => {
-    // fetchQRCode(); // Desabilitado para evitar erros
-    // checkConnectionStatus(); // Desabilitado para evitar erros
-  }, [fetchQRCode, checkConnectionStatus]);
+    // Setar status inicial sem fazer fetch
+    setConnectionStatus('disconnected');
+    setLoading(false);
+  }, []);
 
   // Auto-refresh do QR Code (expira a cada 60 segundos) - DESABILITADO
   useEffect(() => {

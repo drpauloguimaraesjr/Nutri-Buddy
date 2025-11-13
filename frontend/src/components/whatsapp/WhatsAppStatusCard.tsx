@@ -51,12 +51,9 @@ export function WhatsAppStatusCard({
 
   // Auto-refresh - DESABILITADO até backend estar rodando
   useEffect(() => {
-    // checkStatus(); // Comentado para evitar erros no console
-    
-    // const interval = setInterval(checkStatus, refreshInterval);
-    
-    // return () => clearInterval(interval);
-  }, [refreshInterval, checkStatus]);
+    // Setar status inicial como erro (servidor offline)
+    setStatus('error');
+  }, []);
 
   // Handlers
   const handleClick = () => {
