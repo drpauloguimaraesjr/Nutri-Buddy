@@ -1411,7 +1411,7 @@ export default function PatientDetailPage() {
                   </div>
 
                   <p className="text-gray-800 leading-relaxed">
-                    Paciente conquistou o badge "7 dias seguidos"! Manteve 100% de aderência ao plano
+                    Paciente conquistou o badge &quot;7 dias seguidos&quot;! Manteve 100% de aderência ao plano
                     durante toda a semana.
                   </p>
 
