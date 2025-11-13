@@ -42,20 +42,21 @@ export function WhatsAppStatusCard({
         setStatus('error');
       }
     } catch (error) {
-      console.error('Erro ao verificar status WhatsApp:', error);
+      // Silenciar erro de fetch - servidor pode estar offline
+      // console.error('Erro ao verificar status WhatsApp:', error);
       setStatus('error');
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Auto-refresh
+  // Auto-refresh - DESABILITADO até backend estar rodando
   useEffect(() => {
-    checkStatus();
+    // checkStatus(); // Comentado para evitar erros no console
     
-    const interval = setInterval(checkStatus, refreshInterval);
+    // const interval = setInterval(checkStatus, refreshInterval);
     
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, [refreshInterval, checkStatus]);
 
   // Handlers

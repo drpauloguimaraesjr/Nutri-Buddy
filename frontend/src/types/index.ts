@@ -118,3 +118,20 @@ export interface WhatsAppConversation {
   updatedAt: Date;
 }
 
+// Patient Goals & Progress Types
+export interface WeightEntry {
+  date: Date;
+  weight: number;
+  note?: string;
+}
+
+export interface PatientGoals {
+  objective: 'lose_weight' | 'gain_muscle' | 'maintain' | 'performance' | 'health' | 'gain_weight' | 'recomp';
+  initialWeight?: number;
+  currentWeight?: number;
+  targetWeight?: number;
+  deadline?: Date | null;
+  weeklyGoals?: string[];
+  weightHistory?: WeightEntry[];
+}
+

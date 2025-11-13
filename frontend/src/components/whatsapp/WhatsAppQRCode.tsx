@@ -90,7 +90,8 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
         }
       }
     } catch (err) {
-      console.error('❌ Erro ao verificar status:', err);
+      // Silenciar erro de fetch - servidor pode estar offline
+      // console.error('❌ Erro ao verificar status:', err);
       setConnectionStatus('disconnected');
     }
   }, [onConnected]);
@@ -132,13 +133,13 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
 
   // Buscar QR Code na montagem
   useEffect(() => {
-    fetchQRCode();
-    checkConnectionStatus();
+    // fetchQRCode(); // Desabilitado para evitar erros
+    // checkConnectionStatus(); // Desabilitado para evitar erros
   }, [fetchQRCode, checkConnectionStatus]);
 
-  // Auto-refresh do QR Code (expira a cada 60 segundos)
+  // Auto-refresh do QR Code (expira a cada 60 segundos) - DESABILITADO
   useEffect(() => {
-    if (connectionStatus === 'connecting' && qrCode && autoRefresh) {
+    if (false && connectionStatus === 'connecting' && qrCode && autoRefresh) {
       console.log('⏱️ Auto-refresh do QR Code ativado (60s)');
       const interval = setInterval(() => {
         setRetryCount(prev => prev + 1);
