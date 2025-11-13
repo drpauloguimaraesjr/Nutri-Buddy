@@ -56,7 +56,7 @@ export function WhatsAppStatusCard({
     const interval = setInterval(checkStatus, refreshInterval);
     
     return () => clearInterval(interval);
-  }, [refreshInterval]);
+  }, [refreshInterval, checkStatus]);
 
   // Handlers
   const handleClick = () => {
