@@ -1,0 +1,139 @@
+{
+  "name": "NutriBuddy - Transcrever Dieta PDF",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-transcribe-diet",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook Recebe PDF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "nutribuddy-transcribe-diet"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.pdfUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-pdf",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "operation": "extractText",
+        "binaryPropertyName": "data"
+      },
+      "id": "extract-text",
+      "name": "Extrair Texto do PDF",
+      "type": "n8n-nodes-base.pdf",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "temperature": 0.3
+        },
+        "text": "=Analise este plano alimentar e extraia os dados estruturados.\n\nTexto do PDF:\n{{ $json.text }}\n\nRetorne APENAS um JSON válido (sem markdown) com esta estrutura:\n{\n  \"meals\": [\n    {\n      \"name\": \"Café da manhã\",\n      \"time\": \"07:00\",\n      \"foods\": [\n        {\"item\": \"Aveia\", \"amount\": \"50g\"},\n        {\"item\": \"Banana\", \"amount\": \"1 unidade\"}\n      ]\n    }\n  ],\n  \"macros\": {\n    \"carbs\": 200,\n    \"protein\": 150,\n    \"fat\": 60,\n    \"calories\": 2000\n  },\n  \"notes\": \"Observações gerais\",\n  \"fullText\": \"Texto completo formatado da dieta\"\n}\n\nSe não encontrar algum dado, use null."
+      },
+      "id": "openai-analyze",
+      "name": "OpenAI Analisar Dieta",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse resposta da IA\ntry {\n  const aiResponse = $input.first().json;\n  let content = '';\n  \n  if (aiResponse.message?.content) {\n    content = aiResponse.message.content;\n  } else if (aiResponse.choices?.[0]?.message?.content) {\n    content = aiResponse.choices[0].message.content;\n  } else if (typeof aiResponse === 'string') {\n    content = aiResponse;\n  }\n  \n  // Limpar markdown\n  content = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  \n  const dietData = JSON.parse(content);\n  \n  return {\n    json: {\n      patientId: items[0].json.patientId,\n      meals: dietData.meals || [],\n      macros: dietData.macros || {},\n      notes: dietData.notes || '',\n      fullText: dietData.fullText || '',\n      transcriptionStatus: 'completed'\n    }\n  };\n} catch (error) {\n  console.error('Erro ao parsear:', error);\n  return {\n    json: {\n      patientId: items[0].json.patientId,\n      meals: [],\n      macros: {},\n      notes: 'Erro na transcrição',\n      fullText: '',\n      transcriptionStatus: 'error',\n      error: error.message\n    }\n  };\n}"
+      },
+      "id": "parse-diet",
+      "name": "Parse Dados da Dieta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/update-diet",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "save-firestore",
+      "name": "Salvar no Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Dieta transcrita com sucesso\",\n  \"patientId\": \"{{ $json.patientId }}\",\n  \"status\": \"{{ $json.transcriptionStatus }}\"\n}"
+      },
+      "id": "response",
+      "name": "Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Recebe PDF": {
+      "main": [[{"node": "Download PDF", "type": "main", "index": 0}]]
+    },
+    "Download PDF": {
+      "main": [[{"node": "Extrair Texto do PDF", "type": "main", "index": 0}]]
+    },
+    "Extrair Texto do PDF": {
+      "main": [[{"node": "OpenAI Analisar Dieta", "type": "main", "index": 0}]]
+    },
+    "OpenAI Analisar Dieta": {
+      "main": [[{"node": "Parse Dados da Dieta", "type": "main", "index": 0}]]
+    },
+    "Parse Dados da Dieta": {
+      "main": [[{"node": "Salvar no Firestore", "type": "main", "index": 0}]]
+    },
+    "Salvar no Firestore": {
+      "main": [[{"node": "Resposta", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+

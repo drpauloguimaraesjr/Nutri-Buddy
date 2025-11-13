@@ -1,0 +1,199 @@
+{
+  "name": "TWILIO - Enviar Mensagens WhatsApp",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-twilio-send"
+    },
+    {
+      "parameters": {
+        "functionCode": "// ===================================================\n// PREPARAR DADOS PARA ENVIO TWILIO\n// ===================================================\n\nconst items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Extrair dados da mensagem\n  const to = data.to || data.phone || data.phoneNumber;\n  const message = data.message || data.content || data.text;\n  const imageUrl = data.imageUrl || data.image || data.mediaUrl;\n  const caption = data.caption || '';\n  \n  // Validar número de telefone\n  if (!to) {\n    throw new Error('Campo \"to\" (número telefone) é obrigatório');\n  }\n  \n  // Validar conteúdo\n  if (!message && !imageUrl) {\n    throw new Error('Informe \"message\" (texto) ou \"imageUrl\" (imagem)');\n  }\n  \n  // Formatar número para Twilio\n  // Twilio aceita: +5511999999999 ou whatsapp:+5511999999999\n  let formattedPhone = to.toString().trim();\n  \n  // Remover espaços e caracteres especiais (exceto +)\n  formattedPhone = formattedPhone.replace(/[^0-9+]/g, '');\n  \n  // Adicionar + se não tiver\n  if (!formattedPhone.startsWith('+')) {\n    formattedPhone = '+' + formattedPhone;\n  }\n  \n  // Preparar payload\n  const payload = {\n    to: formattedPhone,\n    message: message,\n    imageUrl: imageUrl,\n    caption: caption\n  };\n  \n  output.push({\n    json: payload,\n    pairedItem: { item: items.indexOf(item) }\n  });\n}\n\nreturn output;"
+      },
+      "id": "prepare-data",
+      "name": "Preparar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.BACKEND_URL}}/api/whatsapp/send",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{$json.to}}"
+            },
+            {
+              "name": "message",
+              "value": "={{$json.message}}"
+            },
+            {
+              "name": "imageUrl",
+              "value": "={{$json.imageUrl}}"
+            },
+            {
+              "name": "caption",
+              "value": "={{$json.caption}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-request",
+      "name": "Enviar via Twilio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// ===================================================\n// PROCESSAR RESPOSTA TWILIO\n// ===================================================\n\nconst items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const response = item.json;\n  \n  // Extrair dados da resposta\n  const success = response.success || false;\n  const messageId = response.messageId || response.sid || null;\n  const status = response.status || 'unknown';\n  const error = response.error || null;\n  const to = response.to || null;\n  \n  // Preparar resultado\n  const result = {\n    success: success,\n    messageId: messageId,\n    status: status,\n    to: to,\n    error: error,\n    timestamp: new Date().toISOString(),\n    provider: 'twilio'\n  };\n  \n  // Log\n  if (success) {\n    console.log('✅ Mensagem enviada via Twilio:', messageId);\n  } else {\n    console.error('❌ Erro Twilio:', error);\n  }\n  \n  output.push({\n    json: result,\n    pairedItem: { item: items.indexOf(item) }\n  });\n}\n\nreturn output;"
+      },
+      "id": "process-response",
+      "name": "Processar Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-success",
+      "name": "Sucesso?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// ===================================================\n// ATUALIZAR FIRESTORE - MENSAGEM ENVIADA\n// ===================================================\n// (Implemente sua lógica de update no Firestore aqui)\n\nconst items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // TODO: Atualizar mensagem no Firestore\n  // await db.collection('whatsappMessages')\n  //   .doc(messageId)\n  //   .update({\n  //     sent: true,\n  //     sentAt: new Date(),\n  //     twilioMessageId: data.messageId,\n  //     twilioStatus: data.status\n  //   });\n  \n  console.log('✅ Atualizar Firestore:', data.messageId);\n  \n  output.push({\n    json: {\n      ...data,\n      firestoreUpdated: true\n    },\n    pairedItem: { item: items.indexOf(item) }\n  });\n}\n\nreturn output;"
+      },
+      "id": "update-firestore-success",
+      "name": "Atualizar Firestore (Sucesso)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// ===================================================\n// LOG ERRO\n// ===================================================\n\nconst items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Log erro detalhado\n  console.error('❌ Falha ao enviar via Twilio:', {\n    to: data.to,\n    error: data.error,\n    status: data.status,\n    timestamp: data.timestamp\n  });\n  \n  // TODO: Salvar erro no Firestore ou sistema de logs\n  \n  output.push({\n    json: {\n      ...data,\n      logged: true\n    },\n    pairedItem: { item: items.indexOf(item) }\n  });\n}\n\nreturn output;"
+      },
+      "id": "log-error",
+      "name": "Log Erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Preparar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Dados": {
+      "main": [
+        [
+          {
+            "node": "Enviar via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar via Twilio": {
+      "main": [
+        [
+          {
+            "node": "Processar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Sucesso?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sucesso?": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Firestore (Sucesso)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "id": "twilio",
+      "name": "Twilio"
+    },
+    {
+      "id": "whatsapp",
+      "name": "WhatsApp"
+    }
+  ],
+  "meta": {
+    "instanceId": "nutribuddy-n8n"
+  },
+  "pinData": null,
+  "versionId": "1.0.0"
+}
+

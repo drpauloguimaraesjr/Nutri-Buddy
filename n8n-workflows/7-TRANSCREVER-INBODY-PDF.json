@@ -1,0 +1,139 @@
+{
+  "name": "NutriBuddy - Transcrever InBody 770 PDF",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-transcribe-inbody",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook Recebe InBody",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "nutribuddy-transcribe-inbody"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.pdfUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-pdf",
+      "name": "Download PDF InBody",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "operation": "extractText",
+        "binaryPropertyName": "data"
+      },
+      "id": "extract-text",
+      "name": "Extrair Texto",
+      "type": "n8n-nodes-base.pdf",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "temperature": 0.2
+        },
+        "text": "=Analise este relatório da InBody 770 e extraia os dados estruturados.\n\nTexto do PDF:\n{{ $json.text }}\n\nRetorne APENAS um JSON válido (sem markdown) com esta estrutura:\n{\n  \"weight\": 75.5,\n  \"height\": 175,\n  \"bodyFat\": 18.2,\n  \"leanMass\": 61.5,\n  \"fatMass\": 14.0,\n  \"bodyWater\": 45.2,\n  \"bmi\": 24.7,\n  \"visceralFat\": 8,\n  \"basalMetabolicRate\": 1650,\n  \"measurements\": {\n    \"waist\": 85,\n    \"hip\": 95,\n    \"chest\": 100,\n    \"armRight\": 35,\n    \"armLeft\": 34,\n    \"thighRight\": 58,\n    \"thighLeft\": 57,\n    \"calf\": 38\n  },\n  \"muscleDistribution\": {\n    \"rightArm\": 3.2,\n    \"leftArm\": 3.1,\n    \"trunk\": 25.5,\n    \"rightLeg\": 9.8,\n    \"leftLeg\": 9.7\n  },\n  \"date\": \"2025-02-10\",\n  \"notes\": \"Observações do relatório\"\n}\n\nSe não encontrar algum dado, use null."
+      },
+      "id": "openai-analyze",
+      "name": "OpenAI Analisar InBody",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse resposta da IA\ntry {\n  const aiResponse = $input.first().json;\n  let content = '';\n  \n  if (aiResponse.message?.content) {\n    content = aiResponse.message.content;\n  } else if (aiResponse.choices?.[0]?.message?.content) {\n    content = aiResponse.choices[0].message.content;\n  } else if (typeof aiResponse === 'string') {\n    content = aiResponse;\n  }\n  \n  // Limpar markdown\n  content = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  \n  const inbodyData = JSON.parse(content);\n  \n  return {\n    json: {\n      patientId: items[0].json.patientId,\n      weight: inbodyData.weight,\n      height: inbodyData.height,\n      bodyFat: inbodyData.bodyFat,\n      leanMass: inbodyData.leanMass,\n      fatMass: inbodyData.fatMass,\n      bodyWater: inbodyData.bodyWater,\n      bmi: inbodyData.bmi,\n      visceralFat: inbodyData.visceralFat,\n      basalMetabolicRate: inbodyData.basalMetabolicRate,\n      measurements: inbodyData.measurements || {},\n      muscleDistribution: inbodyData.muscleDistribution || {},\n      date: inbodyData.date,\n      notes: inbodyData.notes || '',\n      transcriptionStatus: 'completed'\n    }\n  };\n} catch (error) {\n  console.error('Erro ao parsear InBody:', error);\n  return {\n    json: {\n      patientId: items[0].json.patientId,\n      transcriptionStatus: 'error',\n      error: error.message\n    }\n  };\n}"
+      },
+      "id": "parse-inbody",
+      "name": "Parse Dados InBody",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/update-inbody",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "save-firestore",
+      "name": "Salvar no Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"InBody transcrita com sucesso\",\n  \"patientId\": \"{{ $json.patientId }}\",\n  \"status\": \"{{ $json.transcriptionStatus }}\",\n  \"data\": {{ JSON.stringify($json) }}\n}"
+      },
+      "id": "response",
+      "name": "Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Recebe InBody": {
+      "main": [[{"node": "Download PDF InBody", "type": "main", "index": 0}]]
+    },
+    "Download PDF InBody": {
+      "main": [[{"node": "Extrair Texto", "type": "main", "index": 0}]]
+    },
+    "Extrair Texto": {
+      "main": [[{"node": "OpenAI Analisar InBody", "type": "main", "index": 0}]]
+    },
+    "OpenAI Analisar InBody": {
+      "main": [[{"node": "Parse Dados InBody", "type": "main", "index": 0}]]
+    },
+    "Parse Dados InBody": {
+      "main": [[{"node": "Salvar no Firestore", "type": "main", "index": 0}]]
+    },
+    "Salvar no Firestore": {
+      "main": [[{"node": "Resposta", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+

@@ -312,3 +312,4 @@ Z-API é **MUITO mais fácil** que Evolution!
 
 **Z-API: Solução brasileira, profissional e estável para WhatsApp! 🇧🇷🚀**
 
+
