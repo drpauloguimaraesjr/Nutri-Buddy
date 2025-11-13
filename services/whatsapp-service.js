@@ -37,6 +37,9 @@ async function getQRCodeBase64() {
     };
   } catch (error) {
     console.error('❌ Erro ao obter QR Code:', error.message);
+    console.error('❌ Detalhes do erro:', error.response?.data);
+    console.error('❌ Status Code:', error.response?.status);
+    console.error('❌ URL chamada:', `${ZAPI_URL}/qr-code/image`);
     
     // Se erro 401/404, pode estar já conectado
     const needsReconnect = error.response?.status === 401 || 
@@ -44,9 +47,10 @@ async function getQRCodeBase64() {
     
     return {
       success: false,
-      error: error.response?.data?.message || error.message,
+      error: error.response?.data?.message || error.response?.data || error.message,
       statusCode: error.response?.status || 500,
-      needsReconnect
+      needsReconnect,
+      details: error.response?.data
     };
   }
 }
@@ -82,14 +86,18 @@ async function getConnectionStatus() {
     };
   } catch (error) {
     console.error('❌ Erro ao verificar status:', error.message);
+    console.error('❌ Detalhes do erro:', error.response?.data);
+    console.error('❌ Status Code:', error.response?.status);
+    console.error('❌ URL chamada:', `${ZAPI_URL}/status`);
     
     return {
       success: false,
       connected: false,
       phone: null,
       status: 'disconnected',
-      error: error.message,
-      statusCode: error.response?.status || 500
+      error: error.response?.data?.message || error.response?.data || error.message,
+      statusCode: error.response?.status || 500,
+      details: error.response?.data
     };
   }
 }
