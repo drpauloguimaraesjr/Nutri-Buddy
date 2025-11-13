@@ -691,7 +691,7 @@ export default function PatientDetailPage() {
                       type: 'success',
                       message: 'QR Code copiado! Cole no WhatsApp/Email.',
                     });
-                  } catch (error) {
+                  } catch {
                     setFeedback({
                       type: 'error',
                       message: 'Erro ao copiar. Use o botão "Baixar".',
