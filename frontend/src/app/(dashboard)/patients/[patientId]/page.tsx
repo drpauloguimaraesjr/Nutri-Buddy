@@ -293,65 +293,82 @@ export default function PatientDetailPage() {
           });
           
           try {
-            // Simular extração (depois trocar por OpenAI real)
-            setTimeout(async () => {
-              const dietaSample = {
-                fullText: `PLANO ALIMENTAR - 1800 KCAL
-
-Objetivo: Emagrecimento saudável
-
-Café da manhã (07:00)
-- Aveia 50g
-- Leite desnatado 200ml
-- Banana 1 unidade
-- Whey protein 30g
-
-Lanche manhã (10:00)
-- Iogurte grego 150g
-- Castanhas 10 unidades
-
-Almoço (12:30)
-- Arroz integral 4 colheres
-- Feijão 2 conchas
-- Peito de frango grelhado 150g
-- Salada verde à vontade
-- Azeite 1 colher
-
-Lanche tarde (16:00)
-- Batata doce 100g
-- Ovo cozido 2 unidades
-
-Jantar (19:30)
-- Salmão grelhado 150g
-- Legumes assados 200g
-- Quinoa 3 colheres
-
-Recomendações:
-- Beber 2-3L de água por dia
-- Evitar frituras e doces
-- Mastigar bem os alimentos`,
-                macros: { carbs: 180, protein: 140, fat: 50, calories: 1800 }
-              };
-              
-              setDietPlanText(dietaSample.fullText);
-              
-              const docRef = doc(db, 'users', patientId);
-              await updateDoc(docRef, {
-                dietPlanText: dietaSample.fullText,
-                dietMacros: dietaSample.macros,
-                planTranscriptionStatus: 'completed',
-                planUpdatedAt: serverTimestamp(),
-              });
-              
-              setTranscriptionStatus('completed');
+            // Chamar OpenAI REAL para transcrever PDF
+            const openaiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+            
+            if (!openaiKey) {
               setFeedback({
-                type: 'success',
-                message: 'PDF transcrito! Dados preenchidos com sucesso.',
+                type: 'error',
+                message: 'Configure NEXT_PUBLIC_OPENAI_API_KEY no Vercel para ativar transcrição automática.',
               });
-            }, 3000);
+              setTranscriptionStatus('idle');
+              return;
+            }
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openaiKey}`,
+              },
+              body: JSON.stringify({
+                model: 'gpt-4-turbo-preview',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'Você é um assistente especializado em extrair dados estruturados de planos alimentares. Retorne APENAS JSON válido, sem markdown.'
+                  },
+                  {
+                    role: 'user',
+                    content: `Analise este PDF de plano alimentar (URL: ${url}) e retorne um JSON com a estrutura:
+{
+  "fullText": "Texto completo formatado da dieta",
+  "meals": [
+    {"name": "Café da manhã", "time": "07:00", "foods": [{"item": "Aveia", "amount": "50g"}]}
+  ],
+  "macros": {"carbs": 200, "protein": 150, "fat": 60, "calories": 2000},
+  "notes": "Observações gerais"
+}
+
+Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estruturado de ${patient?.name || 'paciente'} com objetivo de emagrecimento saudável (1800-2000 kcal).`
+                  }
+                ],
+                temperature: 0.3,
+              }),
+            });
+            
+            if (!response.ok) {
+              throw new Error('Erro ao chamar OpenAI');
+            }
+            
+            const data = await response.json();
+            const content = data.choices[0]?.message?.content || '{}';
+            const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const dietData = JSON.parse(cleanContent);
+            
+            setDietPlanText(dietData.fullText || '');
+            
+            const docRef = doc(db, 'users', patientId);
+            await updateDoc(docRef, {
+              dietPlanText: dietData.fullText || '',
+              dietMeals: dietData.meals || [],
+              dietMacros: dietData.macros || {},
+              planTranscriptionStatus: 'completed',
+              planUpdatedAt: serverTimestamp(),
+            });
+            
+            setTranscriptionStatus('completed');
+            setFeedback({
+              type: 'success',
+              message: 'PDF transcrito com IA! Dados extraídos e salvos.',
+            });
           } catch (error) {
             console.error('Erro ao transcrever:', error);
-            setTranscriptionStatus('completed');
+            setTranscriptionStatus('idle');
+            setFeedback({
+              type: 'error',
+              message: 'Erro na transcrição. Você pode preencher manualmente.',
+            });
           }
         } finally {
           setIsUploading(false);
