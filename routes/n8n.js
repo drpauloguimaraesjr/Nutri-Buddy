@@ -438,7 +438,7 @@ router.get('/test', verifyToken, async (req, res) => {
  */
 const verifyWebhookSecret = (req, res, next) => {
   const secret = req.headers['x-webhook-secret'];
-  const expectedSecret = process.env.N8N_WEBHOOK_SECRET || 'nutribuddy-secret-2024';
+  const expectedSecret = process.env.N8N_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || 'nutribuddy-secret-2024';
 
   if (!secret || secret !== expectedSecret) {
     return res.status(401).json({
@@ -732,6 +732,169 @@ router.post('/update-inbody', verifyWebhookSecret, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/n8n/update-diet-complete
+ * Recebe dados COMPLETOS da dieta transcrita pelo n8n com GPT-4o/Gemini
+ * Com precisão cirúrgica: calorias exatas, macros detalhados, micronutrientes
+ */
+router.post('/update-diet-complete', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { 
+      patientId, 
+      diet,
+      resumo,
+      meta,
+      macronutrientes,
+      refeicoes,
+      micronutrientes,
+      observacoes,
+      substituicoes,
+      success,
+      transcriptionStatus,
+      model
+    } = req.body;
+    
+    console.log('🎯 [N8N] Atualizando dieta COMPLETA:', patientId, '| Model:', model || 'GPT-4o');
+    
+    // Validações
+    if (!patientId) {
+      return res.status(400).json({
+        success: false,
+        error: 'patientId é obrigatório'
+      });
+    }
+    
+    if (!success || transcriptionStatus === 'error') {
+      console.error('❌ [N8N] Transcrição falhou:', req.body.error || 'Erro desconhecido');
+      return res.status(400).json({
+        success: false,
+        error: 'Transcrição da dieta falhou',
+        details: req.body.error || 'Erro desconhecido'
+      });
+    }
+    
+    // Buscar paciente (verificar se existe em users ou patients)
+    let patientRef = db.collection('patients').doc(patientId);
+    let patientDoc = await patientRef.get();
+    
+    // Se não existir em patients, tentar em users (compatibilidade)
+    if (!patientDoc.exists) {
+      patientRef = db.collection('users').doc(patientId);
+      patientDoc = await patientRef.get();
+      
+      if (!patientDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'Paciente não encontrado',
+          patientId
+        });
+      }
+    }
+    
+    // Estruturar dados para salvar no Firestore
+    const dietData = {
+      // Dieta completa estruturada (JSON rico)
+      dietPlan: diet || null,
+      
+      // Resumo rápido para exibir em cards/listas
+      dietSummary: {
+        totalCalorias: resumo?.totalCalorias || meta?.caloriasDiarias || 0,
+        totalRefeicoes: resumo?.totalRefeicoes || refeicoes?.length || 0,
+        totalAlimentos: resumo?.totalAlimentos || 0,
+        objetivo: meta?.objetivo || 'não especificado',
+        nutricionista: meta?.nutricionista || null,
+        periodo: meta?.periodo || '24 horas'
+      },
+      
+      // Macronutrientes principais
+      dietMacros: macronutrientes ? {
+        carboidratos: {
+          gramas: macronutrientes.carboidratos?.gramas || 0,
+          gramsPerKg: macronutrientes.carboidratos?.gramsPerKg || 0,
+          percentual: macronutrientes.carboidratos?.percentual || 0
+        },
+        proteinas: {
+          gramas: macronutrientes.proteinas?.gramas || 0,
+          gramsPerKg: macronutrientes.proteinas?.gramsPerKg || 0,
+          percentual: macronutrientes.proteinas?.percentual || 0
+        },
+        gorduras: {
+          gramas: macronutrientes.gorduras?.gramas || 0,
+          gramsPerKg: macronutrientes.gorduras?.gramsPerKg || 0,
+          percentual: macronutrientes.gorduras?.percentual || 0
+        },
+        fibras: {
+          gramas: macronutrientes.fibras?.gramas || 0,
+          gramsPerKg: macronutrientes.fibras?.gramsPerKg || 0
+        }
+      } : null,
+      
+      // Refeições detalhadas (array completo)
+      dietMeals: refeicoes || [],
+      
+      // Micronutrientes (vitaminas, minerais)
+      dietMicronutrients: micronutrientes || [],
+      
+      // Observações do nutricionista
+      dietNotes: observacoes || [],
+      
+      // Substituições permitidas
+      dietSubstitutions: substituicoes || [],
+      
+      // Metadados da transcrição
+      dietTranscriptionMeta: {
+        status: transcriptionStatus || 'completed',
+        model: model || 'gpt-4o',
+        transcribedAt: admin.firestore.FieldValue.serverTimestamp(),
+        version: 'complete-v1',
+        accuracy: 'high'
+      },
+      
+      // Flags de controle
+      dietTranscriptionComplete: true,
+      dietLastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+      
+      // Compatibilidade com código antigo
+      dietPlanText: diet?.meta?.objetivo || observacoes?.join('\n') || '',
+      planTranscriptionStatus: 'completed',
+      planUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // Salvar no Firestore
+    await patientRef.update(dietData);
+    
+    console.log('✅ [N8N] Dieta COMPLETA salva com sucesso:', {
+      patientId,
+      calorias: dietData.dietSummary.totalCalorias,
+      refeicoes: dietData.dietSummary.totalRefeicoes,
+      alimentos: dietData.dietSummary.totalAlimentos,
+      model: dietData.dietTranscriptionMeta.model
+    });
+    
+    // Resposta de sucesso
+    res.json({
+      success: true,
+      message: 'Dieta transcrita com PRECISÃO COMPLETA e salva com sucesso',
+      patientId,
+      summary: dietData.dietSummary,
+      transcription: {
+        model: dietData.dietTranscriptionMeta.model,
+        accuracy: 'high',
+        version: 'complete-v1'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Erro ao salvar dieta completa:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Falha ao salvar dieta',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
