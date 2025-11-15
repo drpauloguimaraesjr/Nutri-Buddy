@@ -1,0 +1,139 @@
+{
+  "name": "NutriBuddy - Processar Dieta PDF (PRODUÇÃO FINAL)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-process-diet",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook Recebe PDF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "nutribuddy-process-diet"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Você é um assistente especializado em ANÁLISE PRECISA de planos alimentares PDF.\\n\\nREGRAS CRÍTICAS:\\n1. NUNCA arredonde valores (1.790,36 kcal = 1790.36, NÃO \\\"aproximadamente 1800\\\")\\n2. Extraia CADA refeição com horário EXATO\\n3. Extraia CADA alimento com quantidade EXATA (gramas, ml, unidades)\\n4. Se houver macros por refeição, extraia TODOS\\n5. Se houver micronutrientes, extraia TODOS\\n6. Mantenha TODAS as observações do nutricionista\\n7. Retorne APENAS JSON válido (sem markdown, sem comentários)\\n\\nPRECISÃO CIRÚRGICA é obrigatória.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"Analise este PDF de dieta e extraia TODOS os dados com MÁXIMA PRECISÃO.\\n\\nRetorne JSON EXATAMENTE neste formato:\\n\\n{\\n  \\\"meta\\\": {\\n    \\\"caloriasDiarias\\\": 1790.36,\\n    \\\"periodo\\\": \\\"24 horas\\\",\\n    \\\"objetivo\\\": \\\"emagrecimento saudável\\\",\\n    \\\"nutricionista\\\": \\\"Dr. Nome Completo\\\",\\n    \\\"dataCriacao\\\": \\\"2024-11-14\\\"\\n  },\\n  \\\"macronutrientes\\\": {\\n    \\\"carboidratos\\\": {\\n      \\\"gramas\\\": 158.40,\\n      \\\"gramsPerKg\\\": 2.56,\\n      \\\"percentual\\\": 35.5\\n    },\\n    \\\"proteinas\\\": {\\n      \\\"gramas\\\": 137.32,\\n      \\\"gramsPerKg\\\": 1.96,\\n      \\\"percentual\\\": 30.7\\n    },\\n    \\\"gorduras\\\": {\\n      \\\"gramas\\\": 67.42,\\n      \\\"gramsPerKg\\\": 0.96,\\n      \\\"percentual\\\": 33.8\\n    },\\n    \\\"fibras\\\": {\\n      \\\"gramas\\\": 22.26,\\n      \\\"gramsPerKg\\\": 0.32\\n    }\\n  },\\n  \\\"refeicoes\\\": [\\n    {\\n      \\\"ordem\\\": 1,\\n      \\\"nome\\\": \\\"Café da manhã\\\",\\n      \\\"horario\\\": \\\"07:30\\\",\\n      \\\"percentualDiario\\\": 28.07,\\n      \\\"alimentos\\\": [\\n        {\\n          \\\"nome\\\": \\\"Ovo caipira\\\",\\n          \\\"quantidade\\\": 150.0,\\n          \\\"unidade\\\": \\\"g\\\",\\n          \\\"observacao\\\": null\\n        }\\n      ],\\n      \\\"macros\\\": {\\n        \\\"calorias\\\": 502.37,\\n        \\\"carboidratos\\\": 43.18,\\n        \\\"proteinas\\\": 31.78,\\n        \\\"gorduras\\\": 22.15,\\n        \\\"fibras\\\": 6.23\\n      }\\n    }\\n  ],\\n  \\\"micronutrientes\\\": [\\n    {\\n      \\\"nome\\\": \\\"Cálcio\\\",\\n      \\\"quantidade\\\": 164.00,\\n      \\\"unidade\\\": \\\"mg\\\",\\n      \\\"dri\\\": 1000\\n    }\\n  ],\\n  \\\"observacoes\\\": [\\n    \\\"Beber 2-3L de água por dia\\\",\\n    \\\"Evitar frituras\\\"\\n  ],\\n  \\\"substituicoes\\\": [\\n    {\\n      \\\"alimento\\\": \\\"Frango\\\",\\n      \\\"substitutos\\\": [\\\"Peixe\\\", \\\"Carne magra\\\"]\\n    }\\n  ]\\n}\\n\\nUSE OS VALORES EXATOS DO PDF. Retorne APENAS o JSON, sem texto adicional.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"{{ $json.pdfUrl }}\",\n            \"detail\": \"high\"\n          }\n        }\n      ]\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 4000\n}",
+        "options": {}
+      },
+      "id": "gpt4o-vision",
+      "name": "GPT-4o Vision Analisa PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse da resposta do OpenAI\nconst openAIResponse = $input.first().json;\nlet content = openAIResponse.choices[0].message.content;\n\n// Limpar markdown se houver\ncontent = content.replace(/```json\\s*/g, '');\ncontent = content.replace(/```\\s*/g, '');\ncontent = content.trim();\n\n// Log para debug\nconsole.log('📄 Conteúdo bruto GPT-4o (primeiros 500 chars):', content.substring(0, 500));\n\n// Parsear JSON\nlet dietData;\ntry {\n  dietData = JSON.parse(content);\n  console.log('✅ JSON parseado com sucesso!');\n} catch (error) {\n  console.error('❌ Erro ao parsear JSON:', error.message);\n  console.error('📄 Conteúdo completo:', content);\n  throw new Error(`Falha ao parsear JSON da resposta do GPT-4o: ${error.message}`);\n}\n\n// Pegar patientId do webhook original\nconst webhookData = items[0].json;\nconst patientId = webhookData.patientId;\nconst pdfUrl = webhookData.pdfUrl;\n\nconsole.log('👤 Patient ID:', patientId);\nconsole.log('📊 Calorias extraídas:', dietData.meta?.caloriasDiarias);\nconsole.log('🍽️ Refeições extraídas:', dietData.refeicoes?.length);\n\nreturn {\n  json: {\n    patientId: patientId,\n    pdfUrl: pdfUrl,\n    diet: dietData,\n    rawContent: content,\n    parsedAt: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse-json",
+      "name": "Parsear e Validar JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Estruturar dados para o backend\nconst input = $input.first().json;\nconst patientId = input.patientId;\nconst pdfUrl = input.pdfUrl;\nconst dietData = input.diet;\n\n// Processar refeições\nconst refeicoes = (dietData.refeicoes || []).map(refeicao => ({\n  ordem: refeicao.ordem || 0,\n  nome: refeicao.nome || 'Sem nome',\n  horario: refeicao.horario || '00:00',\n  percentualDiario: refeicao.percentualDiario || 0,\n  alimentos: (refeicao.alimentos || []).map(alimento => ({\n    nome: alimento.nome || 'Sem nome',\n    quantidade: alimento.quantidade || 0,\n    unidade: alimento.unidade || 'g',\n    observacao: alimento.observacao || null\n  })),\n  macros: refeicao.macros || {\n    calorias: 0,\n    carboidratos: 0,\n    proteinas: 0,\n    gorduras: 0,\n    fibras: 0\n  }\n}));\n\n// Calcular totais\nlet totalAlimentos = 0;\nrefeicoes.forEach(refeicao => {\n  totalAlimentos += (refeicao.alimentos || []).length;\n});\n\n// Estrutura completa para o backend\nconst payload = {\n  // Identificação\n  patientId: patientId,\n  pdfUrl: pdfUrl,\n  \n  // Status\n  success: true,\n  transcriptionStatus: 'completed',\n  transcribedAt: new Date().toISOString(),\n  model: 'gpt-4o-vision',\n  \n  // Dados completos da dieta\n  diet: dietData,\n  \n  // Metadados\n  meta: dietData.meta || {\n    caloriasDiarias: 0,\n    periodo: '24 horas',\n    objetivo: 'não especificado',\n    nutricionista: null,\n    dataCriacao: null\n  },\n  \n  // Macronutrientes\n  macronutrientes: dietData.macronutrientes || {\n    carboidratos: { gramas: 0, gramsPerKg: 0, percentual: 0 },\n    proteinas: { gramas: 0, gramsPerKg: 0, percentual: 0 },\n    gorduras: { gramas: 0, gramsPerKg: 0, percentual: 0 },\n    fibras: { gramas: 0, gramsPerKg: 0 }\n  },\n  \n  // Refeições processadas\n  refeicoes: refeicoes,\n  \n  // Micronutrientes\n  micronutrientes: dietData.micronutrientes || [],\n  \n  // Observações e substituições\n  observacoes: dietData.observacoes || [],\n  substituicoes: dietData.substituicoes || [],\n  \n  // Resumo executivo\n  resumo: {\n    totalCalorias: dietData.meta?.caloriasDiarias || 0,\n    totalRefeicoes: refeicoes.length,\n    totalAlimentos: totalAlimentos,\n    objetivo: dietData.meta?.objetivo || 'não especificado'\n  }\n};\n\n// Log detalhado\nconsole.log('📦 Payload estruturado:');\nconsole.log('  👤 Patient:', payload.patientId);\nconsole.log('  📊 Calorias:', payload.resumo.totalCalorias);\nconsole.log('  🍽️ Refeições:', payload.resumo.totalRefeicoes);\nconsole.log('  🥗 Alimentos:', payload.resumo.totalAlimentos);\nconsole.log('  🎯 Objetivo:', payload.resumo.objetivo);\nconsole.log('  🤖 Modelo:', payload.model);\n\nreturn {\n  json: payload\n};"
+      },
+      "id": "estruturar-payload",
+      "name": "Estruturar Payload Backend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/update-diet-complete",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "salvar-backend",
+      "name": "Salvar no Backend (Firestore)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"✅ Dieta transcrita com PRECISÃO COMPLETA e salva no Firestore\",\n  \"patientId\": \"{{ $json.patientId }}\",\n  \"status\": \"completed\",\n  \"model\": \"gpt-4o-vision\",\n  \"transcribedAt\": \"{{ $json.transcribedAt }}\",\n  \"detalhes\": {\n    \"totalCalorias\": {{ $json.resumo?.totalCalorias || 0 }},\n    \"totalRefeicoes\": {{ $json.resumo?.totalRefeicoes || 0 }},\n    \"totalAlimentos\": {{ $json.resumo?.totalAlimentos || 0 }},\n    \"objetivo\": \"{{ $json.resumo?.objetivo || 'não especificado' }}\"\n  },\n  \"resumo\": {{ JSON.stringify($json.resumo) }}\n}",
+        "options": {}
+      },
+      "id": "responder-webhook",
+      "name": "Responder ao Frontend",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Recebe PDF": {
+      "main": [[{"node": "GPT-4o Vision Analisa PDF", "type": "main", "index": 0}]]
+    },
+    "GPT-4o Vision Analisa PDF": {
+      "main": [[{"node": "Parsear e Validar JSON", "type": "main", "index": 0}]]
+    },
+    "Parsear e Validar JSON": {
+      "main": [[{"node": "Estruturar Payload Backend", "type": "main", "index": 0}]]
+    },
+    "Estruturar Payload Backend": {
+      "main": [[{"node": "Salvar no Backend (Firestore)", "type": "main", "index": 0}]]
+    },
+    "Salvar no Backend (Firestore)": {
+      "main": [[{"node": "Responder ao Frontend", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
+

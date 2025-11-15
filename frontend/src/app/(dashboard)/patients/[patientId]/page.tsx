@@ -589,7 +589,7 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
       if (existingResponse.ok) {
         const data = await existingResponse.json();
         const existingConversation = data.conversations.find(
-          (conv: any) => conv.patientId === patientId
+          (conv: { patientId: string; id: string }) => conv.patientId === patientId
         );
         
         if (existingConversation) {

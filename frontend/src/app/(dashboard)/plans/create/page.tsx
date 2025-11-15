@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
+import { processDietPDF } from '@/lib/n8n';
 interface PatientSummary {
   id: string;
   name: string;
@@ -76,6 +77,13 @@ export default function CreatePlanPage() {
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [aiTranscription, setAiTranscription] = useState<{
+    totalCalorias: number;
+    totalRefeicoes: number;
+    totalAlimentos: number;
+    objetivo: string;
+  } | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const selectedPatient = useMemo(
@@ -191,6 +199,42 @@ export default function CreatePlanPage() {
             type: 'success',
             message: 'PDF enviado com sucesso!',
           });
+
+          // 🤖 PROCESSAR PDF COM IA (n8n + GPT-4o)
+          if (selectedPatientId) {
+            setIsProcessingAI(true);
+            setFeedback({
+              type: 'success',
+              message: '🤖 Processando dieta com IA... Isso pode levar alguns segundos.',
+            });
+
+            try {
+              const result = await processDietPDF(url, selectedPatientId);
+              
+              if (result.success) {
+                const detalhes = result.detalhes || result.resumo;
+                
+                setAiTranscription(detalhes || null);
+                
+                setFeedback({
+                  type: 'success',
+                  message: `✅ Dieta transcrita com precisão! ${detalhes?.totalCalorias || 0} kcal, ${detalhes?.totalRefeicoes || 0} refeições.`,
+                });
+
+                console.log('✅ Transcrição salva no Firestore:', result);
+              } else {
+                throw new Error('Erro ao processar dieta com IA');
+              }
+            } catch (aiError) {
+              console.error('⚠️ Erro no processamento com IA:', aiError);
+              setFeedback({
+                type: 'error',
+                message: '⚠️ PDF enviado, mas houve erro ao processar com IA. Você pode criar o plano manualmente.',
+              });
+            } finally {
+              setIsProcessingAI(false);
+            }
+          }
         } finally {
           setIsUploading(false);
           setUploadProgress(null);
@@ -291,7 +335,7 @@ export default function CreatePlanPage() {
     }
   };
 
-  const isFormDisabled = isSaving || isUploading;
+  const isFormDisabled = isSaving || isUploading || isProcessingAI;
 
   return (
     <motion.div
@@ -584,6 +628,19 @@ export default function CreatePlanPage() {
                   </div>
                 </div>
               )}
+              {isProcessingAI && (
+                <div className="w-full rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm font-medium">
+                      Processando dieta com IA...
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-blue-600">
+                    GPT-4o está analisando o PDF com precisão cirúrgica. Aguarde...
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl border border-gray-200 p-4">
@@ -621,6 +678,35 @@ export default function CreatePlanPage() {
                 <p className="mt-3 text-sm text-gray-500">
                   Nenhum PDF enviado ainda.
                 </p>
+              )}
+              
+              {aiTranscription && (
+                <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
+                  <h4 className="text-sm font-semibold text-green-900">
+                    ✅ Transcrição Automática (IA)
+                  </h4>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-green-700">
+                    <div>
+                      <span className="font-medium">📊 Calorias:</span>{' '}
+                      {aiTranscription.totalCalorias} kcal
+                    </div>
+                    <div>
+                      <span className="font-medium">🍽️ Refeições:</span>{' '}
+                      {aiTranscription.totalRefeicoes}
+                    </div>
+                    <div>
+                      <span className="font-medium">🥗 Alimentos:</span>{' '}
+                      {aiTranscription.totalAlimentos}
+                    </div>
+                    <div>
+                      <span className="font-medium">🎯 Objetivo:</span>{' '}
+                      {aiTranscription.objetivo}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-green-600">
+                    Os dados foram salvos automaticamente no perfil do paciente!
+                  </p>
+                </div>
               )}
             </div>
           </CardContent>

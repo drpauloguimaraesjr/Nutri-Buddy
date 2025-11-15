@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: pt-BR
+tone_instructions: >
+  Mantenha feedback objetivo, priorize bugs que impactem pacientes e descreva
+  sempre como reproduzir o problema no n8n.
+reviews:
+  profile: assertive
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  collapse_walkthrough: true
+  review_status: true
+  path_filters:
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.json"
+    - "**/*.md"
+    - "**/*.sh"
+    - "!**/node_modules/**"
+  path_instructions:
+    - path: "EVOLUTION-*-V2.json"
+      instructions: >
+        Conferir autenticação Firestore, sequências de nodes n8n e limites da
+        Evolution API antes de aprovar.
+    - path: "CODIGO-BACKEND-*.js"
+      instructions: >
+        Revisar segurança de tokens, validação de payloads WhatsApp/ZAPI/Twilio
+        e logs de erros claros.
+    - path: "CODIGO-FRONTEND-*.jsx"
+      instructions: >
+        Cobrir estados de carregamento/erro e sincronização com workflows n8n
+        sem expor chaves sensíveis no cliente.
+  auto_review:
+    enabled: true
+    drafts: true
+    auto_incremental_review: true
+    base_branches:
+      - main
+      - develop
+    ignore_title_keywords:
+      - wip
+      - draft
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+  tools:
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+code_generation:
+  docstrings:
+    language: pt-BR
+  unit_tests:
+    path_instructions: []
+
