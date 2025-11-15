@@ -2,6 +2,85 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../config/firebase');
 const { verifyToken } = require('../middleware/auth');
+const multer = require('multer');
+const { uploadChatMedia, generateSignedUrl } = require('../services/storage');
+const { triggerNewMessageWorkflow } = require('../services/n8n-client');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 25 * 1024 * 1024,
+  },
+});
+
+const sanitizeAttachmentPayload = (attachments = []) => {
+  if (!Array.isArray(attachments)) return [];
+  return attachments
+    .filter(Boolean)
+    .map((attachment) => ({
+      storagePath: attachment.storagePath,
+      contentType: attachment.contentType,
+      name: attachment.name,
+      size: attachment.size,
+      type: attachment.type,
+    }));
+};
+
+const addSignedUrlsToAttachments = async (attachments = []) => {
+  if (!Array.isArray(attachments) || attachments.length === 0) {
+    return [];
+  }
+
+  return Promise.all(
+    attachments.map(async (attachment) => {
+      if (!attachment || !attachment.storagePath) {
+        return attachment;
+      }
+
+      try {
+        const { url, expiresAt } = await generateSignedUrl(
+          attachment.storagePath,
+          60
+        );
+
+        return {
+          ...attachment,
+          url,
+          urlExpiresAt: expiresAt,
+        };
+      } catch (error) {
+        console.error(
+          'Erro ao gerar URL assinada para anexo:',
+          error.message
+        );
+        return attachment;
+      }
+    })
+  );
+};
+
+const buildConversationUpdate = (conversation, userRole, previewContent) => {
+  const updateData = {
+    lastMessage: previewContent.substring(0, 100),
+    lastMessageAt: new Date(),
+    lastMessageBy: userRole,
+    updatedAt: new Date(),
+  };
+
+  if (userRole === 'patient') {
+    updateData.unreadCount = (conversation.unreadCount || 0) + 1;
+
+    if (conversation.status === 'resolved') {
+      updateData.status = 'active';
+      updateData.kanbanColumn = 'in-progress';
+    }
+  } else if (userRole === 'prescriber') {
+    updateData.patientUnreadCount = (conversation.patientUnreadCount || 0) + 1;
+  }
+
+  return updateData;
+};
+
 
 // Middleware para verificar webhook secret (apenas para rotas /webhook/*)
 const verifyWebhookSecret = (req, res, next) => {
@@ -430,16 +509,22 @@ router.get('/conversations/:conversationId/messages', async (req, res) => {
       .offset(parseInt(offset));
 
     const snapshot = await messagesRef.get();
-    const messages = [];
+    const messages = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const attachments = await addSignedUrlsToAttachments(
+          data.attachments || []
+        );
 
-    snapshot.forEach(doc => {
-      messages.push({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        readAt: doc.data().readAt?.toDate(),
-      });
-    });
+        return {
+          id: doc.id,
+          ...data,
+          attachments,
+          createdAt: data.createdAt?.toDate(),
+          readAt: data.readAt?.toDate(),
+        };
+      })
+    );
 
     res.json({
       success: true,
@@ -466,7 +551,10 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
     const userRole = req.user.role || 'patient';
     const { content, type = 'text', attachments = [] } = req.body;
 
-    if (!content || content.trim() === '') {
+    const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+    const trimmedContent = (content || '').trim();
+
+    if (!trimmedContent && !hasAttachments) {
       return res.status(400).json({
         success: false,
         error: 'Conteúdo da mensagem é obrigatório',
@@ -500,20 +588,30 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
       });
     }
 
+    const messageType = hasAttachments ? type : 'text';
+    const fallbackPreview =
+      messageType === 'image'
+        ? 'Imagem enviada'
+        : messageType === 'audio'
+        ? 'Áudio enviado'
+        : 'Arquivo enviado';
+    const messageContent = trimmedContent || fallbackPreview;
+    const normalizedAttachments = sanitizeAttachmentPayload(attachments);
+
     // Criar mensagem
     const messageData = {
       conversationId,
       senderId: userId,
       senderRole: userRole,
-      content: content.trim(),
-      type,
+      content: messageContent,
+      type: messageType,
       status: 'sent',
       isAiGenerated: false,
       createdAt: new Date(),
     };
 
-    if (attachments.length > 0) {
-      messageData.attachments = attachments;
+    if (normalizedAttachments.length > 0) {
+      messageData.attachments = normalizedAttachments;
     }
 
     const messageRef = await db.collection('conversations')
@@ -521,33 +619,37 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
       .collection('messages')
       .add(messageData);
 
-    // Atualizar conversa
-    const updateData = {
-      lastMessage: content.substring(0, 100),
-      lastMessageAt: new Date(),
-      lastMessageBy: userRole,
-      updatedAt: new Date(),
-    };
-
-    // Incrementar contador de não lidas
-    if (userRole === 'patient') {
-      updateData.unreadCount = (conversation.unreadCount || 0) + 1;
-      // Se estava em 'resolved', voltar para 'active'
-      if (conversation.status === 'resolved') {
-        updateData.status = 'active';
-        updateData.kanbanColumn = 'in-progress';
-      }
-    } else if (userRole === 'prescriber') {
-      updateData.patientUnreadCount = (conversation.patientUnreadCount || 0) + 1;
-    }
-
+    const updateData = buildConversationUpdate(
+      conversation,
+      userRole,
+      messageContent
+    );
     await conversationRef.update(updateData);
+
+    const responseAttachments = await addSignedUrlsToAttachments(
+      messageData.attachments || []
+    );
+
+    triggerNewMessageWorkflow({
+      conversationId,
+      messageId: messageRef.id,
+      senderId: userId,
+      senderRole: userRole,
+      content: messageContent,
+      type: messageType,
+      attachments: responseAttachments,
+      patientId: conversation.patientId,
+      prescriberId: conversation.prescriberId,
+    }).catch((err) => {
+      console.error('Falha ao notificar N8N (texto):', err.message);
+    });
 
     res.json({
       success: true,
       message: {
         id: messageRef.id,
         ...messageData,
+        attachments: responseAttachments,
       },
     });
   } catch (error) {
@@ -558,6 +660,144 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
     });
   }
 });
+
+/**
+ * POST /api/messages/conversations/:id/attachments
+ * Upload de mídia (imagem/áudio) e criação automática da mensagem
+ */
+router.post(
+  '/conversations/:conversationId/attachments',
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+      const userId = req.user.uid;
+      const userRole = req.user.role || 'patient';
+      const file = req.file;
+      const mediaTypeInput = req.body.mediaType;
+
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          error: 'Arquivo é obrigatório',
+        });
+      }
+
+      const detectedType = mediaTypeInput
+        ? mediaTypeInput
+        : file.mimetype.startsWith('image/')
+        ? 'image'
+        : file.mimetype.startsWith('audio/')
+        ? 'audio'
+        : 'file';
+
+      if (!['image', 'audio'].includes(detectedType)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Tipo de arquivo não suportado. Envie imagem ou áudio.',
+        });
+      }
+
+      const conversationRef = db.collection('conversations').doc(conversationId);
+      const conversationDoc = await conversationRef.get();
+
+      if (!conversationDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'Conversa não encontrada',
+        });
+      }
+
+      const conversation = conversationDoc.data();
+
+      if (userRole === 'patient' && conversation.patientId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Sem permissão',
+        });
+      }
+
+      if (userRole === 'prescriber' && conversation.prescriberId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Sem permissão',
+        });
+      }
+
+      const uploadResult = await uploadChatMedia({
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+        originalName: file.originalname,
+        conversationId,
+        patientId: conversation.patientId,
+        prescriberId: conversation.prescriberId,
+        uploadedBy: userId,
+        mediaType: detectedType,
+      });
+
+      const attachmentRecords = sanitizeAttachmentPayload([uploadResult]);
+      const contentPreview =
+        detectedType === 'image' ? 'Imagem enviada' : 'Áudio enviado';
+
+      const messageData = {
+        conversationId,
+        senderId: userId,
+        senderRole: userRole,
+        content: contentPreview,
+        type: detectedType,
+        status: 'sent',
+        isAiGenerated: false,
+        createdAt: new Date(),
+        attachments: attachmentRecords,
+      };
+
+      const messageRef = await db.collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .add(messageData);
+
+      const updateData = buildConversationUpdate(
+        conversation,
+        userRole,
+        contentPreview
+      );
+      await conversationRef.update(updateData);
+
+      const responseAttachments = await addSignedUrlsToAttachments(
+        messageData.attachments
+      );
+
+      triggerNewMessageWorkflow({
+        conversationId,
+        messageId: messageRef.id,
+        senderId: userId,
+        senderRole: userRole,
+        content: contentPreview,
+        type: detectedType,
+        attachments: responseAttachments,
+        patientId: conversation.patientId,
+        prescriberId: conversation.prescriberId,
+      }).catch((err) => {
+        console.error('Falha ao notificar N8N (mídia):', err.message);
+      });
+
+      res.json({
+        success: true,
+        message: {
+          id: messageRef.id,
+          ...messageData,
+          attachments: responseAttachments,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao enviar mídia:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
 
 /**
  * PATCH /api/messages/:messageId/read

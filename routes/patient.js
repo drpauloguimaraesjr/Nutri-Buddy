@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken, requirePatient } = require('../middleware/auth');
 const { db } = require('../config/firebase');
 const aiProfileService = require('../services/ai-profiles');
+const { generateSignedUrl } = require('../services/storage');
 
 // Todas as rotas requerem autenticação + role patient
 router.use(verifyToken);
@@ -109,6 +110,65 @@ router.get('/dietPlan', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patient/plan/pdf-url
+ * Gera URL assinada temporária para download do plano em PDF
+ */
+router.get('/plan/pdf-url', async (req, res) => {
+  try {
+    const patientId = req.user.uid;
+    const userDoc = await db.collection('users').doc(patientId).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Paciente não encontrado',
+      });
+    }
+
+    const data = userDoc.data();
+
+    if (!data.planPdfStoragePath && !data.planPdfUrl) {
+      return res.status(404).json({
+        success: false,
+        error: 'Nenhum PDF disponível para este paciente',
+      });
+    }
+
+    let url = data.planPdfUrl || null;
+    let expiresAt = null;
+
+    if (data.planPdfStoragePath) {
+      try {
+        const signed = await generateSignedUrl(data.planPdfStoragePath, 15);
+        url = signed.url;
+        expiresAt = signed.expiresAt;
+      } catch (error) {
+        console.error('Erro ao gerar URL assinada do plano:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Não foi possível gerar o link do PDF',
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        url,
+        name: data.planPdfName || 'plano-nutricional.pdf',
+        expiresAt,
+      },
+    });
+  } catch (error) {
+    console.error('Erro ao gerar URL do plano:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
     });
   }
 });

@@ -302,3 +302,4 @@ ZAPI-COMECE-AQUI.md              ← Você está aqui!
 *Z-API é MUITO mais fácil que Evolution! Vai dar tudo certo!* 😊
 
 
+

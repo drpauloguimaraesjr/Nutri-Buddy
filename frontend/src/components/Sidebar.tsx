@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
   X,
   FileText,
   MessageSquare,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -25,6 +26,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/dashboard/chat', icon: MessageCircle, label: 'Conversas', roles: ['prescriber', 'admin'] },
     { href: '/patients', icon: Users, label: 'Pacientes', roles: ['prescriber', 'admin'] },
     { href: '/whatsapp', icon: MessageSquare, label: 'WhatsApp', roles: ['prescriber', 'admin'] },
     { href: '/plans', icon: FileText, label: 'Planos', roles: ['prescriber'] },

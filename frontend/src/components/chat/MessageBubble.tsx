@@ -2,8 +2,19 @@
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, User, CheckCheck, Check } from 'lucide-react';
+import { Bot, User, CheckCheck, Check, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type AttachmentType = 'image' | 'audio' | 'file';
+
+interface MessageAttachment {
+  url?: string;
+  storagePath?: string;
+  contentType?: string;
+  name?: string;
+  size?: number;
+  type?: AttachmentType;
+}
 
 interface MessageBubbleProps {
   content: string;
@@ -13,6 +24,8 @@ interface MessageBubbleProps {
   status?: 'sent' | 'delivered' | 'read';
   isAiGenerated?: boolean;
   senderName?: string;
+  type?: 'text' | AttachmentType | 'system' | 'ai-response';
+  attachments?: MessageAttachment[];
 }
 
 export const MessageBubble = memo(function MessageBubble({
@@ -23,6 +36,8 @@ export const MessageBubble = memo(function MessageBubble({
   status = 'sent',
   isAiGenerated = false,
   senderName,
+  type = 'text',
+  attachments = [],
 }: MessageBubbleProps) {
   const isSystem = senderRole === 'system';
 
@@ -45,6 +60,58 @@ export const MessageBubble = memo(function MessageBubble({
         damping: 30,
       },
     },
+  };
+
+  const renderAttachment = (attachment: MessageAttachment, index: number) => {
+    const attachmentType = attachment.type || (type as AttachmentType);
+    const fallbackName = attachment.name || `Arquivo ${index + 1}`;
+
+    if (attachmentType === 'image' && attachment.url) {
+      return (
+        <img
+          src={attachment.url}
+          alt={fallbackName}
+          className={cn(
+            'max-h-64 w-full rounded-xl object-cover border',
+            isOwn ? 'border-white/40' : 'border-gray-200'
+          )}
+        />
+      );
+    }
+
+    if (attachmentType === 'audio' && attachment.url) {
+      return (
+        <audio controls className="w-full">
+          <source src={attachment.url} type={attachment.contentType || 'audio/webm'} />
+          Seu navegador não suporta reprodução de áudio.
+        </audio>
+      );
+    }
+
+    return (
+      <a
+        href={attachment.url || undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm',
+          'transition-colors',
+          attachment.url
+            ? 'border-blue-100 bg-blue-50 text-blue-900 hover:bg-blue-100'
+            : 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
+        )}
+      >
+        <Download className="h-4 w-4" />
+        <div className="flex flex-col leading-tight">
+          <span className="font-medium">{fallbackName}</span>
+          {attachment.size && (
+            <span className="text-xs text-gray-500">
+              {(attachment.size / (1024 * 1024)).toFixed(1)} MB
+            </span>
+          )}
+        </div>
+      </a>
+    );
   };
 
   if (isSystem) {
@@ -113,6 +180,16 @@ export const MessageBubble = memo(function MessageBubble({
           )}
 
           <p className="text-sm whitespace-pre-wrap break-words">{content}</p>
+
+          {attachments.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {attachments.map((attachment, index) => (
+                <div key={`att-${index}`} className="w-full">
+                  {renderAttachment(attachment, index)}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div
             className={cn(

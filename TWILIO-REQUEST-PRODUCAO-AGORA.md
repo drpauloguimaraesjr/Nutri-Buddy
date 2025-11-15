@@ -204,3 +204,4 @@ Quando Meta aprovar → Ativa WhatsApp e pronto!
 ---
 
 **CRIA A CONTA E ME PASSA AS CREDENCIAIS! BORA! 🚀**
+

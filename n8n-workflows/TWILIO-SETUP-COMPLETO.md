@@ -92,16 +92,17 @@ Você vai ver o **Dashboard Twilio**:
 
 ```
 Account Info:
-├── Account SID: AC1234567890abcdef... (copiar!)
-└── Auth Token: [click to show] (copiar!)
+├── Account SID: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+└── Auth Token: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 **⚠️ IMPORTANTE: Guardar essas credenciais!**
 
 ```bash
 # Anotar em lugar seguro:
-TWILIO_ACCOUNT_SID=AC1234567890abcdef...
-TWILIO_AUTH_TOKEN=1234567890abcdef...
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ---

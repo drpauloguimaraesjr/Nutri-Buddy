@@ -3,8 +3,10 @@
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { usePatientRoute } from '@/hooks/usePatientRoute';
 import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
 
 export default function PatientLayout({
   children,
@@ -13,6 +15,11 @@ export default function PatientLayout({
 }) {
   const { loading } = usePatientRoute();
   const { user } = useAuth();
+  const pathname = usePathname();
+  const navLinks = [
+    { href: '/meu-plano', label: 'Plano' },
+    { href: '/chat', label: 'Conversa' },
+  ];
 
   if (loading) {
     return (
@@ -34,19 +41,41 @@ export default function PatientLayout({
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       <header className="border-b border-emerald-100 bg-white/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link href="/meu-plano" className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500" />
-            <div>
-              <p className="text-lg font-semibold text-gray-900">NutriBuddy Pacientes</p>
-              <p className="text-xs text-gray-500">Acompanhe seu plano personalizado</p>
-            </div>
-          </Link>
-          {/* Mostrar botão apenas se o usuário for prescritor ou admin */}
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/meu-plano" className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500" />
+              <div>
+                <p className="text-lg font-semibold text-gray-900">NutriBuddy Pacientes</p>
+                <p className="text-xs text-gray-500">Acompanhe seu plano personalizado</p>
+              </div>
+            </Link>
+
+            <nav className="flex items-center gap-2 text-sm">
+              {navLinks.map((link) => {
+                const isActive = pathname?.startsWith(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      'rounded-full px-3 py-1.5 font-medium transition-colors',
+                      isActive
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-emerald-50'
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
           {(user?.role === 'prescriber' || user?.role === 'admin') && (
             <Link
               href="/dashboard"
-              className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-50"
+              className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-600 transition hover:bg-emerald-50 self-start md:self-auto"
             >
               Área do prescritor
             </Link>

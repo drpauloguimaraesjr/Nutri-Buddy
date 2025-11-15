@@ -45,14 +45,16 @@ const verifyToken = async (req, res, next) => {
     // Get user data from Firestore to include role
     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
     const userData = userDoc.exists ? userDoc.data() : {};
+
+    const resolvedRole = userData.role || decodedToken.role || 'patient';
     
     // Attach user info to request
     req.user = {
+      ...decodedToken,
+      ...userData,
       uid: decodedToken.uid,
       email: decodedToken.email,
-      role: userData.role || 'patient', // Default to patient if no role
-      ...userData,
-      ...decodedToken
+      role: resolvedRole,
     };
 
     console.log('✅ [AUTH] User authenticated:', {

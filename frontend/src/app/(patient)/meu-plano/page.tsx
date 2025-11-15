@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { FileText, Download, AlertCircle, Clock } from 'lucide-react';
+import { FileText, Download, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { usePatientRoute } from '@/hooks/usePatientRoute';
+import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 
 interface PatientPlanData {
@@ -14,15 +15,22 @@ interface PatientPlanData {
   dietPlanText?: string;
   planPdfUrl?: string | null;
   planPdfName?: string | null;
+  planPdfStoragePath?: string | null;
   planUpdatedAt?: Date | null;
   planTranscriptionStatus?: 'idle' | 'processing' | 'completed';
 }
 
 export default function PatientPlanPage() {
   const { user } = usePatientRoute();
+  const { firebaseUser } = useAuth();
   const [planData, setPlanData] = useState<PatientPlanData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfDownloadUrl, setPdfDownloadUrl] = useState<string | null>(null);
+  const [isFetchingPdfUrl, setIsFetchingPdfUrl] = useState(false);
+  const [pdfLinkError, setPdfLinkError] = useState<string | null>(null);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -49,9 +57,12 @@ export default function PatientPlanPage() {
           dietPlanText: data.dietPlanText ?? '',
           planPdfUrl: data.planPdfUrl ?? null,
           planPdfName: data.planPdfName ?? null,
+          planPdfStoragePath: data.planPdfStoragePath ?? null,
           planUpdatedAt: data.planUpdatedAt?.toDate?.() ?? null,
           planTranscriptionStatus: data.planTranscriptionStatus ?? 'idle',
         });
+        setPdfDownloadUrl(null);
+        setPdfLinkError(null);
       } catch (planError) {
         console.error('Erro ao carregar plano do paciente:', planError);
         setError('Não foi possível carregar seu plano. Tente novamente mais tarde.');
@@ -63,6 +74,58 @@ export default function PatientPlanPage() {
 
     fetchPlan();
   }, [user]);
+
+  const handleOpenPdf = async () => {
+    if (!planData) return;
+    setPdfLinkError(null);
+
+    if (planData.planPdfStoragePath) {
+      if (pdfDownloadUrl) {
+        window.open(pdfDownloadUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      if (!firebaseUser) {
+        setPdfLinkError('Faça login novamente para abrir o PDF.');
+        return;
+      }
+
+      try {
+        setIsFetchingPdfUrl(true);
+        const token = await firebaseUser.getIdToken();
+        const response = await fetch(`${apiBaseUrl}/api/patient/plan/pdf-url`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao gerar link seguro do PDF');
+        }
+
+        const data = await response.json();
+        const url = data?.data?.url as string | undefined;
+
+        if (!url) {
+          throw new Error('Link do PDF não encontrado');
+        }
+
+        setPdfDownloadUrl(url);
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } catch (err) {
+        console.error('Erro ao buscar link do PDF:', err);
+        setPdfLinkError('Não foi possível abrir o PDF agora. Tente novamente.');
+      } finally {
+        setIsFetchingPdfUrl(false);
+      }
+
+      return;
+    }
+
+    if (planData.planPdfUrl) {
+      window.open(planData.planPdfUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   const renderContent = () => {
     if (isLoading) {
@@ -161,17 +224,25 @@ export default function PatientPlanPage() {
                       Arquivo enviado pela sua nutricionista. Faça o download para consultar offline.
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => {
-                      window.open(planData.planPdfUrl ?? '', '_blank', 'noopener,noreferrer');
-                    }}
-                  >
-                    <Download className="h-4 w-4" />
-                    Visualizar PDF
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={handleOpenPdf}
+                      disabled={isFetchingPdfUrl}
+                    >
+                      {isFetchingPdfUrl ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      {isFetchingPdfUrl ? 'Gerando link...' : 'Visualizar PDF'}
+                    </Button>
+                    {pdfLinkError && (
+                      <p className="text-xs text-red-500">{pdfLinkError}</p>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-gray-600">

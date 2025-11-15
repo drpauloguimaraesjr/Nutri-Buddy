@@ -10,16 +10,34 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
+interface MessageAttachment {
+  url?: string;
+  storagePath?: string;
+  contentType?: string;
+  name?: string;
+  size?: number;
+  type?: 'image' | 'audio' | 'file';
+  urlExpiresAt?: Date;
+}
+
+type RawMessage = Omit<Message, 'createdAt' | 'attachments'> & {
+  createdAt: string | Date;
+  attachments?: (MessageAttachment & {
+    urlExpiresAt?: string | Date;
+  })[];
+};
+
 interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   senderRole: 'patient' | 'prescriber' | 'system';
   content: string;
-  type: 'text' | 'image' | 'file' | 'system' | 'ai-response';
+  type: 'text' | 'image' | 'audio' | 'file' | 'system' | 'ai-response';
   status: 'sent' | 'delivered' | 'read';
   isAiGenerated: boolean;
   createdAt: Date;
+  attachments?: MessageAttachment[];
 }
 
 interface Conversation {
@@ -58,6 +76,21 @@ export function ChatInterface({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+
+  const normalizeMessage = (rawMessage: RawMessage): Message => ({
+    ...rawMessage,
+    createdAt: rawMessage?.createdAt
+      ? new Date(rawMessage.createdAt)
+      : new Date(),
+    attachments: Array.isArray(rawMessage?.attachments)
+      ? rawMessage.attachments.map((attachment) => ({
+          ...attachment,
+          urlExpiresAt: attachment?.urlExpiresAt
+            ? new Date(attachment.urlExpiresAt)
+            : undefined,
+        }))
+      : [],
+  });
 
   // Scroll para o final
   const scrollToBottom = (smooth = true) => {
@@ -160,10 +193,9 @@ export function ChatInterface({
         }
 
         const data = await response.json();
-        const formattedMessages = (data.messages as Message[]).map((msg) => ({
-          ...msg,
-          createdAt: new Date(msg.createdAt as unknown as string),
-        }));
+        const formattedMessages = (data.messages as RawMessage[]).map((msg) =>
+          normalizeMessage(msg)
+        );
 
         setMessages(formattedMessages);
         
@@ -208,10 +240,7 @@ export function ChatInterface({
       }
 
       const data = await response.json();
-      const newMessage = {
-        ...data.message,
-        createdAt: new Date(data.message.createdAt),
-      };
+      const newMessage = normalizeMessage(data.message as RawMessage);
 
       setMessages((prev) => [...prev, newMessage]);
       
@@ -220,6 +249,41 @@ export function ChatInterface({
     } catch (err) {
       console.error('Erro ao enviar mensagem:', err);
       throw err;
+    }
+  };
+
+  const handleSendMedia = async (file: File, mediaType: 'image' | 'audio') => {
+    if (!conversationId || !firebaseUser) return;
+
+    try {
+      const token = await firebaseUser.getIdToken();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('mediaType', mediaType);
+
+      const response = await fetch(
+        `${apiBaseUrl}/api/messages/conversations/${conversationId}/attachments`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao enviar mídia');
+      }
+
+      const data = await response.json();
+      const newMessage = normalizeMessage(data.message as RawMessage);
+
+      setMessages((prev) => [...prev, newMessage]);
+      setTimeout(() => scrollToBottom(true), 100);
+    } catch (error) {
+      console.error('Erro ao enviar mídia:', error);
+      throw error;
     }
   };
 
@@ -317,6 +381,8 @@ export function ChatInterface({
                     ? 'Você'
                     : conversation?.metadata.prescriberName
                 }
+                type={message.type}
+                attachments={message.attachments}
               />
             ))
           )}
@@ -348,7 +414,7 @@ export function ChatInterface({
       </AnimatePresence>
 
       {/* Input */}
-      <ChatInput onSend={handleSendMessage} />
+      <ChatInput onSend={handleSendMessage} onSendMedia={handleSendMedia} />
     </Card>
   );
 }

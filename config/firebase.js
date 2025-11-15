@@ -18,6 +18,10 @@ try {
       // Usando banco (default) em nam5
     };
 
+    if (process.env.FIREBASE_STORAGE_BUCKET) {
+      config.storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+    }
+
     // Só adiciona databaseURL se Realtime Database estiver habilitado
     if (process.env.FIREBASE_DATABASE_URL) {
       config.databaseURL = process.env.FIREBASE_DATABASE_URL;

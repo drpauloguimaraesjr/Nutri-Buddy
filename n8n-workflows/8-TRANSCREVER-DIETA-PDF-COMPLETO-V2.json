@@ -1,0 +1,122 @@
+{
+  "name": "NutriBuddy - Transcrever Dieta PDF COMPLETO (v2 - Compatível)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-transcribe-diet-complete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook Recebe PDF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "nutribuddy-transcribe-diet-complete"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 4000
+        },
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "Você é um assistente especializado em ANÁLISE PRECISA de planos alimentares de nutricionistas.\n\nSua tarefa é extrair TODOS os dados com MÁXIMA PRECISÃO, sem arredondar ou aproximar valores.\n\nREGRAS IMPORTANTES:\n1. NUNCA arredonde calorias ou macros (use valor EXATO do PDF)\n2. Se diz \"1.790,36 kcal\", você deve retornar 1790.36 (não \"aproximadamente 1800\")\n3. Extraia CADA refeição com horário EXATO\n4. Extraia CADA alimento com quantidade EXATA (em gramas, ml, unidades)\n5. Se houver macros por refeição, extraia TODOS\n6. Se houver micronutrientes (vitaminas, minerais), extraia TODOS\n7. Mantenha observações do nutricionista\n\nFORMATO DE SAÍDA: JSON válido (sem markdown, sem ```json)"
+            },
+            {
+              "role": "user",
+              "content": "=Analise este plano alimentar que está no PDF desta URL: {{ $json.pdfUrl }}\n\nBaixe o PDF, extraia o texto e analise com PRECISÃO CIRÚRGICA.\n\n🎯 RETORNE JSON NESTE FORMATO EXATO:\n\n{\n  \"meta\": {\n    \"caloriasDiarias\": 1790.36,\n    \"periodo\": \"24 horas\",\n    \"objetivo\": \"emagrecimento saudável\",\n    \"nutricionista\": \"Dr. Nome\",\n    \"dataCriacao\": \"2024-11-14\"\n  },\n  \"macronutrientes\": {\n    \"carboidratos\": {\n      \"gramas\": 158.40,\n      \"gramsPerKg\": 2.56,\n      \"percentual\": 35.5\n    },\n    \"proteinas\": {\n      \"gramas\": 137.32,\n      \"gramsPerKg\": 1.96,\n      \"percentual\": 30.7\n    },\n    \"gorduras\": {\n      \"gramas\": 67.42,\n      \"gramsPerKg\": 0.96,\n      \"percentual\": 33.8\n    },\n    \"fibras\": {\n      \"gramas\": 22.26,\n      \"gramsPerKg\": 0.32\n    }\n  },\n  \"refeicoes\": [\n    {\n      \"ordem\": 1,\n      \"nome\": \"Em jejum\",\n      \"horario\": \"07:00\",\n      \"percentualDiario\": 1.35,\n      \"alimentos\": [\n        {\n          \"nome\": \"Nutrata de creatina\",\n          \"quantidade\": 3.0,\n          \"unidade\": \"g\"\n        },\n        {\n          \"nome\": \"Glutamina universal\",\n          \"quantidade\": 5.0,\n          \"unidade\": \"g\",\n          \"observacao\": \"1 colher chá\"\n        },\n        {\n          \"nome\": \"Água\",\n          \"quantidade\": 400.0,\n          \"unidade\": \"ml\",\n          \"observacao\": \"4x 100ml\"\n        }\n      ],\n      \"macros\": {\n        \"calorias\": 24.10,\n        \"carboidratos\": 0.20,\n        \"proteinas\": 8.00,\n        \"gorduras\": 0.00,\n        \"fibras\": 0.00\n      }\n    },\n    {\n      \"ordem\": 2,\n      \"nome\": \"Café da manhã\",\n      \"horario\": \"07:30\",\n      \"percentualDiario\": 28.07,\n      \"alimentos\": [\n        {\n          \"nome\": \"Manteiga ghee\",\n          \"quantidade\": 5.0,\n          \"unidade\": \"g\"\n        },\n        {\n          \"nome\": \"Ovo caipira\",\n          \"quantidade\": 150.0,\n          \"unidade\": \"g\",\n          \"observacao\": \"3x 1 unidade\"\n        },\n        {\n          \"nome\": \"Pão 100% integral\",\n          \"quantidade\": 80.0,\n          \"unidade\": \"g\"\n        }\n      ],\n      \"macros\": {\n        \"calorias\": 502.37,\n        \"carboidratos\": 43.18,\n        \"proteinas\": 31.78,\n        \"gorduras\": 22.15,\n        \"fibras\": 6.23\n      }\n    }\n  ],\n  \"micronutrientes\": [\n    {\n      \"nome\": \"Cálcio\",\n      \"quantidade\": 164.00,\n      \"unidade\": \"mg\",\n      \"dri\": 1000,\n      \"percentualDRI\": 16.4\n    },\n    {\n      \"nome\": \"Fósforo\",\n      \"quantidade\": 521.00,\n      \"unidade\": \"mg\",\n      \"dri\": 700,\n      \"percentualDRI\": 74.4\n    }\n  ],\n  \"observacoes\": [\n    \"Beber 2-3L de água por dia\",\n    \"Mastigar bem os alimentos\"\n  ]\n}\n\n⚠️ IMPORTANTE:\n- Use VALORES EXATOS (não arredonde)\n- Se não encontrar algum campo, use null\n- Mantenha números com casas decimais\n- Extraia TODAS as refeições\n- Retorne APENAS o JSON (sem texto extra)"
+            }
+          ]
+        }
+      },
+      "id": "openai-extract",
+      "name": "GPT-4o Extrair TUDO (com PDF)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [450, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parser compatível com ambientes legados do Code Node\nvar items = $input.all();\nvar firstItem = (items[0] && items[0].json) ? items[0].json : {};\nvar content = '';\n\nif (firstItem.response) {\n  content = firstItem.response;\n} else if (firstItem.message && firstItem.message.content) {\n  content = firstItem.message.content;\n} else if (\n  firstItem.choices &&\n  firstItem.choices[0] &&\n  firstItem.choices[0].message &&\n  firstItem.choices[0].message.content\n) {\n  content = firstItem.choices[0].message.content;\n} else if (firstItem.output) {\n  content = firstItem.output;\n} else if (typeof firstItem === 'string') {\n  content = firstItem;\n}\n\ncontent = String(content || '')\n  .replace(/```json\\n?/gi, '')\n  .replace(/```\\n?/g, '')\n  .replace(/^[\\s\\uFEFF\\xA0]+|[\\s\\uFEFF\\xA0]+$/g, '')\n  .trim();\n\nvar dietData;\ntry {\n  dietData = JSON.parse(content);\n} catch (jsonError) {\n  return [{\n    json: {\n      patientId: (items[0] && items[0].json && items[0].json.patientId) ? items[0].json.patientId : 'unknown',\n      success: false,\n      transcriptionStatus: 'error',\n      error: 'Resposta da IA não é JSON válido: ' + jsonError.message,\n      errorDetails: {\n        stack: jsonError.stack,\n        receivedContent: content.substring(0, 500)\n      },\n      diet: null\n    }\n  }];\n}\n\nvar patientId = 'unknown';\nfor (var i = 0; i < items.length; i++) {\n  if (items[i].json && items[i].json.patientId) {\n    patientId = items[i].json.patientId;\n    break;\n  }\n}\n\nvar refeicoes = Array.isArray(dietData.refeicoes) ? dietData.refeicoes : [];\nvar totalAlimentos = 0;\nfor (var r = 0; r < refeicoes.length; r++) {\n  var alimentos = Array.isArray(refeicoes[r].alimentos) ? refeicoes[r].alimentos : [];\n  totalAlimentos += alimentos.length;\n}\n\nvar resposta = {\n  patientId: patientId,\n  success: true,\n  transcriptionStatus: 'completed',\n  transcribedAt: new Date().toISOString(),\n  diet: dietData,\n  meta: dietData.meta || {},\n  macronutrientes: dietData.macronutrientes || {},\n  refeicoes: refeicoes,\n  micronutrientes: dietData.micronutrientes || [],\n  observacoes: dietData.observacoes || [],\n  resumo: {\n    totalCalorias: dietData.meta && dietData.meta.caloriasDiarias ? dietData.meta.caloriasDiarias : 0,\n    totalRefeicoes: refeicoes.length,\n    totalAlimentos: totalAlimentos,\n    objetivo: (dietData.meta && dietData.meta.objetivo) ? dietData.meta.objetivo : 'não especificado'\n  }\n};\n\nreturn [{ json: resposta }];"
+      },
+      "id": "parse-diet",
+      "name": "Parse e Estruturar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://web-production-c9eaf.up.railway.app/api/n8n/update-diet-complete",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "save-backend",
+      "name": "Salvar no Backend/Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": {{ $json.success }},\n  \"message\": \"Dieta transcrita com PRECISÃO COMPLETA\",\n  \"patientId\": \"{{ $json.patientId }}\",\n  \"status\": \"{{ $json.transcriptionStatus }}\",\n  \"resumo\": {{ JSON.stringify($json.resumo) }},\n  \"totalCalorias\": {{ $json.resumo.totalCalorias }},\n  \"totalRefeicoes\": {{ $json.resumo.totalRefeicoes }},\n  \"totalAlimentos\": {{ $json.resumo.totalAlimentos }}\n}"
+      },
+      "id": "response",
+      "name": "Resposta Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Recebe PDF": {
+      "main": [[{"node": "GPT-4o Extrair TUDO (com PDF)", "type": "main", "index": 0}]]
+    },
+    "GPT-4o Extrair TUDO (com PDF)": {
+      "main": [[{"node": "Parse e Estruturar Dados", "type": "main", "index": 0}]]
+    },
+    "Parse e Estruturar Dados": {
+      "main": [[{"node": "Salvar no Backend/Firestore", "type": "main", "index": 0}]]
+    },
+    "Salvar no Backend/Firestore": {
+      "main": [[{"node": "Resposta Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
+
