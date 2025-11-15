@@ -17,6 +17,39 @@ const generateTemporaryPassword = () => {
   return `Temp${random.charAt(0).toUpperCase()}${random.slice(1)}!1`;
 };
 
+async function ensureActiveConnection({
+  prescriberId,
+  patientId,
+  patientEmail = null,
+  patientName = null,
+  status = 'active',
+}) {
+  if (!prescriberId || !patientId) {
+    return null;
+  }
+
+  const connectionId = `${prescriberId}_${patientId}`;
+  const connectionRef = db.collection('connections').doc(connectionId);
+  const connectionSnapshot = await connectionRef.get();
+  const timestamp = admin.firestore.FieldValue.serverTimestamp();
+
+  const data = {
+    prescriberId,
+    patientId,
+    patientEmail: patientEmail || null,
+    patientName: patientName || null,
+    status,
+    updatedAt: timestamp,
+  };
+
+  if (!connectionSnapshot.exists) {
+    data.createdAt = timestamp;
+  }
+
+  await connectionRef.set(data, { merge: true });
+  return connectionId;
+}
+
 /**
  * GET /api/prescriber/patients
  * Listar todos os pacientes do prescritor (conexões ativas)
@@ -170,6 +203,8 @@ router.post('/patients/create', async (req, res) => {
       return Number.isFinite(parsed) ? parsed : null;
     };
 
+    let assignedPrescriberId = null;
+
     const dataToSave = {
       uid: userId,
       email: normalizedEmail,
@@ -187,10 +222,22 @@ router.post('/patients/create', async (req, res) => {
     };
 
     if (targetRole === 'patient') {
-      dataToSave.prescriberId =
-        requesterRole === 'prescriber'
-          ? requesterId
-          : requestedPrescriberId || null;
+      if (requesterRole === 'prescriber') {
+        assignedPrescriberId = requesterId;
+      } else if (requestedPrescriberId) {
+        assignedPrescriberId = requestedPrescriberId;
+      } else {
+        const prescribersSnapshot = await db.collection('users')
+          .where('role', '==', 'prescriber')
+          .limit(1)
+          .get();
+        
+        if (!prescribersSnapshot.empty) {
+          assignedPrescriberId = prescribersSnapshot.docs[0].id;
+        }
+      }
+
+      dataToSave.prescriberId = assignedPrescriberId || null;
     }
 
     if (!existingDoc.exists) {
@@ -199,9 +246,21 @@ router.post('/patients/create', async (req, res) => {
 
     await userDocRef.set(dataToSave, { merge: true });
 
+    if (targetRole === 'patient' && assignedPrescriberId) {
+      await ensureActiveConnection({
+        prescriberId: assignedPrescriberId,
+        patientId: userId,
+        patientEmail: normalizedEmail,
+        patientName: name,
+      });
+    }
+
     // ✅ Validação automática para garantir consistência
     console.log('🔧 [PRESCRIBER] Running automatic validation...');
-    const validationResult = await validateAndFixPatient(dataToSave, dataToSave.prescriberId);
+    const validationResult = await validateAndFixPatient(
+      dataToSave,
+      dataToSave.prescriberId || assignedPrescriberId
+    );
     
     if (validationResult.fixes.length > 0) {
       console.log('✅ [PRESCRIBER] Auto-fixes applied:', validationResult.fixes);
@@ -352,6 +411,100 @@ router.post('/patients/invite', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/prescriber/patients/:patientId/assign
+ * Atribuir paciente diretamente ao prescritor atual (sem convite)
+ */
+router.post('/patients/:patientId/assign', async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const requesterRole = req.user.role;
+    const requesterId = req.user.uid;
+    const requestedPrescriberId = req.body?.prescriberId;
+
+    const targetPrescriberId =
+      requesterRole === 'admin' && requestedPrescriberId
+        ? requestedPrescriberId
+        : requesterId;
+
+    if (!targetPrescriberId) {
+      return res.status(400).json({
+        success: false,
+        error: 'PrescriberId is required to assign a patient',
+      });
+    }
+
+    const patientRef = db.collection('users').doc(patientId);
+    const patientDoc = await patientRef.get();
+
+    if (!patientDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Patient not found',
+      });
+    }
+
+    const patientData = patientDoc.data();
+
+    if (patientData.role && patientData.role !== 'patient') {
+      return res.status(400).json({
+        success: false,
+        error: 'Only users with patient role can be assigned to a prescriber',
+      });
+    }
+
+    if (!patientData.email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patient email is required to complete the assignment',
+      });
+    }
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    await patientRef.set(
+      {
+        prescriberId: targetPrescriberId,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    const connectionId = await ensureActiveConnection({
+      prescriberId: targetPrescriberId,
+      patientId,
+      patientEmail: patientData.email,
+      patientName: patientData.name || patientData.displayName || 'Paciente',
+    });
+
+    await validateAndFixPatient(
+      {
+        ...patientData,
+        uid: patientId,
+        email: patientData.email,
+        name: patientData.name || patientData.displayName || 'Paciente',
+      },
+      targetPrescriberId
+    );
+
+    res.json({
+      success: true,
+      message: 'Paciente atribuído com sucesso',
+      data: {
+        patientId,
+        prescriberId: targetPrescriberId,
+        connectionId,
+      },
+    });
+  } catch (error) {
+    console.error('❌ [PRESCRIBER] Error assigning patient:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
     });
   }
 });

@@ -43,9 +43,19 @@ interface UploadedPlanFile {
   storagePath?: string | null;
 }
 
+const getApiBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, '');
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return '';
+};
+
 export default function PatientDetailPage() {
   const params = useParams();
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const patientId = useMemo(() => {
     const value = params?.patientId;
     return Array.isArray(value) ? value[0] : value;
@@ -57,6 +67,7 @@ export default function PatientDetailPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isAssigningPatient, setIsAssigningPatient] = useState(false);
 
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>('patient');
@@ -661,6 +672,78 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
       });
     } finally {
       setIsUpdatingRole(false);
+    }
+  };
+
+  const handleAssignToMe = async () => {
+    if (!patientId) return;
+
+    if (!user || user.role !== 'prescriber') {
+      setFeedback({
+        type: 'error',
+        message: 'Apenas prescritores podem assumir pacientes.',
+      });
+      return;
+    }
+
+    if (!firebaseUser) {
+      setFeedback({
+        type: 'error',
+        message: 'Não foi possível autenticar. Recarregue a página e tente novamente.',
+      });
+      return;
+    }
+
+    try {
+      setIsAssigningPatient(true);
+      setFeedback(null);
+
+      const token = await firebaseUser.getIdToken();
+      const apiBaseUrl = getApiBaseUrl();
+
+      if (!apiBaseUrl) {
+        throw new Error('Configure NEXT_PUBLIC_API_BASE_URL para usar esta ação.');
+      }
+
+      const response = await fetch(`${apiBaseUrl}/api/prescriber/patients/${patientId}/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Não foi possível atribuir este paciente.');
+      }
+
+      setPatient((prev) =>
+        prev
+          ? {
+              ...prev,
+              prescriberId: user.uid,
+            }
+          : prev
+      );
+
+      setFeedback({
+        type: 'success',
+        message: 'Paciente atribuído ao seu acompanhamento.',
+      });
+    } catch (error) {
+      console.error('Erro ao atribuir paciente:', error);
+      setFeedback({
+        type: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível atribuir o paciente.',
+      });
+    } finally {
+      setIsAssigningPatient(false);
     }
   };
 
@@ -2373,6 +2456,10 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
       );
     }
 
+    const isPatientAssignedToUser = patient.prescriberId && user?.uid
+      ? patient.prescriberId === user.uid
+      : false;
+
     return (
       <Card>
         <CardContent className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
@@ -2416,6 +2503,36 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
                     <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                   )}
                 </div>
+              </div>
+            )}
+
+            {user?.role === 'prescriber' && (
+              <div className="flex flex-col gap-1 text-sm text-gray-600">
+                <span className="font-medium text-gray-700">Prescritor responsável</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-gray-900">
+                    {patient.prescriberId
+                      ? isPatientAssignedToUser
+                        ? 'Você está cuidando deste paciente'
+                        : 'Paciente atribuído a outro profissional'
+                      : 'Nenhum prescritor definido'}
+                  </span>
+                  {!isPatientAssignedToUser && (
+                    <Button
+                      size="sm"
+                      onClick={handleAssignToMe}
+                      isLoading={isAssigningPatient}
+                    >
+                      Assumir paciente
+                    </Button>
+                  )}
+                </div>
+                {isPatientAssignedToUser && (
+                  <div className="flex items-center gap-1 text-xs text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Paciente sob seus cuidados</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
