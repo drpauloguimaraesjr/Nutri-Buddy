@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState, ChangeEvent } from 'react';
-import { useParams } from 'next/navigation';
-import { AlertCircle, Bot, CheckCircle2, Copy, Download, FileText, Loader2, Mail, Plus, QrCode, Sparkles, Trash2, Upload } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { AlertCircle, Bot, CheckCircle2, Copy, Download, FileText, Loader2, Mail, MessageSquare, Plus, QrCode, Sparkles, Trash2, Upload } from 'lucide-react';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { motion } from 'framer-motion';
@@ -55,6 +55,7 @@ const getApiBaseUrl = () => {
 
 export default function PatientDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { user, firebaseUser } = useAuth();
   const patientId = useMemo(() => {
     const value = params?.patientId;
@@ -68,6 +69,7 @@ export default function PatientDetailPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isAssigningPatient, setIsAssigningPatient] = useState(false);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
 
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>('patient');
@@ -556,6 +558,104 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
       setIsSaving(false);
     }
   };
+
+  // 💬 INICIAR CONVERSA COM PACIENTE
+  const handleStartConversation = async () => {
+    if (!firebaseUser || !patientId) {
+      setFeedback({
+        type: 'error',
+        message: 'Erro: usuário ou paciente não identificado.',
+      });
+      return;
+    }
+    
+    try {
+      setIsCreatingConversation(true);
+      const token = await firebaseUser.getIdToken();
+      const apiBaseUrl = getApiBaseUrl();
+      
+      console.log('🔍 Verificando conversa existente...');
+      
+      // Verificar se já existe conversa com este paciente
+      const existingResponse = await fetch(
+        `${apiBaseUrl}/api/messages/conversations`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (existingResponse.ok) {
+        const data = await existingResponse.json();
+        const existingConversation = data.conversations.find(
+          (conv: any) => conv.patientId === patientId
+        );
+        
+        if (existingConversation) {
+          console.log('✅ Conversa existente encontrada:', existingConversation.id);
+          // Redirecionar para conversa existente
+          router.push(`/dashboard/chat?conversationId=${existingConversation.id}`);
+          return;
+        }
+      }
+      
+      console.log('📝 Criando nova conversa...');
+      
+      // Criar nova conversa
+      const response = await fetch(
+        `${apiBaseUrl}/api/messages/conversations`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            patientId: patientId,
+            initialMessage: `Olá! Estou aqui para te ajudar com seu acompanhamento.`,
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao criar conversa');
+      }
+      
+      const data = await response.json();
+      console.log('✅ Conversa criada:', data.conversation.id);
+      
+      // Atribuir prescritor ao paciente (se ainda não tiver)
+      if (!patient?.prescriberId) {
+        console.log('📌 Atribuindo prescritor ao paciente...');
+        await updateDoc(doc(db, 'users', patientId), {
+          prescriberId: firebaseUser.uid,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      
+      // Mostrar sucesso
+      setFeedback({
+        type: 'success',
+        message: 'Conversa iniciada! Redirecionando...',
+      });
+      
+      // Aguardar 1 segundo e redirecionar
+      setTimeout(() => {
+        router.push(`/dashboard/chat?conversationId=${data.conversation.id}`);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Erro ao iniciar conversa:', error);
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Erro ao iniciar conversa. Tente novamente.',
+      });
+    } finally {
+      setIsCreatingConversation(false);
+    }
+  };
   
   // Salvar CONFIG (Personalidade IA)
   const handleSaveAIConfig = async () => {
@@ -934,6 +1034,52 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
             </div>
           </CardContent>
         </Card>
+
+        {/* 💬 Enviar Mensagem Direta */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-purple-50">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                  <MessageSquare className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Chat Direto com Paciente</h3>
+                  <p className="text-sm text-gray-600">
+                    Envie mensagens direto pelo dashboard
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-600">
+                Inicie uma conversa com {patient?.name} diretamente pela central de atendimento.
+                {' '}As mensagens serão sincronizadas e você receberá notificações em tempo real.
+              </p>
+
+              <Button
+                onClick={handleStartConversation}
+                disabled={isCreatingConversation || !patient}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                {isCreatingConversation ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Abrindo conversa...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    💬 Enviar Mensagem
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Enviar por Email */}
         <Card>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -38,6 +39,9 @@ const columnLabels: Record<Conversation['kanbanColumn'], string> = {
 
 export default function PrescriberChatPage() {
   const { firebaseUser } = useAuth();
+  const searchParams = useSearchParams();
+  const conversationIdFromUrl = searchParams?.get('conversationId');
+  
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,6 +92,14 @@ export default function PrescriberChatPage() {
     const interval = setInterval(fetchConversations, 10000);
     return () => clearInterval(interval);
   }, [fetchConversations]);
+
+  // Selecionar conversa da URL
+  useEffect(() => {
+    if (conversationIdFromUrl && !selectedConversationId) {
+      console.log('🔗 Selecionando conversa da URL:', conversationIdFromUrl);
+      setSelectedConversationId(conversationIdFromUrl);
+    }
+  }, [conversationIdFromUrl, selectedConversationId]);
 
   const filteredConversations = useMemo(() => {
     if (!searchTerm) return conversations;
