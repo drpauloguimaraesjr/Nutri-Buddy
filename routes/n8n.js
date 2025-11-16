@@ -1450,6 +1450,14 @@ router.get('/patients/:patientId/meals/summary', verifyWebhookSecret, async (req
     );
     const todayData = await todayResponse.json();
     
+    if (!todayData.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to fetch meals for today',
+        details: todayData.error
+      });
+    }
+    
     // Buscar macros do perfil ou dieta
     const profileResponse = await fetch(
       `${req.protocol}://${req.get('host')}/api/n8n/patients/${patientId}/profile-macros`,
@@ -1457,8 +1465,9 @@ router.get('/patients/:patientId/meals/summary', verifyWebhookSecret, async (req
     );
     const profileData = await profileResponse.json();
     
-    const consumed = todayData.dailyTotals;
-    const target = profileData.data.macros;
+    // Se não encontrou perfil, usar valores padrão
+    const consumed = todayData.dailyTotals || { protein: 0, carbs: 0, fats: 0, calories: 0 };
+    const target = profileData.success && profileData.data ? profileData.data.macros : { protein: 150, carbs: 200, fats: 50, calories: 2000 };
     
     // Calcular percentuais
     const percentages = {
