@@ -605,12 +605,12 @@ router.get('/twilio/history', verifyToken, async (req, res) => {
 });
 
 /**
- * POST /webhooks/twilio-whatsapp
+ * POST /twilio-whatsapp (montado em /webhooks via server.js)
  * Webhook para receber mensagens do Twilio WhatsApp
  * NOTA: Este endpoint NÃO usa verifyToken pois é chamado pelo Twilio
  * IMPORTANTE: Twilio envia dados como application/x-www-form-urlencoded
  */
-router.post('/webhooks/twilio-whatsapp', async (req, res) => {
+router.post('/twilio-whatsapp', async (req, res) => {
   try {
     console.log('📩 [Twilio] Webhook recebido:', JSON.stringify(req.body, null, 2));
 
@@ -715,11 +715,11 @@ router.post('/webhooks/twilio-whatsapp', async (req, res) => {
 });
 
 /**
- * POST /webhooks/twilio-status
+ * POST /twilio-status (montado em /webhooks via server.js)
  * Webhook para receber status de mensagens do Twilio
  * Status: queued, sending, sent, delivered, read, failed, undelivered
  */
-router.post('/webhooks/twilio-status', async (req, res) => {
+router.post('/twilio-status', async (req, res) => {
   try {
     console.log('📊 [Twilio] Status update:', JSON.stringify(req.body, null, 2));
 
