@@ -1107,5 +1107,106 @@ router.get('/conversations/:conversationId/messages', verifyWebhookSecret, async
   }
 });
 
+/**
+ * POST /api/n8n/conversations/:conversationId/messages
+ * Criar nova mensagem na conversa (para workflow de chat - AI responses)
+ * Body: { senderId, senderRole, content, type, isAiGenerated }
+ * Requer: X-Webhook-Secret header
+ */
+router.post('/conversations/:conversationId/messages', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { senderId, senderRole, content, type = 'text', isAiGenerated = true } = req.body;
+    
+    console.log('✉️ [N8N] Creating message for conversation:', conversationId, '| Sender:', senderRole);
+    
+    // Validações
+    if (!senderId || !senderRole || !content) {
+      return res.status(400).json({
+        success: false,
+        error: 'senderId, senderRole and content are required'
+      });
+    }
+    
+    // Verificar se conversa existe
+    const conversationRef = db.collection('conversations').doc(conversationId);
+    const conversationDoc = await conversationRef.get();
+    
+    if (!conversationDoc.exists) {
+      console.log('⚠️ [N8N] Conversation not found:', conversationId);
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found'
+      });
+    }
+    
+    const conversation = conversationDoc.data();
+    
+    // Criar mensagem
+    const messageData = {
+      conversationId,
+      senderId,
+      senderRole,
+      content: content.trim(),
+      type,
+      status: 'sent',
+      isAiGenerated,
+      createdAt: new Date(),
+      readAt: null,
+      attachments: []
+    };
+    
+    const messageRef = await db.collection('conversations')
+      .doc(conversationId)
+      .collection('messages')
+      .add(messageData);
+    
+    console.log('✅ [N8N] Message created:', messageRef.id);
+    
+    // Atualizar conversa com última mensagem
+    const updateData = {
+      lastMessage: content.trim().substring(0, 100), // Limitar a 100 caracteres
+      lastMessageAt: new Date(),
+      lastMessageBy: senderRole,
+      updatedAt: new Date()
+    };
+    
+    // Se for mensagem do prescritor/IA, incrementar unread do paciente
+    if (senderRole === 'prescriber' || senderRole === 'system') {
+      updateData.patientUnreadCount = (conversation.patientUnreadCount || 0) + 1;
+    }
+    // Se for mensagem do paciente, incrementar unread do prescritor
+    else if (senderRole === 'patient') {
+      updateData.unreadCount = (conversation.unreadCount || 0) + 1;
+    }
+    
+    await conversationRef.update(updateData);
+    
+    console.log('✅ [N8N] Conversation updated');
+    
+    // Retornar sucesso
+    res.json({
+      success: true,
+      data: {
+        messageId: messageRef.id,
+        conversationId,
+        senderId,
+        senderRole,
+        content: content.trim(),
+        type,
+        isAiGenerated,
+        createdAt: messageData.createdAt,
+        status: 'sent'
+      }
+    });
+  } catch (error) {
+    console.error('❌ [N8N] Error creating message:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 
