@@ -899,5 +899,72 @@ router.post('/update-diet-complete', verifyWebhookSecret, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/n8n/patients/:patientId/diet
+ * Buscar dieta ativa do paciente (para workflow de chat)
+ * Requer: X-Webhook-Secret header
+ */
+router.get('/patients/:patientId/diet', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    
+    console.log('📋 [N8N] Fetching diet for patient:', patientId);
+    
+    // Buscar plano alimentar ativo
+    const planSnapshot = await db.collection('dietPlans')
+      .where('patientId', '==', patientId)
+      .where('isActive', '==', true)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+    
+    if (planSnapshot.empty) {
+      console.log('⚠️ [N8N] No active diet plan found for patient:', patientId);
+      return res.json({
+        success: true,
+        data: {
+          meals: [],
+          macros: {
+            protein: 0,
+            carbs: 0,
+            fats: 0,
+            calories: 0
+          },
+          message: 'No active diet plan'
+        }
+      });
+    }
+    
+    const plan = planSnapshot.docs[0].data();
+    
+    console.log('✅ [N8N] Diet plan found:', plan.name);
+    
+    // Formatar resposta
+    res.json({
+      success: true,
+      data: {
+        id: planSnapshot.docs[0].id,
+        name: plan.name,
+        description: plan.description,
+        meals: plan.meals || [],
+        macros: {
+          protein: plan.dailyProtein || 0,
+          carbs: plan.dailyCarbs || 0,
+          fats: plan.dailyFats || 0,
+          calories: plan.dailyCalories || 0
+        },
+        createdAt: plan.createdAt,
+        updatedAt: plan.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('❌ [N8N] Error fetching diet:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 
