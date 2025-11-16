@@ -1,0 +1,367 @@
+{
+  "name": "Gestão Inteligente Chat Web - Nutri-Buddy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-chat-handler",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-main",
+      "name": "Webhook: Nova Mensagem Chat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 400],
+      "webhookId": "nutribuddy-chat-handler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validar e extrair dados\nconst data = $input.first().json;\n\n// Validar campos obrigatórios\nconst required = ['conversationId', 'messageId', 'senderId', 'senderRole', 'content'];\nconst missing = required.filter(field => !data[field]);\n\nif (missing.length > 0) {\n  throw new Error(`Campos obrigatórios faltando: ${missing.join(', ')}`);\n}\n\n// Apenas processar mensagens de PACIENTES\nif (data.senderRole !== 'patient') {\n  return {\n    json: {\n      skipped: true,\n      reason: 'Mensagem do prescritor - não precisa processar',\n      conversationId: data.conversationId\n    }\n  };\n}\n\n// Sanitizar e estruturar dados\nreturn {\n  json: {\n    conversationId: String(data.conversationId).trim(),\n    messageId: String(data.messageId).trim(),\n    senderId: String(data.senderId).trim(),\n    senderRole: data.senderRole,\n    content: String(data.content).trim(),\n    type: data.type || 'text',\n    patientId: data.patientId || data.senderId,\n    prescriberId: data.prescriberId,\n    timestamp: data.timestamp || new Date().toISOString(),\n    attachments: data.attachments || []\n  }\n};"
+      },
+      "id": "validate-input",
+      "name": "1. Validar e Filtrar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400],
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skipped }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-skipped",
+      "name": "2. Foi Filtrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"skipped\": true,\n  \"reason\": \"{{ $json.reason }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-skipped",
+      "name": "Responder: Filtrado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 280]
+    },
+    {
+      "parameters": {
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/conversations/{{ $json.conversationId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-conversation",
+      "name": "3. Buscar Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 520],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/conversations/{{ $('1. Validar e Filtrar').item.json.conversationId }}/messages?limit=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-history",
+      "name": "4. Buscar Histórico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 520],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construir contexto completo para IA\nconst input = $('1. Validar e Filtrar').item.json;\nconst conversationData = $('3. Buscar Conversa').item.json;\nconst historyData = $('4. Buscar Histórico').item.json;\n\nconst conversation = conversationData?.conversation || {};\nconst messages = historyData?.messages || [];\nconst metadata = conversation.metadata || {};\n\n// Formatar histórico\nconst historyText = messages\n  .map(m => `${m.senderRole === 'patient' ? 'PACIENTE' : 'PRESCRITOR'}: ${m.content}`)\n  .join('\\n');\n\n// Construir prompt rico\nconst prompt = `Você é um assistente nutricional inteligente do NutriBuddy.\n\n📋 INFORMAÇÕES DO PACIENTE:\nNome: ${metadata.patientName || 'Não informado'}\nEmail: ${metadata.patientEmail || 'Não informado'}\n\n📊 STATUS DA CONVERSA:\nStatus: ${conversation.status || 'nova'}\nPrioridade: ${conversation.priority || 'normal'}\nTags: ${(conversation.tags || []).join(', ') || 'Nenhuma'}\n\n💬 HISTÓRICO DA CONVERSA (últimas 10 mensagens):\n${historyText || 'Primeira mensagem'}\n\n📨 MENSAGEM ATUAL DO PACIENTE:\n${input.content}\n\n---\n\nANALISE A MENSAGEM E RETORNE UM JSON com:\n\n{\n  \"urgency\": \"low\" | \"medium\" | \"high\",\n  \"urgencyReason\": \"explicação breve\",\n  \"sentiment\": \"positive\" | \"neutral\" | \"negative\",\n  \"category\": \"diet\" | \"exercise\" | \"doubt\" | \"complaint\" | \"celebration\" | \"other\",\n  \"tags\": [\"tag1\", \"tag2\"],\n  \"needsPrescriberAttention\": true | false,\n  \"suggestedResponse\": \"resposta personalizada e empática\",\n  \"autoReplyRecommended\": true | false,\n  \"shouldUpdateKanban\": true | false,\n  \"suggestedKanbanColumn\": \"new\" | \"in-progress\" | \"waiting\" | \"resolved\"\n}\n\nCRITÉRIOS DE URGÊNCIA:\n- HIGH: Sintomas graves, reações adversas, emergências, desistência\n- MEDIUM: Dúvidas importantes, dificuldades com dieta, frustração\n- LOW: Conversas normais, atualizações, dúvidas simples, celebrações\n\nCRITÉRIOS DE AUTO-RESPOSTA:\n- TRUE: Dúvidas simples, encorajamento, confirmações\n- FALSE: Questões complexas, sintomas, mudanças de plano\n\nRESPONDA APENAS COM O JSON, SEM TEXTO ADICIONAL.`;\n\nreturn {\n  json: {\n    prompt,\n    originalMessage: input.content,\n    conversationId: input.conversationId,\n    messageId: input.messageId,\n    patientId: input.patientId,\n    patientName: metadata.patientName || 'Paciente',\n    prescriberId: input.prescriberId || conversation.prescriberId,\n    currentStatus: conversation.status,\n    currentKanbanColumn: conversation.kanbanColumn\n  }\n};"
+      },
+      "id": "build-context",
+      "name": "5. Construir Contexto IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 520]
+    },
+    {
+      "parameters": {
+        "operation": "message",
+        "text": "={{ $json.prompt }}",
+        "options": {
+          "model": "gpt-4-turbo-preview",
+          "temperature": 0.7,
+          "maxTokens": 1000
+        }
+      },
+      "id": "openai-analysis",
+      "name": "6. Análise IA (OpenAI)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1560, 520],
+      "credentials": {
+        "openAiApi": {
+          "id": "fAe6rjFEnsEKA5I8",
+          "name": "OpenAi account 2"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse resposta da OpenAI com fallback robusto\ntry {\n  const aiResponse = $input.first().json;\n  const context = $('5. Construir Contexto IA').item.json;\n  \n  let content = '';\n  \n  // Extrair conteúdo da resposta\n  if (aiResponse.message?.content) {\n    content = aiResponse.message.content;\n  } else if (aiResponse.choices?.[0]?.message?.content) {\n    content = aiResponse.choices[0].message.content;\n  } else if (aiResponse.text) {\n    content = aiResponse.text;\n  } else if (typeof aiResponse === 'string') {\n    content = aiResponse;\n  }\n  \n  // Limpar markdown\n  content = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  \n  // Parse JSON\n  const analysis = JSON.parse(content);\n  \n  return {\n    json: {\n      ...context,\n      urgency: analysis.urgency || 'low',\n      urgencyReason: analysis.urgencyReason || '',\n      sentiment: analysis.sentiment || 'neutral',\n      category: analysis.category || 'other',\n      tags: analysis.tags || [],\n      needsPrescriberAttention: analysis.needsPrescriberAttention || false,\n      suggestedResponse: analysis.suggestedResponse || '',\n      autoReplyRecommended: analysis.autoReplyRecommended || false,\n      shouldUpdateKanban: analysis.shouldUpdateKanban || false,\n      suggestedKanbanColumn: analysis.suggestedKanbanColumn || context.currentKanbanColumn,\n      aiSuccess: true,\n      aiRawResponse: content\n    }\n  };\n  \n} catch (error) {\n  // Fallback em caso de erro\n  const context = $('5. Construir Contexto IA').item.json;\n  \n  return {\n    json: {\n      ...context,\n      urgency: 'medium',\n      urgencyReason: 'Erro na análise IA - requer atenção manual',\n      sentiment: 'neutral',\n      category: 'other',\n      tags: ['erro-ia', 'revisar'],\n      needsPrescriberAttention: true,\n      suggestedResponse: 'Olá! Recebi sua mensagem. O prescritor responderá em breve.',\n      autoReplyRecommended: true,\n      shouldUpdateKanban: false,\n      suggestedKanbanColumn: context.currentKanbanColumn,\n      aiSuccess: false,\n      aiError: error.message\n    }\n  };\n}"
+      },
+      "id": "parse-ai",
+      "name": "7. Parse Análise IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 520]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.urgency }}",
+              "operation": "equals",
+              "value2": "high"
+            }
+          ]
+        }
+      },
+      "id": "check-urgency",
+      "name": "8. É Urgente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 520]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/conversations/{{ $json.conversationId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"priority\": \"high\",\n  \"tags\": {{ JSON.stringify($json.tags.concat(['urgente'])) }},\n  \"kanbanColumn\": \"waiting\"\n}",
+        "options": {}
+      },
+      "id": "mark-urgent",
+      "name": "9a. Marcar como Urgente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2220, 400],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/conversations/{{ $json.conversationId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"priority\": \"{{ $json.urgency }}\",\n  \"tags\": {{ JSON.stringify($json.tags) }},\n  \"kanbanColumn\": \"{{ $json.shouldUpdateKanban ? $json.suggestedKanbanColumn : $json.currentKanbanColumn }}\"\n}",
+        "options": {}
+      },
+      "id": "update-normal",
+      "name": "9b. Atualizar Metadados",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2220, 640],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition"
+      },
+      "id": "merge-paths",
+      "name": "10. Reunir Caminhos",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [2440, 520]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.autoReplyRecommended }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-auto-reply",
+      "name": "11. Enviar Auto-resposta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2660, 520]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/messages/webhook/ai-response",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"conversationId\": \"{{ $json.conversationId }}\",\n  \"content\": \"{{ $json.suggestedResponse }}\",\n  \"aiContext\": {\n    \"urgency\": \"{{ $json.urgency }}\",\n    \"sentiment\": \"{{ $json.sentiment }}\",\n    \"category\": \"{{ $json.category }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "send-auto-reply",
+      "name": "12a. Enviar Auto-resposta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2880, 400],
+      "onError": "continueRegularOutput",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition"
+      },
+      "id": "merge-final",
+      "name": "13. Reunir Final",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [3100, 520]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Mensagem processada com sucesso\",\n  \"conversationId\": \"{{ $json.conversationId }}\",\n  \"urgency\": \"{{ $json.urgency }}\",\n  \"autoReplySent\": {{ $json.autoReplyRecommended }},\n  \"aiSuccess\": {{ $json.aiSuccess }}\n}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "14. Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3320, 520]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Nova Mensagem Chat": {
+      "main": [[{"node": "1. Validar e Filtrar", "type": "main", "index": 0}]]
+    },
+    "1. Validar e Filtrar": {
+      "main": [[{"node": "2. Foi Filtrado?", "type": "main", "index": 0}]]
+    },
+    "2. Foi Filtrado?": {
+      "main": [
+        [{"node": "Responder: Filtrado", "type": "main", "index": 0}],
+        [{"node": "3. Buscar Conversa", "type": "main", "index": 0}]
+      ]
+    },
+    "3. Buscar Conversa": {
+      "main": [[{"node": "4. Buscar Histórico", "type": "main", "index": 0}]]
+    },
+    "4. Buscar Histórico": {
+      "main": [[{"node": "5. Construir Contexto IA", "type": "main", "index": 0}]]
+    },
+    "5. Construir Contexto IA": {
+      "main": [[{"node": "6. Análise IA (OpenAI)", "type": "main", "index": 0}]]
+    },
+    "6. Análise IA (OpenAI)": {
+      "main": [[{"node": "7. Parse Análise IA", "type": "main", "index": 0}]]
+    },
+    "7. Parse Análise IA": {
+      "main": [[{"node": "8. É Urgente?", "type": "main", "index": 0}]]
+    },
+    "8. É Urgente?": {
+      "main": [
+        [{"node": "9a. Marcar como Urgente", "type": "main", "index": 0}],
+        [{"node": "9b. Atualizar Metadados", "type": "main", "index": 0}]
+      ]
+    },
+    "9a. Marcar como Urgente": {
+      "main": [[{"node": "10. Reunir Caminhos", "type": "main", "index": 0}]]
+    },
+    "9b. Atualizar Metadados": {
+      "main": [[{"node": "10. Reunir Caminhos", "type": "main", "index": 1}]]
+    },
+    "10. Reunir Caminhos": {
+      "main": [[{"node": "11. Enviar Auto-resposta?", "type": "main", "index": 0}]]
+    },
+    "11. Enviar Auto-resposta?": {
+      "main": [
+        [{"node": "12a. Enviar Auto-resposta", "type": "main", "index": 0}],
+        [{"node": "13. Reunir Final", "type": "main", "index": 1}]
+      ]
+    },
+    "12a. Enviar Auto-resposta": {
+      "main": [[{"node": "13. Reunir Final", "type": "main", "index": 0}]]
+    },
+    "13. Reunir Final": {
+      "main": [[{"node": "14. Responder Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
+
