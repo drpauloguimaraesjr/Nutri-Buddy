@@ -234,30 +234,51 @@ router.get('/conversations/:id', async (req, res) => {
 
 /**
  * POST /api/messages/conversations
- * Criar nova conversa (geralmente paciente iniciando)
+ * Criar nova conversa (funciona para paciente E prescritor)
  */
 router.post('/conversations', async (req, res) => {
   try {
     const userId = req.user.uid;
     const userRole = req.user.role || 'patient';
-    const { prescriberId, initialMessage } = req.body;
+    const { prescriberId, patientId, initialMessage } = req.body;
 
-    if (!prescriberId) {
-      return res.status(400).json({
-        success: false,
-        error: 'prescriberId é obrigatório',
-      });
+    // Determinar patientId e prescriberId baseado em quem está criando
+    let finalPatientId, finalPrescriberId;
+
+    if (userRole === 'prescriber') {
+      // Prescritor criando conversa: userId é prescritor, body contém patientId
+      if (!patientId) {
+        return res.status(400).json({
+          success: false,
+          error: 'patientId é obrigatório quando prescritor cria conversa',
+        });
+      }
+      finalPatientId = patientId;
+      finalPrescriberId = userId;
+      console.log('📝 Prescritor criando conversa:', { prescriberId: userId, patientId });
+    } else {
+      // Paciente criando conversa: userId é paciente, body contém prescriberId
+      if (!prescriberId) {
+        return res.status(400).json({
+          success: false,
+          error: 'prescriberId é obrigatório quando paciente cria conversa',
+        });
+      }
+      finalPatientId = userId;
+      finalPrescriberId = prescriberId;
+      console.log('📝 Paciente criando conversa:', { patientId: userId, prescriberId });
     }
 
     // Verificar se já existe conversa entre esses dois usuários
     let existingQuery = db.collection('conversations')
-      .where('patientId', '==', userId)
-      .where('prescriberId', '==', prescriberId);
+      .where('patientId', '==', finalPatientId)
+      .where('prescriberId', '==', finalPrescriberId);
 
     const existingSnapshot = await existingQuery.get();
 
     if (!existingSnapshot.empty) {
       const existingConversation = existingSnapshot.docs[0];
+      console.log('✅ Conversa já existe:', existingConversation.id);
       return res.json({
         success: true,
         conversation: {
@@ -269,8 +290,8 @@ router.post('/conversations', async (req, res) => {
     }
 
     // Buscar dados do paciente e prescritor
-    const patientDoc = await db.collection('users').doc(userId).get();
-    const prescriberDoc = await db.collection('users').doc(prescriberId).get();
+    const patientDoc = await db.collection('users').doc(finalPatientId).get();
+    const prescriberDoc = await db.collection('users').doc(finalPrescriberId).get();
 
     if (!patientDoc.exists || !prescriberDoc.exists) {
       return res.status(404).json({
@@ -284,24 +305,24 @@ router.post('/conversations', async (req, res) => {
 
     // Criar conversa
     const conversationData = {
-      patientId: userId,
-      prescriberId,
+      patientId: finalPatientId,
+      prescriberId: finalPrescriberId,
       status: 'new',
       kanbanColumn: 'new',
       lastMessage: initialMessage || 'Nova conversa iniciada',
       lastMessageAt: new Date(),
-      lastMessageBy: 'patient',
-      unreadCount: 1, // para o prescritor
-      patientUnreadCount: 0,
+      lastMessageBy: userRole === 'prescriber' ? 'prescriber' : 'patient',
+      unreadCount: userRole === 'prescriber' ? 0 : 1, // para o prescritor
+      patientUnreadCount: userRole === 'prescriber' ? 1 : 0, // para o paciente
       priority: 'medium',
       tags: [],
       createdAt: new Date(),
       updatedAt: new Date(),
       metadata: {
-        patientName: patientData.name || patientData.email,
+        patientName: patientData.name || patientData.displayName || patientData.email,
         patientEmail: patientData.email,
-        patientAvatar: patientData.avatar || null,
-        prescriberName: prescriberData.name || prescriberData.email,
+        patientAvatar: patientData.avatar || patientData.photoURL || null,
+        prescriberName: prescriberData.name || prescriberData.displayName || prescriberData.email,
       },
     };
 
@@ -309,17 +330,28 @@ router.post('/conversations', async (req, res) => {
 
     // Se houver mensagem inicial, criar também
     if (initialMessage) {
+      const messageSenderId = userRole === 'prescriber' ? finalPrescriberId : finalPatientId;
+      const messageSenderRole = userRole === 'prescriber' ? 'prescriber' : 'patient';
+      
       await db.collection('conversations').doc(conversationRef.id).collection('messages').add({
         conversationId: conversationRef.id,
-        senderId: userId,
-        senderRole: 'patient',
+        senderId: messageSenderId,
+        senderRole: messageSenderRole,
         content: initialMessage,
         type: 'text',
         status: 'sent',
         isAiGenerated: false,
         createdAt: new Date(),
       });
+      
+      console.log('✅ Mensagem inicial criada:', { senderId: messageSenderId, senderRole: messageSenderRole });
     }
+
+    console.log('✅ Conversa criada com sucesso:', {
+      id: conversationRef.id,
+      patientId: finalPatientId,
+      prescriberId: finalPrescriberId,
+    });
 
     res.json({
       success: true,

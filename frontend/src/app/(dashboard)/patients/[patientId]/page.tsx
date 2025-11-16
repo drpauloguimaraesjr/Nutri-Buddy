@@ -601,8 +601,12 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
       }
       
       console.log('📝 Criando nova conversa...');
+      console.log('   Prescritor UID:', firebaseUser.uid);
+      console.log('   Paciente ID:', patientId);
       
       // Criar nova conversa
+      // Prescritor criando: envia patientId no body
+      // Backend usará userId do token como prescriberId
       const response = await fetch(
         `${apiBaseUrl}/api/messages/conversations`,
         {
@@ -612,7 +616,7 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            patientId: patientId,
+            patientId: patientId,  // ID do paciente
             initialMessage: `Olá! Estou aqui para te ajudar com seu acompanhamento.`,
           }),
         }
