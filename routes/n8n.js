@@ -4,6 +4,17 @@ const { verifyToken } = require('../middleware/auth');
 const { db, admin } = require('../config/firebase');
 const axios = require('axios');
 
+// Importar estruturas de dados para contexto conversacional
+const {
+  ConversationContext,
+  MealLoggingContext,
+  MealLog,
+  ContextTypes,
+  ContextStatus,
+  detectMealType,
+  validateMealContext
+} = require('../utils/context-data-structures');
+
 // N8N Configuration
 const N8N_URL = process.env.N8N_URL || process.env.N8N_API_URL || 'http://localhost:5678';
 const N8N_API_KEY = process.env.N8N_API_KEY;
@@ -1085,6 +1096,455 @@ router.get('/patients/:patientId/profile-macros', verifyWebhookSecret, async (re
     });
   }
 });
+
+// ============================================================================
+// CONTEXTO DE CONVERSA E REGISTRO DE REFEIÇÕES
+// ============================================================================
+
+/**
+ * GET /api/n8n/conversations/:conversationId/context
+ * Buscar contexto ativo da conversa
+ * Requer: X-Webhook-Secret header
+ */
+router.get('/conversations/:conversationId/context', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    
+    console.log('📋 [N8N] Fetching context for conversation:', conversationId);
+    
+    // Buscar contexto no Firestore
+    const contextDoc = await db.collection('conversationContexts').doc(conversationId).get();
+    
+    if (!contextDoc.exists) {
+      console.log('⚠️ [N8N] No context found for conversation:', conversationId);
+      return res.json({
+        success: true,
+        hasContext: false,
+        context: null
+      });
+    }
+    
+    const contextData = contextDoc.data();
+    
+    // Verificar se expirou
+    const context = new ConversationContext(
+      contextData.conversationId,
+      contextData.patientId,
+      contextData.prescriberId
+    );
+    Object.assign(context, contextData);
+    
+    if (context.isExpired()) {
+      console.log('⏰ [N8N] Context expired, cleaning up...');
+      await db.collection('conversationContexts').doc(conversationId).delete();
+      return res.json({
+        success: true,
+        hasContext: false,
+        context: null,
+        reason: 'expired'
+      });
+    }
+    
+    // Refresh expiration
+    context.refreshExpiration();
+    await db.collection('conversationContexts').doc(conversationId).set(context.toJSON());
+    
+    console.log('✅ [N8N] Context found:', context.currentContext?.type);
+    
+    res.json({
+      success: true,
+      hasContext: !!context.currentContext,
+      context: context.toJSON()
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error fetching context:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch context',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/n8n/conversations/:conversationId/context
+ * Criar novo contexto
+ * Requer: X-Webhook-Secret header
+ */
+router.post('/conversations/:conversationId/context', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { patientId, prescriberId, type, data } = req.body;
+    
+    console.log('🆕 [N8N] Creating context:', { conversationId, type });
+    
+    // Validar tipo de contexto
+    if (!Object.values(ContextTypes).includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid context type',
+        validTypes: Object.values(ContextTypes)
+      });
+    }
+    
+    // Criar contexto
+    const context = new ConversationContext(conversationId, patientId, prescriberId);
+    context.setContext(type, data);
+    
+    // Salvar no Firestore
+    await db.collection('conversationContexts').doc(conversationId).set(context.toJSON());
+    
+    console.log('✅ [N8N] Context created successfully');
+    
+    res.json({
+      success: true,
+      context: context.toJSON()
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error creating context:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create context',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * PATCH /api/n8n/conversations/:conversationId/context
+ * Atualizar contexto existente
+ * Requer: X-Webhook-Secret header
+ */
+router.patch('/conversations/:conversationId/context', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { updates, status } = req.body;
+    
+    console.log('🔄 [N8N] Updating context:', conversationId);
+    
+    // Buscar contexto
+    const contextDoc = await db.collection('conversationContexts').doc(conversationId).get();
+    
+    if (!contextDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Context not found'
+      });
+    }
+    
+    const contextData = contextDoc.data();
+    const context = new ConversationContext(
+      contextData.conversationId,
+      contextData.patientId,
+      contextData.prescriberId
+    );
+    Object.assign(context, contextData);
+    
+    // Atualizar dados
+    if (updates) {
+      context.updateContext(updates);
+    }
+    
+    // Atualizar status
+    if (status) {
+      context.updateStatus(status);
+    }
+    
+    // Salvar
+    await db.collection('conversationContexts').doc(conversationId).set(context.toJSON());
+    
+    console.log('✅ [N8N] Context updated successfully');
+    
+    res.json({
+      success: true,
+      context: context.toJSON()
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error updating context:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update context',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/n8n/conversations/:conversationId/context
+ * Finalizar/deletar contexto
+ * Requer: X-Webhook-Secret header
+ */
+router.delete('/conversations/:conversationId/context', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { complete } = req.query; // ?complete=true para finalizar, senão deleta
+    
+    console.log('🗑️ [N8N] Deleting context:', conversationId);
+    
+    if (complete === 'true') {
+      // Finalizar contexto (move para history)
+      const contextDoc = await db.collection('conversationContexts').doc(conversationId).get();
+      
+      if (contextDoc.exists) {
+        const contextData = contextDoc.data();
+        const context = new ConversationContext(
+          contextData.conversationId,
+          contextData.patientId,
+          contextData.prescriberId
+        );
+        Object.assign(context, contextData);
+        
+        context.completeContext();
+        await db.collection('conversationContexts').doc(conversationId).set(context.toJSON());
+      }
+    } else {
+      // Deletar completamente
+      await db.collection('conversationContexts').doc(conversationId).delete();
+    }
+    
+    console.log('✅ [N8N] Context deleted successfully');
+    
+    res.json({
+      success: true,
+      message: complete === 'true' ? 'Context completed' : 'Context deleted'
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error deleting context:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete context',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/n8n/meals/log
+ * Registrar refeição no sistema
+ * Requer: X-Webhook-Secret header
+ */
+router.post('/meals/log', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { patientId, prescriberId, conversationId, mealContext, adherence } = req.body;
+    
+    console.log('🍽️ [N8N] Logging meal for patient:', patientId);
+    
+    // Validar contexto de refeição
+    const validation = validateMealContext(mealContext);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid meal context',
+        validationErrors: validation.errors
+      });
+    }
+    
+    // Criar registro de refeição
+    const mealLog = new MealLog(patientId, prescriberId, conversationId, mealContext);
+    
+    // Adicionar dados de aderência se fornecidos
+    if (adherence) {
+      mealLog.setAdherence(adherence);
+    }
+    
+    // Salvar no Firestore
+    await db.collection('mealLogs').doc(mealLog.id).set(mealLog.toJSON());
+    
+    console.log('✅ [N8N] Meal logged successfully:', mealLog.id);
+    
+    // Atualizar macros do dia do paciente (opcional)
+    await updateDailyMacros(patientId, mealLog.totalMacros, mealLog.timestamp);
+    
+    res.json({
+      success: true,
+      mealLog: mealLog.toJSON(),
+      message: 'Meal logged successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error logging meal:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to log meal',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/n8n/patients/:patientId/meals/today
+ * Buscar refeições do dia do paciente
+ * Requer: X-Webhook-Secret header
+ */
+router.get('/patients/:patientId/meals/today', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    
+    console.log('📊 [N8N] Fetching today\'s meals for patient:', patientId);
+    
+    // Calcular início e fim do dia
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+    
+    // Buscar refeições do dia
+    const mealsSnapshot = await db.collection('mealLogs')
+      .where('patientId', '==', patientId)
+      .where('timestamp', '>=', startOfDay.toISOString())
+      .where('timestamp', '<', endOfDay.toISOString())
+      .orderBy('timestamp', 'asc')
+      .get();
+    
+    const meals = [];
+    mealsSnapshot.forEach(doc => {
+      meals.push(doc.data());
+    });
+    
+    // Calcular totais do dia
+    const dailyTotals = meals.reduce((totals, meal) => ({
+      protein: totals.protein + meal.totalMacros.protein,
+      carbs: totals.carbs + meal.totalMacros.carbs,
+      fats: totals.fats + meal.totalMacros.fats,
+      calories: totals.calories + meal.totalMacros.calories
+    }), { protein: 0, carbs: 0, fats: 0, calories: 0 });
+    
+    console.log('✅ [N8N] Found', meals.length, 'meals today');
+    
+    res.json({
+      success: true,
+      date: startOfDay.toISOString().split('T')[0],
+      mealCount: meals.length,
+      meals: meals,
+      dailyTotals: dailyTotals
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error fetching meals:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch meals',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/n8n/patients/:patientId/meals/summary
+ * Resumo de macros consumidos vs metas do dia
+ * Requer: X-Webhook-Secret header
+ */
+router.get('/patients/:patientId/meals/summary', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    
+    console.log('📈 [N8N] Fetching meal summary for patient:', patientId);
+    
+    // Buscar refeições do dia
+    const todayResponse = await fetch(
+      `${req.protocol}://${req.get('host')}/api/n8n/patients/${patientId}/meals/today`,
+      { headers: { 'X-Webhook-Secret': req.get('X-Webhook-Secret') } }
+    );
+    const todayData = await todayResponse.json();
+    
+    // Buscar macros do perfil ou dieta
+    const profileResponse = await fetch(
+      `${req.protocol}://${req.get('host')}/api/n8n/patients/${patientId}/profile-macros`,
+      { headers: { 'X-Webhook-Secret': req.get('X-Webhook-Secret') } }
+    );
+    const profileData = await profileResponse.json();
+    
+    const consumed = todayData.dailyTotals;
+    const target = profileData.data.macros;
+    
+    // Calcular percentuais
+    const percentages = {
+      protein: target.protein > 0 ? Math.round((consumed.protein / target.protein) * 100) : 0,
+      carbs: target.carbs > 0 ? Math.round((consumed.carbs / target.carbs) * 100) : 0,
+      fats: target.fats > 0 ? Math.round((consumed.fats / target.fats) * 100) : 0,
+      calories: target.calories > 0 ? Math.round((consumed.calories / target.calories) * 100) : 0
+    };
+    
+    // Calcular restante
+    const remaining = {
+      protein: Math.max(0, target.protein - consumed.protein),
+      carbs: Math.max(0, target.carbs - consumed.carbs),
+      fats: Math.max(0, target.fats - consumed.fats),
+      calories: Math.max(0, target.calories - consumed.calories)
+    };
+    
+    console.log('✅ [N8N] Summary calculated');
+    
+    res.json({
+      success: true,
+      date: todayData.date,
+      mealCount: todayData.mealCount,
+      consumed: consumed,
+      target: target,
+      percentages: percentages,
+      remaining: remaining,
+      status: percentages.calories >= 100 ? 'met' : percentages.calories >= 80 ? 'on_track' : 'below_target'
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error fetching summary:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch summary',
+      message: error.message
+    });
+  }
+});
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Atualizar macros diários do paciente
+ */
+async function updateDailyMacros(patientId, mealMacros, timestamp) {
+  try {
+    const date = new Date(timestamp).toISOString().split('T')[0];
+    const dailyMacrosRef = db.collection('dailyMacros').doc(`${patientId}_${date}`);
+    
+    const doc = await dailyMacrosRef.get();
+    
+    if (doc.exists) {
+      // Atualizar existente
+      const current = doc.data();
+      await dailyMacrosRef.update({
+        protein: current.protein + mealMacros.protein,
+        carbs: current.carbs + mealMacros.carbs,
+        fats: current.fats + mealMacros.fats,
+        calories: current.calories + mealMacros.calories,
+        mealCount: current.mealCount + 1,
+        updatedAt: new Date().toISOString()
+      });
+    } else {
+      // Criar novo
+      await dailyMacrosRef.set({
+        patientId,
+        date,
+        protein: mealMacros.protein,
+        carbs: mealMacros.carbs,
+        fats: mealMacros.fats,
+        calories: mealMacros.calories,
+        mealCount: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+    
+    console.log('✅ Daily macros updated for:', date);
+  } catch (error) {
+    console.error('❌ Error updating daily macros:', error);
+    // Não falhar a requisição principal por causa disso
+  }
+}
 
 /**
  * GET /api/n8n/conversations/:conversationId
