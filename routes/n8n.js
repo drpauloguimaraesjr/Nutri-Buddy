@@ -739,28 +739,23 @@ router.post('/update-inbody', verifyWebhookSecret, async (req, res) => {
 /**
  * POST /api/n8n/update-diet-complete
  * Recebe dados COMPLETOS da dieta transcrita pelo n8n com GPT-4o/Gemini
- * Com precisão cirúrgica: calorias exatas, macros detalhados, micronutrientes
+ * Salva na collection dietPlans (plano de dieta estruturado)
+ * Requer: X-Webhook-Secret header
  */
 router.post('/update-diet-complete', verifyWebhookSecret, async (req, res) => {
   try {
     const { 
       patientId, 
       diet,
-      resumo,
-      meta,
-      macronutrientes,
-      refeicoes,
-      micronutrientes,
-      observacoes,
-      substituicoes,
-      success,
       transcriptionStatus,
-      model
+      transcribedAt,
+      model,
+      resumo
     } = req.body;
     
-    console.log('🎯 [N8N] Atualizando dieta COMPLETA:', patientId, '| Model:', model || 'GPT-4o');
+    console.log('🎯 [N8N] Salvando dieta COMPLETA estruturada:', patientId, '| Model:', model || 'gpt-4o-vision');
     
-    // Validações
+    // Validação 1: patientId obrigatório
     if (!patientId) {
       return res.status(400).json({
         success: false,
@@ -768,12 +763,11 @@ router.post('/update-diet-complete', verifyWebhookSecret, async (req, res) => {
       });
     }
     
-    if (!success || transcriptionStatus === 'error') {
-      console.error('❌ [N8N] Transcrição falhou:', req.body.error || 'Erro desconhecido');
+    // Validação 2: diet obrigatório
+    if (!diet) {
       return res.status(400).json({
         success: false,
-        error: 'Transcrição da dieta falhou',
-        details: req.body.error || 'Erro desconhecido'
+        error: 'diet é obrigatório'
       });
     }
     
@@ -795,101 +789,116 @@ router.post('/update-diet-complete', verifyWebhookSecret, async (req, res) => {
       }
     }
     
-    // Estruturar dados para salvar no Firestore
-    const dietData = {
-      // Dieta completa estruturada (JSON rico)
-      dietPlan: diet || null,
+    // Passo 1: Desativar planos de dieta anteriores do paciente
+    const existingPlansSnapshot = await db.collection('dietPlans')
+      .where('patientId', '==', patientId)
+      .where('isActive', '==', true)
+      .get();
+    
+    if (!existingPlansSnapshot.empty) {
+      console.log(`⚠️ [N8N] Desativando ${existingPlansSnapshot.size} plano(s) anterior(es)`);
       
-      // Resumo rápido para exibir em cards/listas
-      dietSummary: {
-        totalCalorias: resumo?.totalCalorias || meta?.caloriasDiarias || 0,
-        totalRefeicoes: resumo?.totalRefeicoes || refeicoes?.length || 0,
-        totalAlimentos: resumo?.totalAlimentos || 0,
-        objetivo: meta?.objetivo || 'não especificado',
-        nutricionista: meta?.nutricionista || null,
-        periodo: meta?.periodo || '24 horas'
-      },
+      const batch = db.batch();
+      existingPlansSnapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { 
+          isActive: false, 
+          deactivatedAt: new Date()
+        });
+      });
+      await batch.commit();
+    }
+    
+    // Passo 2: Estruturar dados do novo dietPlan
+    const dietPlanData = {
+      // Identificação
+      patientId,
+      name: diet.meta?.objetivo 
+        ? `Plano ${diet.meta.objetivo.charAt(0).toUpperCase() + diet.meta.objetivo.slice(1)}`
+        : 'Plano Alimentar',
+      description: diet.meta?.nutricionista 
+        ? `Plano criado por ${diet.meta.nutricionista} - ${diet.meta.caloriasDiarias || 0} kcal/dia`
+        : `Plano alimentar de ${diet.meta?.caloriasDiarias || 0} kcal/dia`,
       
-      // Macronutrientes principais
-      dietMacros: macronutrientes ? {
-        carboidratos: {
-          gramas: macronutrientes.carboidratos?.gramas || 0,
-          gramsPerKg: macronutrientes.carboidratos?.gramsPerKg || 0,
-          percentual: macronutrientes.carboidratos?.percentual || 0
-        },
-        proteinas: {
-          gramas: macronutrientes.proteinas?.gramas || 0,
-          gramsPerKg: macronutrientes.proteinas?.gramsPerKg || 0,
-          percentual: macronutrientes.proteinas?.percentual || 0
-        },
-        gorduras: {
-          gramas: macronutrientes.gorduras?.gramas || 0,
-          gramsPerKg: macronutrientes.gorduras?.gramsPerKg || 0,
-          percentual: macronutrientes.gorduras?.percentual || 0
-        },
-        fibras: {
-          gramas: macronutrientes.fibras?.gramas || 0,
-          gramsPerKg: macronutrientes.fibras?.gramsPerKg || 0
+      // Refeições (array completo)
+      meals: diet.refeicoes || [],
+      
+      // Macronutrientes diários
+      dailyProtein: diet.macronutrientes?.proteinas?.gramas || 0,
+      dailyCarbs: diet.macronutrientes?.carboidratos?.gramas || 0,
+      dailyFats: diet.macronutrientes?.gorduras?.gramas || 0,
+      dailyCalories: diet.meta?.caloriasDiarias || 0,
+      
+      // Status
+      isActive: true,
+      
+      // Timestamps
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      
+      // Metadados completos
+      metadata: {
+        // Meta informações da dieta
+        meta: diet.meta || {},
+        
+        // Macronutrientes detalhados
+        macronutrientes: diet.macronutrientes || {},
+        
+        // Micronutrientes
+        micronutrientes: diet.micronutrientes || [],
+        
+        // Observações
+        observacoes: diet.observacoes || [],
+        
+        // Substituições (se houver)
+        substituicoes: diet.substituicoes || [],
+        
+        // Status da transcrição
+        transcriptionStatus: transcriptionStatus || 'completed',
+        transcribedAt: transcribedAt || new Date().toISOString(),
+        model: model || 'gpt-4o-vision',
+        
+        // Resumo executivo
+        resumo: resumo || {
+          totalCalorias: diet.meta?.caloriasDiarias || 0,
+          totalRefeicoes: diet.refeicoes?.length || 0,
+          totalAlimentos: diet.refeicoes?.reduce((acc, ref) => acc + (ref.alimentos?.length || 0), 0) || 0,
+          objetivo: diet.meta?.objetivo || 'não especificado'
         }
-      } : null,
-      
-      // Refeições detalhadas (array completo)
-      dietMeals: refeicoes || [],
-      
-      // Micronutrientes (vitaminas, minerais)
-      dietMicronutrients: micronutrientes || [],
-      
-      // Observações do nutricionista
-      dietNotes: observacoes || [],
-      
-      // Substituições permitidas
-      dietSubstitutions: substituicoes || [],
-      
-      // Metadados da transcrição
-      dietTranscriptionMeta: {
-        status: transcriptionStatus || 'completed',
-        model: model || 'gpt-4o',
-        transcribedAt: admin.firestore.FieldValue.serverTimestamp(),
-        version: 'complete-v1',
-        accuracy: 'high'
-      },
-      
-      // Flags de controle
-      dietTranscriptionComplete: true,
-      dietLastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-      
-      // Compatibilidade com código antigo
-      dietPlanText: diet?.meta?.objetivo || observacoes?.join('\n') || '',
-      planTranscriptionStatus: 'completed',
-      planUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }
     };
     
-    // Salvar no Firestore
-    await patientRef.update(dietData);
+    // Passo 3: Criar novo dietPlan
+    const dietPlanRef = await db.collection('dietPlans').add(dietPlanData);
     
     console.log('✅ [N8N] Dieta COMPLETA salva com sucesso:', {
+      dietPlanId: dietPlanRef.id,
       patientId,
-      calorias: dietData.dietSummary.totalCalorias,
-      refeicoes: dietData.dietSummary.totalRefeicoes,
-      alimentos: dietData.dietSummary.totalAlimentos,
-      model: dietData.dietTranscriptionMeta.model
+      name: dietPlanData.name,
+      calorias: dietPlanData.dailyCalories,
+      refeicoes: dietPlanData.meals.length,
+      model: dietPlanData.metadata.model
     });
     
-    // Resposta de sucesso
+    // Passo 4: Retornar sucesso com resumo
     res.json({
       success: true,
-      message: 'Dieta transcrita com PRECISÃO COMPLETA e salva com sucesso',
-      patientId,
-      summary: dietData.dietSummary,
-      transcription: {
-        model: dietData.dietTranscriptionMeta.model,
-        accuracy: 'high',
-        version: 'complete-v1'
+      dietPlanId: dietPlanRef.id,
+      resumo: {
+        name: dietPlanData.name,
+        totalCalorias: dietPlanData.dailyCalories,
+        totalRefeicoes: dietPlanData.meals.length,
+        totalAlimentos: dietPlanData.metadata.resumo.totalAlimentos,
+        objetivo: dietPlanData.metadata.resumo.objetivo,
+        macros: {
+          proteinas: dietPlanData.dailyProtein,
+          carboidratos: dietPlanData.dailyCarbs,
+          gorduras: dietPlanData.dailyFats
+        }
       }
     });
     
   } catch (error) {
-    console.error('❌ [N8N] Erro ao salvar dieta completa:', error);
+    console.error('❌ [N8N] Erro ao salvar dieta completa estruturada:', error);
     res.status(500).json({
       success: false,
       error: 'Falha ao salvar dieta',
@@ -962,6 +971,117 @@ router.get('/patients/:patientId/diet', verifyWebhookSecret, async (req, res) =>
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/n8n/patients/:patientId/profile-macros
+ * Buscar macros do perfil do paciente (quando não tem dieta prescrita)
+ * Requer: X-Webhook-Secret header
+ */
+router.get('/patients/:patientId/profile-macros', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    
+    console.log('👤 [N8N] Fetching profile macros for patient:', patientId);
+    
+    // Buscar dados do paciente
+    const patientDoc = await db.collection('users').doc(patientId).get();
+    
+    if (!patientDoc.exists) {
+      console.log('⚠️ [N8N] Patient not found:', patientId);
+      return res.status(404).json({
+        success: false,
+        error: 'Patient not found'
+      });
+    }
+    
+    const patientData = patientDoc.data();
+    
+    // Extrair macros do perfil (se existirem)
+    const profileMacros = {
+      protein: patientData.targetProtein || patientData.dailyProtein || 0,
+      carbs: patientData.targetCarbs || patientData.dailyCarbs || 0,
+      fats: patientData.targetFats || patientData.dailyFats || 0,
+      calories: patientData.targetCalories || patientData.dailyCalories || 0
+    };
+    
+    // Se não tem nenhum macro definido, calcular baseado em peso e objetivo
+    if (profileMacros.protein === 0 && profileMacros.carbs === 0 && profileMacros.fats === 0) {
+      console.log('⚙️ [N8N] No macros in profile, calculating defaults...');
+      
+      const weight = patientData.weight || 70; // kg (default 70kg)
+      const height = patientData.height || 170; // cm (default 170cm)
+      const age = patientData.age || 30; // anos (default 30)
+      const gender = patientData.gender || 'male'; // male/female
+      const goal = patientData.goal || 'maintenance'; // weight_loss/muscle_gain/maintenance
+      const activityLevel = patientData.activityLevel || 'moderate'; // sedentary/light/moderate/active/very_active
+      
+      // Calcular TMB (Taxa Metabólica Basal) - Fórmula de Harris-Benedict
+      let bmr;
+      if (gender === 'male') {
+        bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+      } else {
+        bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+      }
+      
+      // Fator de atividade
+      const activityFactors = {
+        sedentary: 1.2,
+        light: 1.375,
+        moderate: 1.55,
+        active: 1.725,
+        very_active: 1.9
+      };
+      
+      const activityFactor = activityFactors[activityLevel] || 1.55;
+      
+      // TDEE (Total Daily Energy Expenditure)
+      let tdee = bmr * activityFactor;
+      
+      // Ajustar baseado no objetivo
+      let targetCalories = tdee;
+      if (goal === 'weight_loss' || goal === 'emagrecimento') {
+        targetCalories = tdee - 500; // Déficit de 500 kcal
+      } else if (goal === 'muscle_gain' || goal === 'ganho_muscular') {
+        targetCalories = tdee + 300; // Superávit de 300 kcal
+      }
+      
+      // Calcular macros (distribuição padrão: 30% proteína, 40% carbo, 30% gordura)
+      profileMacros.protein = Math.round((targetCalories * 0.30) / 4); // 4 kcal/g
+      profileMacros.carbs = Math.round((targetCalories * 0.40) / 4); // 4 kcal/g
+      profileMacros.fats = Math.round((targetCalories * 0.30) / 9); // 9 kcal/g
+      profileMacros.calories = Math.round(targetCalories);
+      
+      console.log('✅ [N8N] Calculated macros:', profileMacros);
+    } else {
+      console.log('✅ [N8N] Found macros in profile:', profileMacros);
+    }
+    
+    // Retornar macros do perfil
+    res.json({
+      success: true,
+      source: 'profile', // Indica que veio do perfil, não de uma dieta
+      data: {
+        name: 'Macros do Perfil',
+        description: `Macronutrientes baseados no perfil de ${patientData.displayName || 'Paciente'}`,
+        macros: profileMacros,
+        patientInfo: {
+          weight: patientData.weight || null,
+          height: patientData.height || null,
+          goal: patientData.goal || null,
+          activityLevel: patientData.activityLevel || null
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [N8N] Error fetching profile macros:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch profile macros',
+      message: error.message
     });
   }
 });
