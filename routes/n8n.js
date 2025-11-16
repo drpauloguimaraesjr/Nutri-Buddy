@@ -1459,15 +1459,25 @@ router.get('/patients/:patientId/meals/summary', verifyWebhookSecret, async (req
     }
     
     // Buscar macros do perfil ou dieta
-    const profileResponse = await fetch(
-      `${req.protocol}://${req.get('host')}/api/n8n/patients/${patientId}/profile-macros`,
-      { headers: { 'X-Webhook-Secret': req.get('X-Webhook-Secret') } }
-    );
-    const profileData = await profileResponse.json();
+    let target = { protein: 150, carbs: 200, fats: 50, calories: 2000 }; // Valores padrão
+    
+    try {
+      const profileResponse = await fetch(
+        `${req.protocol}://${req.get('host')}/api/n8n/patients/${patientId}/profile-macros`,
+        { headers: { 'X-Webhook-Secret': req.get('X-Webhook-Secret') } }
+      );
+      const profileData = await profileResponse.json();
+      
+      // Usar macros do perfil se disponível
+      if (profileData.success && profileData.data && profileData.data.macros) {
+        target = profileData.data.macros;
+      }
+    } catch (profileError) {
+      console.log('⚠️ [N8N] Could not fetch profile macros, using defaults:', profileError.message);
+    }
     
     // Se não encontrou perfil, usar valores padrão
     const consumed = todayData.dailyTotals || { protein: 0, carbs: 0, fats: 0, calories: 0 };
-    const target = profileData.success && profileData.data ? profileData.data.macros : { protein: 150, carbs: 200, fats: 50, calories: 2000 };
     
     // Calcular percentuais
     const percentages = {
