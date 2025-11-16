@@ -285,6 +285,82 @@ service cloud.firestore {
       allow list: if isAuthenticated();
     }
     
+    // Conversations collection (Chat interno Dashboard)
+    match /conversations/{conversationId} {
+      // Prescritor/Admin podem criar conversas
+      allow create: if isAuthenticated() && (
+        isPrescriber() || 
+        isAdmin() ||
+        isPatient()
+      );
+      
+      // Pode ler se faz parte da conversa (prescritor ou paciente)
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.prescriberId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      );
+      
+      // Pode atualizar se faz parte da conversa
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.prescriberId == request.auth.uid ||
+        resource.data.patientId == request.auth.uid
+      );
+      
+      // Prescritor pode listar suas conversas
+      allow list: if isAuthenticated() && (
+        isPrescriber() || 
+        isAdmin() ||
+        isPatient()
+      );
+      
+      // Subcollection: Messages dentro de uma conversa
+      match /messages/{messageId} {
+        // Pode criar mensagens se faz parte da conversa
+        allow create: if isAuthenticated() && (
+          isAdmin() ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.prescriberId == request.auth.uid ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.patientId == request.auth.uid
+        );
+        
+        // Pode ler mensagens se faz parte da conversa
+        allow read: if isAuthenticated() && (
+          isAdmin() ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.prescriberId == request.auth.uid ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.patientId == request.auth.uid
+        );
+        
+        // Pode atualizar mensagens (para marcar como lida, etc)
+        allow update: if isAuthenticated() && (
+          isAdmin() ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.prescriberId == request.auth.uid ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.patientId == request.auth.uid
+        );
+        
+        // Listar mensagens
+        allow list: if isAuthenticated() && (
+          isAdmin() ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.prescriberId == request.auth.uid ||
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.patientId == request.auth.uid
+        );
+      }
+    }
+    
+    // Message Templates collection (apenas prescritores)
+    match /message-templates/{templateId} {
+      // Prescritores podem criar templates
+      allow create: if isPrescriber() && 
+                       request.resource.data.prescriberId == request.auth.uid;
+      
+      // Pode ler/atualizar/deletar seus próprios templates
+      allow read, update, delete: if isPrescriber() && 
+                                      resource.data.prescriberId == request.auth.uid;
+      
+      // Listar apenas seus templates
+      allow list: if isPrescriber();
+    }
+    
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;
