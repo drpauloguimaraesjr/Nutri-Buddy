@@ -1,0 +1,13 @@
+{
+  "conversationId": "T57IAET5UAcfkAO6HFUF",
+  "messageId": "test-msg-001",
+  "senderId": "hiAf8r28RmfnppmYBpvxQwTroNI2",
+  "senderRole": "patient",
+  "content": "Posso comer banana no café da manhã?",
+  "type": "text",
+  "patientId": "hiAf8r28RmfnppmYBpvxQwTroNI2",
+  "prescriberId": "6yooHer7ZgYOcYe0JHkXHLnWBq83",
+  "timestamp": "2024-11-16T22:36:00.000Z",
+  "attachments": []
+}
+
