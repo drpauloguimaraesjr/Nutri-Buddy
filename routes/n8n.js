@@ -966,5 +966,146 @@ router.get('/patients/:patientId/diet', verifyWebhookSecret, async (req, res) =>
   }
 });
 
+/**
+ * GET /api/n8n/conversations/:conversationId
+ * Buscar dados da conversa (para workflow de chat)
+ * Requer: X-Webhook-Secret header
+ */
+router.get('/conversations/:conversationId', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    
+    console.log('💬 [N8N] Fetching conversation:', conversationId);
+    
+    // Buscar conversa
+    const conversationDoc = await db.collection('conversations').doc(conversationId).get();
+    
+    if (!conversationDoc.exists) {
+      console.log('⚠️ [N8N] Conversation not found:', conversationId);
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found'
+      });
+    }
+    
+    const conversation = conversationDoc.data();
+    
+    console.log('✅ [N8N] Conversation found:', {
+      patientId: conversation.patientId,
+      prescriberId: conversation.prescriberId
+    });
+    
+    // Formatar resposta
+    res.json({
+      success: true,
+      data: {
+        id: conversationDoc.id,
+        patientId: conversation.patientId,
+        prescriberId: conversation.prescriberId,
+        patientName: conversation.metadata?.patientName || 'Paciente',
+        prescriberName: conversation.metadata?.prescriberName || 'Nutricionista',
+        status: conversation.status,
+        kanbanColumn: conversation.kanbanColumn,
+        priority: conversation.priority,
+        tags: conversation.tags || [],
+        lastMessage: conversation.lastMessage,
+        lastMessageAt: conversation.lastMessageAt,
+        lastMessageBy: conversation.lastMessageBy,
+        unreadCount: conversation.unreadCount || 0,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        metadata: conversation.metadata
+      }
+    });
+  } catch (error) {
+    console.error('❌ [N8N] Error fetching conversation:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/n8n/conversations/:conversationId/messages
+ * Buscar últimas mensagens da conversa (para workflow de chat)
+ * Query param: limit (default: 10)
+ * Requer: X-Webhook-Secret header
+ */
+router.get('/conversations/:conversationId/messages', verifyWebhookSecret, async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { limit = 10 } = req.query;
+    
+    console.log('📨 [N8N] Fetching messages for conversation:', conversationId, '| Limit:', limit);
+    
+    // Verificar se conversa existe
+    const conversationDoc = await db.collection('conversations').doc(conversationId).get();
+    
+    if (!conversationDoc.exists) {
+      console.log('⚠️ [N8N] Conversation not found:', conversationId);
+      return res.status(404).json({
+        success: false,
+        error: 'Conversation not found'
+      });
+    }
+    
+    // Buscar mensagens (últimas N mensagens, ordenadas por createdAt desc)
+    const messagesSnapshot = await db.collection('conversations')
+      .doc(conversationId)
+      .collection('messages')
+      .orderBy('createdAt', 'desc')
+      .limit(parseInt(limit))
+      .get();
+    
+    if (messagesSnapshot.empty) {
+      console.log('⚠️ [N8N] No messages found for conversation:', conversationId);
+      return res.json({
+        success: true,
+        data: {
+          messages: [],
+          count: 0
+        }
+      });
+    }
+    
+    // Formatar mensagens (reverter para ordem cronológica)
+    const messages = messagesSnapshot.docs.reverse().map(doc => {
+      const msg = doc.data();
+      return {
+        id: doc.id,
+        conversationId: msg.conversationId,
+        senderId: msg.senderId,
+        senderRole: msg.senderRole,
+        content: msg.content,
+        type: msg.type,
+        status: msg.status,
+        isAiGenerated: msg.isAiGenerated || false,
+        createdAt: msg.createdAt,
+        readAt: msg.readAt || null,
+        attachments: msg.attachments || []
+      };
+    });
+    
+    console.log('✅ [N8N] Messages found:', messages.length);
+    
+    // Formatar resposta
+    res.json({
+      success: true,
+      data: {
+        messages,
+        count: messages.length,
+        conversationId
+      }
+    });
+  } catch (error) {
+    console.error('❌ [N8N] Error fetching messages:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 
