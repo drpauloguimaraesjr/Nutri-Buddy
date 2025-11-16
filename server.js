@@ -86,6 +86,7 @@ app.listen(PORT, () => {
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📡 Firebase: Connected`);
   console.log(`📱 Z-API WhatsApp: ${process.env.ZAPI_INSTANCE_ID ? 'Configured ✅' : 'Not configured ⚠️'}`);
+  console.log(`📱 Twilio WhatsApp: ${process.env.TWILIO_ACCOUNT_SID ? 'Configured ✅' : 'Not configured ⚠️'}`);
   console.log(`🔗 http://localhost:${PORT}`);
   console.log(`🔗 http://localhost:${PORT}/api/health`);
   console.log('=================================');
