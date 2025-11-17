@@ -9,7 +9,6 @@ import {
   limit, 
   getDocs, 
   doc,
-  updateDoc,
   writeBatch
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -67,9 +66,9 @@ export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDiet
         setCurrentDiet(null);
         console.log('⚠️ No active diet found for patient:', patientId);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ Error fetching current diet:', err);
-      setError(err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
     }
@@ -98,9 +97,9 @@ export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDiet
 
       setDietHistory(diets);
       console.log(`✅ Diet history loaded: ${diets.length} diets`);
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ Error fetching diet history:', err);
-      setError(err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
     }
   }, [patientId]);
 
@@ -144,9 +143,9 @@ export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDiet
 
       // Atualizar dados
       await Promise.all([fetchCurrentDiet(), fetchDietHistory()]);
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ Error reactivating diet:', err);
-      setError(err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
       throw err;
     } finally {
       setLoading(false);
