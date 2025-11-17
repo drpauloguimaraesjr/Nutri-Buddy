@@ -157,7 +157,6 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
           <MealCard
             key={index}
             meal={meal}
-            index={index}
             isExpanded={expandedMeals.has(index)}
             onToggle={() => toggleMeal(index)}
           />
