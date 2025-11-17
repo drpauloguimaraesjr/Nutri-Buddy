@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken } = require('../middleware/auth');
 const { db, admin } = require('../config/firebase');
 const axios = require('axios');
+const twilioService = require('../services/twilio-service');
 
 // Importar estruturas de dados para contexto conversacional
 const {
@@ -1783,6 +1784,53 @@ router.post('/conversations/:conversationId/messages', verifyWebhookSecret, asyn
     
     console.log('✅ [N8N] Conversation updated');
     
+    // 🆕 INTEGRAÇÃO TWILIO: Enviar via WhatsApp se apropriado
+    let whatsappSent = false;
+    let whatsappMessageId = null;
+    
+    if (senderRole === 'prescriber' && conversation.whatsappEnabled === true && conversation.whatsappPhone) {
+      console.log('📱 [N8N→WhatsApp] Tentando enviar mensagem via Twilio...');
+      
+      try {
+        // Verificar se Twilio está configurado
+        if (twilioService && typeof twilioService.sendTextMessage === 'function') {
+          const whatsappResult = await twilioService.sendTextMessage(
+            conversation.whatsappPhone,
+            content.trim()
+          );
+          
+          if (whatsappResult.success) {
+            whatsappSent = true;
+            whatsappMessageId = whatsappResult.messageSid;
+            
+            // Salvar cópia da mensagem com flag WhatsApp
+            await db.collection('conversations')
+              .doc(conversationId)
+              .collection('messages')
+              .add({
+                ...messageData,
+                channel: 'whatsapp',
+                whatsappMessageId: whatsappResult.messageSid,
+                whatsappStatus: 'sent',
+                sentViaWhatsApp: true,
+                createdAt: new Date()
+              });
+            
+            console.log('✅ [N8N→WhatsApp] Mensagem enviada via Twilio:', whatsappResult.messageSid);
+          } else {
+            console.log('⚠️ [N8N→WhatsApp] Falha ao enviar:', whatsappResult.error);
+          }
+        } else {
+          console.log('⚠️ [N8N→WhatsApp] Twilio não configurado');
+        }
+      } catch (twilioError) {
+        console.error('❌ [N8N→WhatsApp] Erro ao enviar via Twilio:', twilioError);
+        // Não falhar a request se WhatsApp falhar
+      }
+    } else {
+      console.log('ℹ️ [N8N] WhatsApp não habilitado ou não é mensagem do prescritor');
+    }
+    
     // Retornar sucesso
     res.json({
       success: true,
@@ -1795,7 +1843,9 @@ router.post('/conversations/:conversationId/messages', verifyWebhookSecret, asyn
         type,
         isAiGenerated,
         createdAt: messageData.createdAt,
-        status: 'sent'
+        status: 'sent',
+        whatsappSent,
+        whatsappMessageId
       }
     });
   } catch (error) {
