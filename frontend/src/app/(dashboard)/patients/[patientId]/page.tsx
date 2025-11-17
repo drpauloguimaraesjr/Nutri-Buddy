@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AlertCircle, Bot, CheckCircle2, Copy, Download, FileText, Loader2, Mail, MessageSquare, Plus, QrCode, Sparkles, Trash2, Upload } from 'lucide-react';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
-import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -66,8 +66,6 @@ export default function PatientDetailPage() {
   const [activeTab, setActiveTab] = useState<PatientTab>('diet');
   const [isFetching, setIsFetching] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isAssigningPatient, setIsAssigningPatient] = useState(false);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
@@ -75,10 +73,6 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>('patient');
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
-  const [dietPlanText, setDietPlanText] = useState('');
-  const [trainingPlanText, setTrainingPlanText] = useState('');
-  const [planFile, setPlanFile] = useState<UploadedPlanFile | null>(null);
-  const [transcriptionStatus, setTranscriptionStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
   
   // Estados para aba METAS
   const [targetWeight, setTargetWeight] = useState<number>(75);
@@ -179,18 +173,6 @@ export default function PatientDetailPage() {
 
         setPatient(mappedPatient);
         setSelectedRole(mappedPatient.role);
-        setDietPlanText(mappedPatient.dietPlanText ?? '');
-        setTrainingPlanText(mappedPatient.trainingPlanText ?? '');
-        if (mappedPatient.planPdfUrl && mappedPatient.planPdfName) {
-          setPlanFile({
-            name: mappedPatient.planPdfName,
-            url: mappedPatient.planPdfUrl,
-            storagePath: mappedPatient.planPdfStoragePath,
-          });
-        } else {
-          setPlanFile(null);
-        }
-        setTranscriptionStatus(mappedPatient.planTranscriptionStatus ?? 'idle');
         
         // Carregar dados de METAS
         setTargetWeight(data.targetWeight ?? 75);
@@ -250,199 +232,6 @@ export default function PatientDetailPage() {
 
     fetchPatient();
   }, [patientId]);
-
-  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !patientId) return;
-
-    const isPdf = file.type === 'application/pdf';
-    if (!isPdf) {
-      setFeedback({
-        type: 'error',
-        message: 'Por favor, selecione um arquivo PDF.',
-      });
-      return;
-    }
-
-    const storagePath = `prescribers/${user?.uid ?? 'unknown'}/patients/${patientId}/plans/${Date.now()}-${file.name}`;
-    const fileRef = ref(storage, storagePath);
-    const uploadTask = uploadBytesResumable(fileRef, file);
-
-    setIsUploading(true);
-    setUploadProgress(0);
-    setTranscriptionStatus('processing');
-    setFeedback(null);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error('Erro no upload do PDF:', error);
-        setIsUploading(false);
-        setUploadProgress(null);
-        setTranscriptionStatus('idle');
-        setFeedback({
-          type: 'error',
-          message: 'Não foi possível enviar o PDF. Tente novamente.',
-        });
-      },
-      async () => {
-        try {
-          const url = await getDownloadURL(uploadTask.snapshot.ref);
-          setPlanFile({
-            name: file.name,
-            url,
-            storagePath,
-          });
-          setUploadProgress(null);
-          
-          // ✅ Chamar N8N webhook para transcrever PDF com GPT-4o Vision
-          setTranscriptionStatus('processing');
-          setFeedback({
-            type: 'success',
-            message: 'PDF enviado! Transcrevendo com IA... (30-60s)',
-          });
-          
-          try {
-            // Chamar N8N webhook (transcrição REAL com GPT-4o Vision)
-            const n8nUrl = process.env.NEXT_PUBLIC_N8N_TRANSCRIBE_DIET_URL || 
-                           'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-process-diet';
-            
-            console.log('🤖 Calling N8N webhook:', n8nUrl);
-            
-            const response = await fetch(n8nUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                pdfUrl: url,
-                patientId: patientId,
-                patientName: patient?.name || 'Paciente',
-              }),
-            });
-            
-            if (!response.ok) {
-              throw new Error(`N8N returned status ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            console.log('✅ N8N response:', result);
-            
-            if (!result.success) {
-              throw new Error(result.message || 'Erro ao processar dieta');
-            }
-            
-            // Extrair dados estruturados do N8N
-            const dietData = result.diet || {};
-            const meta = dietData.meta || {};
-            const refeicoes = dietData.refeicoes || [];
-            
-            // Formatar texto completo a partir das refeições
-            let fullText = `Plano alimentar - ${meta.objetivo || 'Objetivo não especificado'}\n\n`;
-            fullText += `📊 Calorias diárias: ${meta.caloriasDiarias || 0} kcal\n`;
-            fullText += `📅 Período: ${meta.periodo || '24 horas'}\n\n`;
-            
-            refeicoes.forEach(refeicao => {
-              fullText += `🍽️ ${refeicao.nome} (${refeicao.horario})\n`;
-              refeicao.alimentos.forEach(alimento => {
-                fullText += `   - ${alimento.nome}: ${alimento.quantidade}${alimento.unidade}\n`;
-              });
-              if (refeicao.macros) {
-                fullText += `   Macros: ${refeicao.macros.calorias}kcal | P:${refeicao.macros.proteinas}g | C:${refeicao.macros.carboidratos}g | G:${refeicao.macros.gorduras}g\n`;
-              }
-              fullText += '\n';
-            });
-            
-            setDietPlanText(fullText);
-            
-            const docRef = doc(db, 'users', patientId);
-            await updateDoc(docRef, {
-              dietPlanText: fullText,
-              dietPlanData: dietData,
-              planTranscriptionStatus: 'completed',
-              planUpdatedAt: serverTimestamp(),
-            });
-            
-            setTranscriptionStatus('completed');
-            setFeedback({
-              type: 'success',
-              message: `✅ Dieta processada! ${result.resumo?.totalCalorias || 0} kcal/dia • ${result.resumo?.totalRefeicoes || 0} refeições • ${result.resumo?.totalAlimentos || 0} alimentos`,
-            });
-          } catch (error) {
-            console.error('Erro ao transcrever:', error);
-            setTranscriptionStatus('idle');
-            setFeedback({
-              type: 'error',
-              message: 'Erro na transcrição. Você pode preencher manualmente.',
-            });
-          }
-        } finally {
-          setIsUploading(false);
-        }
-      }
-    );
-  };
-
-  const handleRemoveFile = async () => {
-    if (!planFile) return;
-
-    try {
-      if (planFile.storagePath) {
-        const fileRef = ref(storage, planFile.storagePath);
-        await deleteObject(fileRef);
-      }
-      setPlanFile(null);
-      setTranscriptionStatus('idle');
-      setFeedback({
-        type: 'success',
-        message: 'PDF removido. Você pode enviar outro arquivo quando quiser.',
-      });
-    } catch (error) {
-      console.error('Erro ao remover PDF:', error);
-      setFeedback({
-        type: 'error',
-        message: 'Não foi possível remover o PDF.',
-      });
-    }
-  };
-
-  const handleSavePlans = async () => {
-    if (!patientId) return;
-
-    try {
-      setIsSaving(true);
-      setFeedback(null);
-
-      const docRef = doc(db, 'users', patientId);
-      await updateDoc(docRef, {
-        dietPlanText,
-        trainingPlanText,
-        planPdfUrl: planFile?.url ?? null,
-        planPdfName: planFile?.name ?? null,
-        planPdfStoragePath: planFile?.storagePath ?? null,
-        planTranscriptionStatus: transcriptionStatus,
-        planUpdatedAt: serverTimestamp(),
-      });
-
-      setFeedback({
-        type: 'success',
-        message: 'Plano alimentar e treino salvos com sucesso!',
-      });
-    } catch (error) {
-      console.error('Erro ao salvar planos:', error);
-      setFeedback({
-        type: 'error',
-        message: 'Não foi possível salvar. Verifique sua conexão e tente novamente.',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Salvar METAS
   const handleSaveGoals = async () => {

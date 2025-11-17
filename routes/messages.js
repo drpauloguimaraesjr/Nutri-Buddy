@@ -4,7 +4,7 @@ const { db } = require('../config/firebase');
 const { verifyToken } = require('../middleware/auth');
 const multer = require('multer');
 const { uploadChatMedia, generateSignedUrl } = require('../services/storage');
-const { triggerNewMessageWorkflow } = require('../services/n8n-client');
+const { triggerNewMessageWorkflow, triggerPhotoAnalysisWorkflow } = require('../services/n8n-client');
 const twilioService = require('../services/twilio-service');
 
 const upload = multer({
@@ -682,6 +682,41 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
     }).catch((err) => {
       console.error('Falha ao notificar N8N (texto):', err.message);
     });
+
+    // 📸 ANÁLISE DE FOTOS COM IA: Acionar workflow n8n para analisar fotos de refeições
+    if (userRole === 'patient' && normalizedAttachments.length > 0) {
+      const hasImage = normalizedAttachments.some(att => 
+        att.type === 'image' || 
+        att.contentType?.startsWith('image/') ||
+        ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'].includes(att.contentType)
+      );
+      
+      if (hasImage) {
+        console.log('📸 [N8N] Foto de refeição detectada, acionando análise com IA...');
+        
+        triggerPhotoAnalysisWorkflow({
+          conversationId,
+          messageId: messageRef.id,
+          senderId: userId,
+          senderRole: userRole,
+          patientId: conversation.patientId,
+          prescriberId: conversation.prescriberId,
+          content: messageContent,
+          type: messageType,
+          timestamp: new Date().toISOString(),
+          attachments: responseAttachments.map(att => ({
+            url: att.url,
+            type: att.type || 'image',
+            contentType: att.contentType || 'image/jpeg',
+            name: att.name || 'photo.jpg',
+            size: att.size || 0,
+          })),
+        }).catch((err) => {
+          console.error('⚠️ [N8N] Erro ao acionar análise de foto:', err.message);
+          // Não falha a requisição principal
+        });
+      }
+    }
 
     // 🚀 INTEGRAÇÃO WHATSAPP: Enviar via WhatsApp se habilitado e prescritor enviou
     if (

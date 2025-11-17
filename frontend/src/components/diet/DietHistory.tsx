@@ -6,7 +6,6 @@ import type { DietPlan } from '@/types/diet';
 
 interface DietHistoryProps {
   history: DietPlan[];
-  currentDietId?: string;
   onSelectDiet: (diet: DietPlan) => void;
   onReactivate?: (dietId: string) => Promise<void>;
   loading?: boolean;
@@ -14,7 +13,6 @@ interface DietHistoryProps {
 
 export default function DietHistory({
   history,
-  currentDietId,
   onSelectDiet,
   onReactivate,
   loading = false,

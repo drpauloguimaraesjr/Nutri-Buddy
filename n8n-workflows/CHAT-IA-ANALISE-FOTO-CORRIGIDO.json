@@ -1,0 +1,272 @@
+{
+  "name": "Chat IA - Nutri-Buddy (FASE 1: Análise de Foto) - CORRIGIDO",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nutribuddy-chat-photo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-new-message",
+      "name": "1. Webhook: Nova Mensagem",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 500],
+      "webhookId": "nutribuddy-chat-photo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair dados da mensagem\nconst data = $input.first().json;\n\nconsole.log('📨 Mensagem recebida:', {\n  conversationId: data.conversationId,\n  messageId: data.messageId,\n  hasAttachments: !!data.attachments\n});\n\n// Validar dados obrigatórios\nif (!data.conversationId || !data.messageId) {\n  throw new Error('conversationId e messageId são obrigatórios');\n}\n\n// Verificar se tem imagem\nconst hasImage = data.attachments && data.attachments.length > 0;\n\nif (!hasImage) {\n  return {\n    json: {\n      skipped: true,\n      reason: 'Mensagem sem imagem - não precisa analisar',\n      conversationId: data.conversationId\n    }\n  };\n}\n\n// Pegar primeira imagem\nconst imageUrl = data.attachments[0].url || data.attachments[0];\n\nreturn {\n  json: {\n    conversationId: data.conversationId,\n    messageId: data.messageId,\n    senderId: data.senderId || data.patientId,\n    senderRole: data.senderRole || 'patient',\n    content: data.content || 'Imagem enviada',\n    imageUrl: imageUrl,\n    patientId: data.patientId || data.senderId,\n    prescriberId: data.prescriberId,\n    timestamp: data.timestamp || new Date().toISOString()\n  }\n};"
+      },
+      "id": "extract-data",
+      "name": "2. Extrair Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skipped }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-has-image",
+      "name": "3. Tem Imagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"skipped\": true,\n  \"reason\": \"{{ $json.reason }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-skipped",
+      "name": "Responder: Sem Imagem",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 380]
+    },
+    {
+      "parameters": {
+        "url": "=https://web-production-c9eaf.up.railway.app/api/n8n/patients/{{ $json.patientId }}/profile-macros",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-profile",
+      "name": "4. Buscar Perfil do Paciente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 620],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://web-production-c9eaf.up.railway.app/api/n8n/patients/{{ $('2. Extrair Dados').item.json.patientId }}/meals/today",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-meals-today",
+      "name": "5. Buscar Refeições Hoje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 620],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construir contexto nutricional\nconst messageData = $('2. Extrair Dados').item.json;\nconst profileData = $('4. Buscar Perfil do Paciente').item.json;\nconst mealsData = $('5. Buscar Refeições Hoje').item.json;\n\n// Macros alvo\nconst targetMacros = profileData?.data?.macros || {\n  protein: 150,\n  carbs: 200,\n  fats: 50,\n  calories: 2000\n};\n\n// Macros consumidos hoje\nconst consumedMacros = mealsData?.dailyTotals || {\n  protein: 0,\n  carbs: 0,\n  fats: 0,\n  calories: 0\n};\n\n// Macros restantes\nconst remainingMacros = {\n  protein: Math.max(0, targetMacros.protein - consumedMacros.protein),\n  carbs: Math.max(0, targetMacros.carbs - consumedMacros.carbs),\n  fats: Math.max(0, targetMacros.fats - consumedMacros.fats),\n  calories: Math.max(0, targetMacros.calories - consumedMacros.calories)\n};\n\n// Construir prompt para GPT-4 Vision\nconst prompt = `Você é um nutricionista experiente analisando a refeição de um paciente.\n\n📊 CONTEXTO NUTRICIONAL DO PACIENTE:\n\n🎯 Metas Diárias:\n- Calorias: ${targetMacros.calories} kcal\n- Proteínas: ${targetMacros.protein}g\n- Carboidratos: ${targetMacros.carbs}g\n- Gorduras: ${targetMacros.fats}g\n\n✅ Consumido Hoje (antes desta refeição):\n- Calorias: ${consumedMacros.calories.toFixed(1)} kcal\n- Proteínas: ${consumedMacros.protein.toFixed(1)}g\n- Carboidratos: ${consumedMacros.carbs.toFixed(1)}g\n- Gorduras: ${consumedMacros.fats.toFixed(1)}g\n\n⚖️ Ainda Falta para Atingir Meta:\n- Calorias: ${remainingMacros.calories.toFixed(1)} kcal\n- Proteínas: ${remainingMacros.protein.toFixed(1)}g\n- Carboidratos: ${remainingMacros.carbs.toFixed(1)}g\n- Gorduras: ${remainingMacros.fats.toFixed(1)}g\n\n📸 TAREFA:\nAnalise a IMAGEM da refeição que o paciente acabou de comer e forneça:\n\n1. **Identificação dos alimentos** (liste cada item visível)\n2. **Estimativa de porção** (em gramas ou ml quando possível)\n3. **Estimativa de macronutrientes** desta refeição:\n   - Calorias totais\n   - Proteínas (g)\n   - Carboidratos (g)\n   - Gorduras (g)\n4. **Feedback personalizado** considerando:\n   - Se está dentro das metas\n   - Se ajuda a atingir os macros restantes\n   - Sugestões de ajuste se necessário\n\n💬 ESTILO DA RESPOSTA:\n- Tom amigável e motivacional\n- Use emojis apropriados\n- Seja específico mas não técnico demais\n- Parabenize escolhas boas\n- Sugira melhorias construtivamente\n\nResponda DIRETAMENTE ao paciente como se fosse uma mensagem de chat.`;\n\nreturn {\n  json: {\n    ...messageData,\n    prompt: prompt,\n    targetMacros: targetMacros,\n    consumedMacros: consumedMacros,\n    remainingMacros: remainingMacros,\n    mealCount: mealsData?.mealCount || 0\n  }\n};"
+      },
+      "id": "build-context",
+      "name": "6. Construir Contexto IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 620]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4-vision-preview\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"{{ $json.prompt }}\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"{{ $json.imageUrl }}\",\n            \"detail\": \"high\"\n          }\n        }\n      ]\n    }\n  ],\n  \"max_tokens\": 1000,\n  \"temperature\": 0.7\n}",
+        "options": {}
+      },
+      "id": "gpt4-vision",
+      "name": "7. Análise IA (GPT-4 Vision)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1560, 620],
+      "credentials": {
+        "openAiApi": {
+          "id": "z4S7BmV2UQ3QfPsf",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse resposta do GPT-4 Vision\nconst contextData = $('6. Construir Contexto IA').item.json;\nconst aiResponse = $input.first().json;\n\nlet aiContent = '';\n\n// Extrair conteúdo da resposta\nif (aiResponse.choices && aiResponse.choices[0]) {\n  aiContent = aiResponse.choices[0].message.content;\n} else if (aiResponse.message?.content) {\n  aiContent = aiResponse.message.content;\n} else {\n  aiContent = 'Desculpe, não consegui analisar a imagem. Tente enviar novamente.';\n}\n\nconsole.log('🤖 Resposta da IA gerada:', aiContent.substring(0, 100) + '...');\n\nreturn {\n  json: {\n    conversationId: contextData.conversationId,\n    messageId: contextData.messageId,\n    senderId: contextData.prescriberId || 'system',\n    senderRole: 'prescriber',\n    content: aiContent.trim(),\n    type: 'text',\n    isAiGenerated: true,\n    patientId: contextData.patientId,\n    prescriberId: contextData.prescriberId,\n    aiContext: {\n      imageUrl: contextData.imageUrl,\n      targetMacros: contextData.targetMacros,\n      consumedMacros: contextData.consumedMacros,\n      remainingMacros: contextData.remainingMacros\n    }\n  }\n};"
+      },
+      "id": "parse-ai-response",
+      "name": "8. Parse Resposta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 620]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validar dados antes de enviar\nconst data = $input.first().json;\n\nif (!data.conversationId) {\n  throw new Error('conversationId é obrigatório');\n}\n\nif (!data.senderId) {\n  throw new Error('senderId é obrigatório');\n}\n\nif (!data.content) {\n  throw new Error('content é obrigatório');\n}\n\nconsole.log('✅ Dados validados:', {\n  conversationId: data.conversationId,\n  senderId: data.senderId,\n  contentLength: data.content.length\n});\n\nreturn { json: data };"
+      },
+      "id": "validate-message-data",
+      "name": "9. Validar Dados da Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 620]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log antes de enviar\nconst data = $input.first().json;\n\nconsole.log('📤 Enviando mensagem ao chat...');\nconsole.log('  - conversationId:', data.conversationId);\nconsole.log('  - senderId:', data.senderId);\nconsole.log('  - senderRole:', data.senderRole);\nconsole.log('  - contentLength:', data.content.length);\nconsole.log('  - URL:', `https://web-production-c9eaf.up.railway.app/api/n8n/conversations/${data.conversationId}/messages`);\n\nreturn { json: data };"
+      },
+      "id": "log-before-send",
+      "name": "10. Log Antes de Enviar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 620]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/n8n/conversations/{{ $json.conversationId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"senderId\": \"{{ $json.senderId }}\",\n  \"senderRole\": \"{{ $json.senderRole }}\",\n  \"content\": {{ JSON.stringify($json.content) }},\n  \"type\": \"text\",\n  \"isAiGenerated\": true\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send-to-chat",
+      "name": "11. ENVIAR MENSAGEM AO CHAT ⚡",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2440, 620],
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verificar resultado do envio\nconst result = $input.first().json;\n\nconsole.log('📨 Resultado do envio:', result);\n\nif (result.success) {\n  console.log('✅ Mensagem enviada com sucesso!');\n  console.log('  - messageId:', result.data?.messageId);\n  console.log('  - conversationId:', result.data?.conversationId);\n  console.log('  - status:', result.data?.status);\n  \n  return {\n    json: {\n      success: true,\n      messageSent: true,\n      messageId: result.data?.messageId,\n      conversationId: result.data?.conversationId,\n      status: result.data?.status || 'sent',\n      timestamp: result.data?.createdAt || new Date().toISOString()\n    }\n  };\n} else {\n  console.error('❌ Erro ao enviar mensagem:', result.error);\n  throw new Error(`Falha ao enviar mensagem: ${result.error || 'Unknown error'}`);\n}"
+      },
+      "id": "verify-send-result",
+      "name": "11a. Verificar Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 620]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"messageSent\": true,\n  \"data\": {\n    \"messageId\": \"{{ $json.messageId }}\",\n    \"conversationId\": \"{{ $json.conversationId }}\",\n    \"status\": \"{{ $json.status }}\",\n    \"timestamp\": \"{{ $json.timestamp }}\"\n  },\n  \"message\": \"✅ Foto analisada e resposta enviada ao chat com sucesso!\"\n}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "12. Responder: Sucesso ✅",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2880, 620]
+    }
+  ],
+  "connections": {
+    "1. Webhook: Nova Mensagem": {
+      "main": [[{"node": "2. Extrair Dados", "type": "main", "index": 0}]]
+    },
+    "2. Extrair Dados": {
+      "main": [[{"node": "3. Tem Imagem?", "type": "main", "index": 0}]]
+    },
+    "3. Tem Imagem?": {
+      "main": [
+        [{"node": "Responder: Sem Imagem", "type": "main", "index": 0}],
+        [{"node": "4. Buscar Perfil do Paciente", "type": "main", "index": 0}]
+      ]
+    },
+    "4. Buscar Perfil do Paciente": {
+      "main": [[{"node": "5. Buscar Refeições Hoje", "type": "main", "index": 0}]]
+    },
+    "5. Buscar Refeições Hoje": {
+      "main": [[{"node": "6. Construir Contexto IA", "type": "main", "index": 0}]]
+    },
+    "6. Construir Contexto IA": {
+      "main": [[{"node": "7. Análise IA (GPT-4 Vision)", "type": "main", "index": 0}]]
+    },
+    "7. Análise IA (GPT-4 Vision)": {
+      "main": [[{"node": "8. Parse Resposta IA", "type": "main", "index": 0}]]
+    },
+    "8. Parse Resposta IA": {
+      "main": [[{"node": "9. Validar Dados da Mensagem", "type": "main", "index": 0}]]
+    },
+    "9. Validar Dados da Mensagem": {
+      "main": [[{"node": "10. Log Antes de Enviar", "type": "main", "index": 0}]]
+    },
+    "10. Log Antes de Enviar": {
+      "main": [[{"node": "11. ENVIAR MENSAGEM AO CHAT ⚡", "type": "main", "index": 0}]]
+    },
+    "11. ENVIAR MENSAGEM AO CHAT ⚡": {
+      "main": [[{"node": "11a. Verificar Resultado", "type": "main", "index": 0}]]
+    },
+    "11a. Verificar Resultado": {
+      "main": [[{"node": "12. Responder: Sucesso ✅", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
+

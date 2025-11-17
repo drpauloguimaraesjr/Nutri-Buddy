@@ -32,14 +32,6 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
     setExpandedMeals(new Set());
   };
 
-  const getMacroColor = (type: 'protein' | 'carbs' | 'fats') => {
-    const colors = {
-      protein: 'text-blue-600 bg-blue-100',
-      carbs: 'text-orange-600 bg-orange-100',
-      fats: 'text-green-600 bg-green-100',
-    };
-    return colors[type];
-  };
 
   const formatDate = (dateString: Date | string) => {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
@@ -226,12 +218,10 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
 // Componente individual de refeição
 function MealCard({
   meal,
-  index,
   isExpanded,
   onToggle,
 }: {
   meal: Refeicao;
-  index: number;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
