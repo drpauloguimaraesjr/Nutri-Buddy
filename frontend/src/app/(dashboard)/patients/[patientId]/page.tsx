@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
 import type { UserRole } from '@/types';
+import { DietTab } from '@/components/diet';
 
 type PatientTab = 'profile' | 'goals' | 'body' | 'config' | 'diet' | 'notes' | 'activation';
 
@@ -298,7 +299,7 @@ export default function PatientDetailPage() {
           });
           setUploadProgress(null);
           
-          // Chamar OpenAI DIRETO para transcrever
+          // ✅ Chamar N8N webhook para transcrever PDF com GPT-4o Vision
           setTranscriptionStatus('processing');
           setFeedback({
             type: 'success',
@@ -306,66 +307,63 @@ export default function PatientDetailPage() {
           });
           
           try {
-            // Chamar OpenAI REAL para transcrever PDF
-            const openaiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+            // Chamar N8N webhook (transcrição REAL com GPT-4o Vision)
+            const n8nUrl = process.env.NEXT_PUBLIC_N8N_TRANSCRIBE_DIET_URL || 
+                           'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-process-diet';
             
-            if (!openaiKey) {
-              setFeedback({
-                type: 'error',
-                message: 'Configure NEXT_PUBLIC_OPENAI_API_KEY no Vercel para ativar transcrição automática.',
-              });
-              setTranscriptionStatus('idle');
-              return;
-            }
+            console.log('🤖 Calling N8N webhook:', n8nUrl);
             
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            const response = await fetch(n8nUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openaiKey}`,
               },
               body: JSON.stringify({
-                model: 'gpt-4-turbo-preview',
-                messages: [
-                  {
-                    role: 'system',
-                    content: 'Você é um assistente especializado em extrair dados estruturados de planos alimentares. Retorne APENAS JSON válido, sem markdown.'
-                  },
-                  {
-                    role: 'user',
-                    content: `Analise este PDF de plano alimentar (URL: ${url}) e retorne um JSON com a estrutura:
-{
-  "fullText": "Texto completo formatado da dieta",
-  "meals": [
-    {"name": "Café da manhã", "time": "07:00", "foods": [{"item": "Aveia", "amount": "50g"}]}
-  ],
-  "macros": {"carbs": 200, "protein": 150, "fat": 60, "calories": 2000},
-  "notes": "Observações gerais"
-}
-
-Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estruturado de ${patient?.name || 'paciente'} com objetivo de emagrecimento saudável (1800-2000 kcal).`
-                  }
-                ],
-                temperature: 0.3,
+                pdfUrl: url,
+                patientId: patientId,
+                patientName: patient?.name || 'Paciente',
               }),
             });
             
             if (!response.ok) {
-              throw new Error('Erro ao chamar OpenAI');
+              throw new Error(`N8N returned status ${response.status}`);
             }
             
-            const data = await response.json();
-            const content = data.choices[0]?.message?.content || '{}';
-            const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            const dietData = JSON.parse(cleanContent);
+            const result = await response.json();
             
-            setDietPlanText(dietData.fullText || '');
+            console.log('✅ N8N response:', result);
+            
+            if (!result.success) {
+              throw new Error(result.message || 'Erro ao processar dieta');
+            }
+            
+            // Extrair dados estruturados do N8N
+            const dietData = result.diet || {};
+            const meta = dietData.meta || {};
+            const refeicoes = dietData.refeicoes || [];
+            
+            // Formatar texto completo a partir das refeições
+            let fullText = `Plano alimentar - ${meta.objetivo || 'Objetivo não especificado'}\n\n`;
+            fullText += `📊 Calorias diárias: ${meta.caloriasDiarias || 0} kcal\n`;
+            fullText += `📅 Período: ${meta.periodo || '24 horas'}\n\n`;
+            
+            refeicoes.forEach(refeicao => {
+              fullText += `🍽️ ${refeicao.nome} (${refeicao.horario})\n`;
+              refeicao.alimentos.forEach(alimento => {
+                fullText += `   - ${alimento.nome}: ${alimento.quantidade}${alimento.unidade}\n`;
+              });
+              if (refeicao.macros) {
+                fullText += `   Macros: ${refeicao.macros.calorias}kcal | P:${refeicao.macros.proteinas}g | C:${refeicao.macros.carboidratos}g | G:${refeicao.macros.gorduras}g\n`;
+              }
+              fullText += '\n';
+            });
+            
+            setDietPlanText(fullText);
             
             const docRef = doc(db, 'users', patientId);
             await updateDoc(docRef, {
-              dietPlanText: dietData.fullText || '',
-              dietMeals: dietData.meals || [],
-              dietMacros: dietData.macros || {},
+              dietPlanText: fullText,
+              dietPlanData: dietData,
               planTranscriptionStatus: 'completed',
               planUpdatedAt: serverTimestamp(),
             });
@@ -373,7 +371,7 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
             setTranscriptionStatus('completed');
             setFeedback({
               type: 'success',
-              message: 'PDF transcrito com IA! Dados extraídos e salvos.',
+              message: `✅ Dieta processada! ${result.resumo?.totalCalorias || 0} kcal/dia • ${result.resumo?.totalRefeicoes || 0} refeições • ${result.resumo?.totalAlimentos || 0} alimentos`,
             });
           } catch (error) {
             console.error('Erro ao transcrever:', error);
@@ -2433,154 +2431,24 @@ Como não posso acessar o PDF diretamente, crie um plano alimentar exemplo estru
   };
 
   const renderDietTab = () => {
-
-    return (
-      <div className="space-y-6">
+    // Usar o novo componente DietTab integrado com N8N e GPT-4o Vision
+    if (!patientId || !user?.uid) {
+      return (
         <Card>
-          <CardContent className="p-6 space-y-6">
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-gray-900">Plano alimentar</h3>
-              <p className="text-sm text-gray-600">
-                Faça upload do PDF do plano alimentar ou descreva manualmente abaixo. O arquivo será armazenado no
-                Firebase Storage do projeto.
-              </p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label
-                htmlFor="plan-pdf"
-                className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center transition hover:border-blue-400 hover:bg-blue-50 cursor-pointer"
-              >
-                <Upload className="h-10 w-10 text-blue-500" />
-                <div>
-                  <p className="font-medium text-gray-900">Selecione ou arraste o PDF do plano</p>
-                  <p className="text-sm text-gray-500">Arquivos .pdf de até 10MB</p>
-                </div>
-                <input
-                  id="plan-pdf"
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                />
-              </label>
-
-              <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FileText className="h-4 w-4" />
-                  PDF carregado
-                </h4>
-
-                {planFile ? (
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{planFile.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {transcriptionStatus === 'processing' ? 'Aguardando transcrição' : 'Pronto para uso'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {planFile.url && (
-                          <a
-                            href={planFile.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Visualizar
-                          </a>
-                        )}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={handleRemoveFile}
-                          size="sm"
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {transcriptionStatus !== 'completed' && (
-                      <div className="rounded-lg bg-gray-100 p-3 text-sm text-gray-600">
-                        {transcriptionStatus === 'processing' ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                            <span>Transcrevendo dieta... isso pode levar até 2 minutos.</span>
-                          </div>
-                        ) : (
-                          <span>Aguardando envio.</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">Nenhum PDF selecionado.</p>
-                )}
-
-                {isUploading && uploadProgress !== null && (
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>Enviando...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-gray-200">
-                      <div
-                        className="h-2 rounded-full bg-blue-500 transition-all"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-gray-700" htmlFor="dietPlanText">
-                  Plano alimentar do paciente
-                </label>
-                <textarea
-                  id="dietPlanText"
-                  value={dietPlanText}
-                  onChange={(event) => setDietPlanText(event.target.value)}
-                  placeholder="Descreva o plano alimentar do paciente ou aguarde a transcrição do PDF."
-                  className="min-h-[220px] rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-gray-700" htmlFor="trainingPlanText">
-                  Plano de treino do paciente
-                </label>
-                <textarea
-                  id="trainingPlanText"
-                  value={trainingPlanText}
-                  onChange={(event) => setTrainingPlanText(event.target.value)}
-                  placeholder="Descreva o plano de treino do paciente."
-                  className="min-h-[220px] rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-700">Notificar paciente sobre o plano</p>
-                <p className="text-xs text-gray-500">
-                  (Em breve) Assim que a transcrição for concluída, enviaremos um aviso automatizado.
-                </p>
-              </div>
-              <Button onClick={handleSavePlans} isLoading={isSaving}>
-                Salvar planos
-              </Button>
-            </div>
+          <CardContent className="p-6 text-center text-gray-600">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+            <p>Carregando informações...</p>
           </CardContent>
         </Card>
-      </div>
+      );
+    }
+
+    return (
+      <DietTab
+        patientId={patientId}
+        prescriberId={user.uid}
+        patientName={patient?.name}
+      />
     );
   };
 
