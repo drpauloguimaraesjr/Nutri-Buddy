@@ -645,9 +645,9 @@ router.post('/twilio-whatsapp', async (req, res) => {
     if (patientsSnapshot.empty) {
       console.log('⚠️  [Twilio] Paciente não encontrado:', phoneNumber);
       
-      // Responder ao paciente via Twilio
+      // Responder ao paciente via Twilio (From já vem com prefixo whatsapp:+)
       await twilioService.sendTextMessage(
-        From, // Twilio aceita com prefixo whatsapp:
+        phoneNumber, // Enviar apenas o número sem prefixo
         'Olá! Não encontrei seu cadastro. Entre em contato com seu nutricionista.'
       );
       
