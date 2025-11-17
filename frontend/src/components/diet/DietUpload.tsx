@@ -104,7 +104,7 @@ export default function DietUpload({
       // 4. Chamar webhook N8N para transcrição
       // Usar variável de ambiente ou URL padrão do N8N
       const n8nUrl = process.env.NEXT_PUBLIC_N8N_TRANSCRIBE_DIET_URL || 
-                     'https://n8n-production-3eae.up.railway.app/webhook/processar-dieta-pdf';
+                     'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-process-diet';
 
       console.log('🤖 Calling N8N webhook:', n8nUrl);
 
