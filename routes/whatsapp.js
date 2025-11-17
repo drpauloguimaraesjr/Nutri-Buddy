@@ -3,6 +3,7 @@ const router = express.Router();
 const { verifyToken } = require('../middleware/auth');
 const whatsappService = require('../services/whatsapp-service');
 const twilioService = require('../services/twilio-service');
+const { getPhoneVariations } = require('../utils/phone-utils');
 const { db } = require('../config/firebase');
 const admin = require('firebase-admin');
 
@@ -635,17 +636,30 @@ router.post('/twilio-whatsapp', async (req, res) => {
 
     console.log(`📨 [Twilio] Mensagem de ${ProfileName} (${phoneNumber}): ${messageContent}`);
 
-    // Buscar paciente por telefone
-    const patientsSnapshot = await db.collection('users')
-      .where('phone', '==', phoneNumber)
-      .where('role', '==', 'patient')
-      .limit(1)
-      .get();
+    // Gerar variações do número para buscar (com e sem +55)
+    const phoneVariations = getPhoneVariations(phoneNumber);
+    console.log(`🔍 [Twilio] Buscando paciente com variações:`, phoneVariations);
 
-    if (patientsSnapshot.empty) {
-      console.log('⚠️  [Twilio] Paciente não encontrado:', phoneNumber);
+    // Buscar paciente por telefone (testar múltiplas variações)
+    let patientsSnapshot = null;
+    for (const variation of phoneVariations) {
+      const snapshot = await db.collection('users')
+        .where('phone', '==', variation)
+        .where('role', '==', 'patient')
+        .limit(1)
+        .get();
       
-      // Responder ao paciente via Twilio (From já vem com prefixo whatsapp:+)
+      if (!snapshot.empty) {
+        patientsSnapshot = snapshot;
+        console.log(`✅ [Twilio] Paciente encontrado com número: ${variation}`);
+        break;
+      }
+    }
+
+    if (!patientsSnapshot || patientsSnapshot.empty) {
+      console.log('⚠️  [Twilio] Paciente não encontrado com nenhuma variação:', phoneVariations);
+      
+      // Responder ao paciente via Twilio
       await twilioService.sendTextMessage(
         phoneNumber, // Enviar apenas o número sem prefixo
         'Olá! Não encontrei seu cadastro. Entre em contato com seu nutricionista.'
