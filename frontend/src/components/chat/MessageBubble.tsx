@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, User, CheckCheck, Check, Download } from 'lucide-react';
+import { Bot, User, CheckCheck, Check, Download, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type AttachmentType = 'image' | 'audio' | 'file';
@@ -26,6 +26,8 @@ interface MessageBubbleProps {
   senderName?: string;
   type?: 'text' | AttachmentType | 'system' | 'ai-response';
   attachments?: MessageAttachment[];
+  channel?: 'whatsapp' | 'internal';
+  isScheduled?: boolean;
 }
 
 export const MessageBubble = memo(function MessageBubble({
@@ -38,6 +40,8 @@ export const MessageBubble = memo(function MessageBubble({
   senderName,
   type = 'text',
   attachments = [],
+  channel = 'internal',
+  isScheduled = false,
 }: MessageBubbleProps) {
   const isSystem = senderRole === 'system';
 
@@ -172,12 +176,40 @@ export const MessageBubble = memo(function MessageBubble({
               : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'
           )}
         >
-          {isAiGenerated && (
-            <div className="flex items-center gap-1 mb-1 opacity-70">
-              <Bot className="w-3 h-3" />
-              <span className="text-[10px]">Resposta automática</span>
-            </div>
-          )}
+          {/* Badges no topo */}
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            {isAiGenerated && (
+              <div className={cn(
+                "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]",
+                isOwn ? "bg-white/20" : "bg-blue-50 text-blue-600"
+              )}>
+                <Bot className="w-3 h-3" />
+                <span>IA</span>
+              </div>
+            )}
+            
+            {channel === 'whatsapp' && (
+              <div className={cn(
+                "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
+                isOwn 
+                  ? "bg-white/20" 
+                  : "bg-green-50 text-green-600 border border-green-200"
+              )}>
+                <span>📱</span>
+                <span>WhatsApp</span>
+              </div>
+            )}
+
+            {isScheduled && (
+              <div className={cn(
+                "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]",
+                isOwn ? "bg-white/20" : "bg-purple-50 text-purple-600"
+              )}>
+                <span>⏰</span>
+                <span>Agendada</span>
+              </div>
+            )}
+          </div>
 
           <p className="text-sm whitespace-pre-wrap break-words">{content}</p>
 

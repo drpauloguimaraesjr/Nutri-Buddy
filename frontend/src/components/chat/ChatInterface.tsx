@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, AlertCircle, MessageCircle, ArrowDown } from 'lucide-react';
+import { Loader2, AlertCircle, MessageCircle, ArrowDown, Smartphone } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { Card } from '@/components/ui/Card';
@@ -38,6 +38,8 @@ interface Message {
   isAiGenerated: boolean;
   createdAt: Date;
   attachments?: MessageAttachment[];
+  channel?: 'whatsapp' | 'internal';
+  isScheduled?: boolean;
 }
 
 interface Conversation {
@@ -46,9 +48,12 @@ interface Conversation {
   prescriberId: string;
   lastMessage: string;
   lastMessageAt: Date;
+  whatsappEnabled?: boolean;
+  whatsappPhone?: string | null;
   metadata: {
     patientName: string;
     prescriberName: string;
+    patientPhone?: string | null;
   };
 }
 
@@ -333,18 +338,68 @@ export function ChatInterface({
     <Card className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white font-semibold">
-            {conversation?.metadata.prescriberName?.charAt(0).toUpperCase() || 'N'}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white font-semibold">
+              {conversation?.metadata.prescriberName?.charAt(0).toUpperCase() || 'N'}
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                {conversation?.metadata.prescriberName || 'Nutricionista'}
+              </h3>
+              <p className="text-sm text-gray-500 flex items-center gap-2">
+                {messages.length > 0 ? 'Online' : 'Disponível'}
+                {conversation?.whatsappPhone && (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <Smartphone className="w-3 h-3" />
+                    {conversation.whatsappPhone}
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">
-              {conversation?.metadata.prescriberName || 'Nutricionista'}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {messages.length > 0 ? 'Online' : 'Disponível'}
-            </p>
-          </div>
+
+          {/* WhatsApp Toggle (apenas para prescritores) */}
+          {conversation?.whatsappPhone && (
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={conversation.whatsappEnabled || false}
+                    onChange={async (e) => {
+                      const newValue = e.target.checked;
+                      // Atualizar UI otimisticamente
+                      setConversation(prev => prev ? {...prev, whatsappEnabled: newValue} : null);
+                      
+                      try {
+                        const token = await firebaseUser?.getIdToken();
+                        await fetch(`${apiBaseUrl}/api/messages/conversations/${conversationId}`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ whatsappEnabled: newValue }),
+                        });
+                      } catch (error) {
+                        console.error('Erro ao atualizar WhatsApp:', error);
+                        // Reverter em caso de erro
+                        setConversation(prev => prev ? {...prev, whatsappEnabled: !newValue} : null);
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </div>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                  <span className="flex items-center gap-1">
+                    📱 WhatsApp {conversation.whatsappEnabled ? 'Ativo' : 'Inativo'}
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
         </div>
       </div>
 
@@ -383,6 +438,8 @@ export function ChatInterface({
                 }
                 type={message.type}
                 attachments={message.attachments}
+                channel={message.channel}
+                isScheduled={message.isScheduled}
               />
             ))
           )}
