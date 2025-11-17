@@ -284,8 +284,19 @@ router.get('/health', verifyToken, async (req, res) => {
  * POST /webhooks/zapi-whatsapp
  * Webhook para receber mensagens do Z-API
  * NOTA: Este endpoint NÃO usa verifyToken pois é chamado pelo Z-API
+ * 
+ * 🛑 DESABILITADO: Z-API foi substituído por Twilio WhatsApp
+ * Este endpoint apenas retorna 200 OK para não gerar erros no Z-API
  */
 router.post('/webhooks/zapi-whatsapp', async (req, res) => {
+  // 🛑 Z-API DESABILITADO - Apenas retornar 200 OK
+  console.log('⚠️ [Z-API] Webhook recebido mas ignorado (Z-API desabilitado, usando Twilio)');
+  return res.status(200).json({ 
+    received: true, 
+    message: 'Z-API desabilitado. Use Twilio WhatsApp.' 
+  });
+  
+  /* CÓDIGO ORIGINAL COMENTADO (NÃO DELETAR - mantido para referência)
   try {
     console.log('📩 Webhook Z-API recebido:', JSON.stringify(req.body, null, 2));
 
@@ -392,14 +403,26 @@ router.post('/webhooks/zapi-whatsapp', async (req, res) => {
     // Mesmo com erro, responder 200 para Z-API não reenviar
     res.status(200).json({ received: true, error: error.message });
   }
+  */
 });
 
 /**
  * POST /webhooks/zapi-status
  * Webhook para receber status de conexão do Z-API
  * NOTA: Este endpoint NÃO usa verifyToken pois é chamado pelo Z-API
+ * 
+ * 🛑 DESABILITADO: Z-API foi substituído por Twilio WhatsApp
+ * Este endpoint apenas retorna 200 OK para não gerar erros no Z-API
  */
 router.post('/webhooks/zapi-status', async (req, res) => {
+  // 🛑 Z-API DESABILITADO - Apenas retornar 200 OK
+  console.log('⚠️ [Z-API] Status webhook recebido mas ignorado (Z-API desabilitado, usando Twilio)');
+  return res.status(200).json({ 
+    received: true, 
+    message: 'Z-API desabilitado. Use Twilio WhatsApp.' 
+  });
+  
+  /* CÓDIGO ORIGINAL COMENTADO (NÃO DELETAR - mantido para referência)
   try {
     console.log('📩 Webhook Z-API Status:', JSON.stringify(req.body, null, 2));
 
@@ -435,6 +458,7 @@ router.post('/webhooks/zapi-status', async (req, res) => {
     console.error('❌ Erro no webhook zapi-status:', error);
     res.status(200).json({ received: true, error: error.message });
   }
+  */
 });
 
 // ================================================================
