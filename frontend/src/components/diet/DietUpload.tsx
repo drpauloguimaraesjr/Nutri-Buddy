@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { toast } from 'react-hot-toast';
-import { Upload, FileText, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import type { UploadResult } from '@/types/diet';
 
 interface DietUploadProps {
@@ -156,15 +156,16 @@ export default function DietUpload({
       } else {
         throw new Error(result.message || 'Erro ao transcrever dieta');
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('❌ Error processing diet PDF:', error);
       toast.error(
         <div className="space-y-1">
           <div className="font-semibold">❌ Erro ao processar dieta</div>
-          <div className="text-sm">{error.message}</div>
+          <div className="text-sm">{errorMessage}</div>
         </div>
       );
-      onError?.(error);
+      onError?.(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setUploading(false);
       setTranscribing(false);
