@@ -240,7 +240,6 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
           {viewMode === 'history' && (
             <DietHistory
               history={dietHistory}
-              currentDietId={currentDiet?.id}
               onSelectDiet={handleViewHistoryDiet}
               onReactivate={handleReactivate}
               loading={loading}
@@ -253,7 +252,7 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-900 font-medium">Erro ao carregar dados</p>
-          <p className="text-red-700 text-sm mt-1">{error.message}</p>
+          <p className="text-red-700 text-sm mt-1">{error}</p>
         </div>
       )}
     </div>

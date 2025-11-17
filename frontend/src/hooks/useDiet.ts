@@ -23,7 +23,7 @@ interface UseDietReturn {
   currentDiet: DietPlan | null;
   dietHistory: DietPlan[];
   loading: boolean;
-  error: Error | null;
+  error: string | null;
   fetchCurrentDiet: () => Promise<void>;
   fetchDietHistory: () => Promise<void>;
   reactivateDiet: (dietId: string) => Promise<void>;
@@ -34,7 +34,7 @@ export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDiet
   const [currentDiet, setCurrentDiet] = useState<DietPlan | null>(null);
   const [dietHistory, setDietHistory] = useState<DietPlan[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Buscar dieta ativa atual
   const fetchCurrentDiet = useCallback(async () => {
