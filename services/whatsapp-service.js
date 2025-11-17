@@ -1,8 +1,20 @@
 // =============================================================
-// NUTRIBUDDY - WHATSAPP SERVICE (Z-API)
+// ⚠️⚠️⚠️ ARQUIVO DESCONTINUADO - NÃO USAR ⚠️⚠️⚠️
 // =============================================================
-// Serviço completo para integração com Z-API
-// Substitui Evolution API
+// Este arquivo foi DESABILITADO e substituído por:
+// → services/twilio-service.js (Twilio WhatsApp Business API)
+//
+// Motivo da migração:
+// - Twilio é mais estável e profissional
+// - Melhor suporte e documentação
+// - API oficial do WhatsApp
+// - Não precisa de QR Code (usa WhatsApp Business API)
+//
+// Este código está mantido apenas para referência histórica.
+// NÃO IMPORTAR OU USAR ESTE SERVIÇO.
+// =============================================================
+//
+// NUTRIBUDDY - WHATSAPP SERVICE (Z-API) - DESCONTINUADO
 // =============================================================
 
 const axios = require('axios');

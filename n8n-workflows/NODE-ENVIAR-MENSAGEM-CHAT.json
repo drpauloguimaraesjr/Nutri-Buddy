@@ -1,0 +1,40 @@
+{
+  "name": "Enviar Mensagem ao Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://web-production-c9eaf.up.railway.app/api/n8n/conversations/{{ $json.conversationId }}/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "nutribuddy-secret-2024"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"senderId\": \"{{ $json.senderId || $json.prescriberId || 'system' }}\",\n  \"senderRole\": \"prescriber\",\n  \"content\": \"{{ $json.content }}\",\n  \"type\": \"text\",\n  \"isAiGenerated\": true\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "send-message-to-chat",
+      "name": "Enviar Mensagem ao Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1200, 400],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {},
+  "pinData": {}
+}
+
