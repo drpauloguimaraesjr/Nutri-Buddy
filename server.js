@@ -58,7 +58,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
-// Webhooks Twilio WhatsApp (sem /api prefix)
+// Webhooks Z-API (sem /api prefix para Z-API chamar diretamente)
 app.use('/webhooks', whatsappRoutes);
 
 // Error handling middleware
@@ -85,7 +85,8 @@ app.listen(PORT, () => {
   console.log(`📍 Port: ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📡 Firebase: Connected`);
-  console.log(`📱 Twilio WhatsApp Business API: ${process.env.TWILIO_ACCOUNT_SID ? 'Configured ✅' : 'Not configured ⚠️'}`);
+  console.log(`📱 Z-API WhatsApp: ${process.env.ZAPI_INSTANCE_ID ? 'Configured ✅' : 'Not configured ⚠️'}`);
+  console.log(`📱 Twilio WhatsApp: ${process.env.TWILIO_ACCOUNT_SID ? 'Configured ✅' : 'Not configured ⚠️'}`);
   console.log(`🔗 http://localhost:${PORT}`);
   console.log(`🔗 http://localhost:${PORT}/api/health`);
   console.log('=================================');

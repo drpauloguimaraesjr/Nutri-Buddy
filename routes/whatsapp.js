@@ -1,26 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../middleware/auth');
-// const whatsappService = require('../services/whatsapp-service'); // ⚠️ DESABILITADO - Migrado para Twilio
+const whatsappService = require('../services/whatsapp-service');
 const twilioService = require('../services/twilio-service');
 const { getPhoneVariations } = require('../utils/phone-utils');
 const { db } = require('../config/firebase');
 const admin = require('firebase-admin');
 
-// ========================================
-// ⚠️ Z-API ENDPOINTS - DESABILITADOS
-// ========================================
-// Migrado para Twilio WhatsApp Business API
-// Código mantido comentado para referência futura
-// Para reativar, descomente os blocos abaixo
-// ========================================
-
-/*
 /**
  * GET /api/whatsapp/qrcode-test
  * Busca QR Code SEM AUTENTICAÇÃO (apenas para testes)
- * ⚠️ DESABILITADO - Z-API descontinuado
- *\/
+ */
 router.get('/qrcode-test', async (req, res) => {
   try {
     console.log('📱 Solicitação de QR Code Z-API (TESTE - sem auth)');
@@ -446,11 +436,10 @@ router.post('/webhooks/zapi-status', async (req, res) => {
     res.status(200).json({ received: true, error: error.message });
   }
 });
-*/
 
-// ========================================
-// ✅ TWILIO WHATSAPP ENDPOINTS - ATIVOS
-// ========================================
+// ================================================================
+// TWILIO WHATSAPP ENDPOINTS
+// ================================================================
 
 /**
  * POST /api/whatsapp/twilio/send
