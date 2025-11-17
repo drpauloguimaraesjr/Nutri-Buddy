@@ -328,6 +328,7 @@ export default function ScheduledMessagesPage() {
       {showCreateModal && (
         <CreateMessageModal
           onClose={() => setShowCreateModal(false)}
+          templates={templates}
         />
       )}
     </motion.div>
@@ -337,9 +338,14 @@ export default function ScheduledMessagesPage() {
 // Component auxiliar para o modal (simplificado - você pode expandir)
 function CreateMessageModal({
   onClose,
+  templates,
 }: {
   onClose: () => void;
+  templates: Template[];
 }) {
+  // Templates será usado quando implementarmos o formulário completo
+  console.log('Templates disponíveis:', templates.length);
+  
   return (
     <Modal isOpen onClose={onClose} title="Agendar Nova Mensagem">
       <div className="p-6 space-y-4">
@@ -350,6 +356,11 @@ function CreateMessageModal({
           Por enquanto, use os endpoints REST para criar mensagens agendadas.
           Consulte a documentação em <code className="bg-gray-100 px-1 rounded">INTEGRACAO-WHATSAPP-CHAT-COMPLETA.md</code>
         </p>
+        {templates.length > 0 && (
+          <p className="text-xs text-purple-600">
+            {templates.length} template(s) disponível(is)
+          </p>
+        )}
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
             Fechar
