@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, User, CheckCheck, Check, Download, MessageCircle } from 'lucide-react';
+import { Bot, User, CheckCheck, Check, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type AttachmentType = 'image' | 'audio' | 'file';

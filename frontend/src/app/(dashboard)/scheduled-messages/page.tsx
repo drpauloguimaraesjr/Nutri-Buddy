@@ -63,12 +63,12 @@ export default function ScheduledMessagesPage() {
         if (response.ok) {
           const data = await response.json();
           setMessages(
-            data.scheduledMessages.map((msg: any) => ({
+            data.scheduledMessages.map((msg: Partial<ScheduledMessage> & { scheduledFor: string; sentAt?: string; createdAt: string }) => ({
               ...msg,
               scheduledFor: new Date(msg.scheduledFor),
               sentAt: msg.sentAt ? new Date(msg.sentAt) : null,
               createdAt: new Date(msg.createdAt),
-            }))
+            })) as ScheduledMessage[]
           );
         }
       } catch (error) {
@@ -213,10 +213,10 @@ export default function ScheduledMessagesPage() {
 
       {/* Filtros */}
       <div className="flex gap-2">
-        {['all', 'pending', 'sent', 'failed'].map((f) => (
+        {(['all', 'pending', 'sent', 'failed'] as const).map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f as any)}
+            onClick={() => setFilter(f as 'all' | 'pending' | 'sent' | 'failed')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === f
                 ? 'bg-purple-600 text-white'
@@ -263,7 +263,7 @@ export default function ScheduledMessagesPage() {
               Nenhuma mensagem agendada
             </h3>
             <p className="text-gray-600 mb-4">
-              Clique em "Agendar Mensagem" para criar sua primeira mensagem automática
+              Clique em &quot;Agendar Mensagem&quot; para criar sua primeira mensagem automática
             </p>
             <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -327,13 +327,7 @@ export default function ScheduledMessagesPage() {
       {/* Modal de Criar Mensagem */}
       {showCreateModal && (
         <CreateMessageModal
-          templates={templates}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            // Recarregar mensagens
-            setFilter('all');
-          }}
         />
       )}
     </motion.div>
@@ -342,13 +336,9 @@ export default function ScheduledMessagesPage() {
 
 // Component auxiliar para o modal (simplificado - você pode expandir)
 function CreateMessageModal({
-  templates,
   onClose,
-  onSuccess,
 }: {
-  templates: Template[];
   onClose: () => void;
-  onSuccess: () => void;
 }) {
   return (
     <Modal isOpen onClose={onClose} title="Agendar Nova Mensagem">
