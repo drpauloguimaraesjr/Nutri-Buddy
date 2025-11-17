@@ -74,6 +74,9 @@ function startCronJobs() {
   }, 120000); // 2 minutos após iniciar
 
   // Processar mensagens agendadas a cada 1 minuto
+  // 🛑 TEMPORARIAMENTE DESABILITADO - Aguardando criação de índice no Firestore
+  // Reative após criar o índice: https://console.firebase.google.com/v1/r/project/nutribuddy-2fc9c/firestore/indexes
+  /*
   cron.schedule('* * * * *', async () => {
     if (scheduledMessagesRunning) {
       return;
@@ -209,11 +212,12 @@ function startCronJobs() {
       scheduledMessagesRunning = false;
     }
   });
+  */
 
   console.log('✅ [CRON] Cron jobs configurados:');
   console.log('   - Validação de pacientes: a cada 6 horas');
   console.log('   - Validação inicial: em 2 minutos');
-  console.log('   - Mensagens agendadas: a cada 1 minuto');
+  console.log('   - Mensagens agendadas: 🛑 DESABILITADO (aguardando índice Firestore)');
 }
 
 /**
