@@ -685,42 +685,104 @@ router.post('/twilio-whatsapp', async (req, res) => {
     const patientDoc = patientsSnapshot.docs[0];
     const patient = { id: patientDoc.id, ...patientDoc.data() };
 
-    // Criar ID da conversa
-    const conversationId = `${patient.prescriberId}_${patient.id}`;
-
-    // Salvar mensagem no Firestore
-    await db.collection('whatsappMessages').add({
-      conversationId,
-      patientId: patient.id,
-      patientName: patient.name || ProfileName,
-      prescriberId: patient.prescriberId,
-      content: messageContent,
-      hasImage: hasMedia,
-      imageUrl: mediaUrl,
-      mediaType: mediaType,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      senderType: 'patient',
-      isFromPatient: true,
-      analyzed: false,
-      sent: true,
-      twilioMessageId: MessageSid,
-      provider: 'twilio'
+    console.log(`📋 [Twilio] Dados do paciente:`, {
+      id: patient.id,
+      name: patient.name,
+      prescriberId: patient.prescriberId
     });
 
-    // Atualizar/criar conversa
-    await db.collection('whatsappConversations')
-      .doc(conversationId)
-      .set({
+    // Buscar ou criar conversa no chat interno
+    const conversationsQuery = await db.collection('conversations')
+      .where('patientId', '==', patient.id)
+      .where('prescriberId', '==', patient.prescriberId)
+      .limit(1)
+      .get();
+
+    let conversationId;
+    let conversationRef;
+
+    if (!conversationsQuery.empty) {
+      // Conversa já existe
+      const existingConv = conversationsQuery.docs[0];
+      conversationId = existingConv.id;
+      conversationRef = db.collection('conversations').doc(conversationId);
+      
+      console.log('✅ [Twilio] Conversa existente encontrada:', conversationId);
+    } else {
+      // Criar nova conversa
+      console.log('🆕 [Twilio] Criando nova conversa...');
+      
+      const prescriberDoc = await db.collection('users').doc(patient.prescriberId).get();
+      const prescriberData = prescriberDoc.exists ? prescriberDoc.data() : {};
+
+      conversationRef = await db.collection('conversations').add({
         patientId: patient.id,
         prescriberId: patient.prescriberId,
+        status: 'active',
+        kanbanColumn: 'active',
         lastMessage: messageContent || '📷 Imagem',
-        lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-        hasUnreadMessages: true,
-        unreadCount: admin.firestore.FieldValue.increment(1),
-        provider: 'twilio'
-      }, { merge: true });
+        lastMessageAt: new Date(),
+        lastMessageBy: 'patient',
+        unreadCount: 1,
+        patientUnreadCount: 0,
+        priority: 'medium',
+        tags: [],
+        whatsappEnabled: true,
+        whatsappPhone: patient.phone,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          patientName: patient.name || ProfileName,
+          patientEmail: patient.email,
+          patientAvatar: patient.avatar || patient.photoURL || null,
+          patientPhone: patient.phone,
+          prescriberName: prescriberData.name || prescriberData.displayName || 'Nutricionista',
+        },
+      });
+      
+      conversationId = conversationRef.id;
+      console.log('✅ [Twilio] Nova conversa criada:', conversationId);
+    }
 
-    console.log('✅ [Twilio] Mensagem salva no Firestore');
+    // Salvar mensagem no chat interno (subcollection)
+    const messageData = {
+      conversationId,
+      senderId: patient.id,
+      senderRole: 'patient',
+      content: messageContent || (hasMedia ? '📷 Imagem' : 'Mensagem vazia'),
+      type: hasMedia ? 'image' : 'text',
+      status: 'delivered',
+      channel: 'whatsapp', // 🔥 Identificar que veio do WhatsApp
+      whatsappMessageId: MessageSid,
+      whatsappStatus: SmsStatus,
+      isAiGenerated: false,
+      createdAt: new Date(),
+    };
+
+    if (hasMedia) {
+      messageData.attachments = [{
+        url: mediaUrl,
+        contentType: mediaType,
+        type: 'image',
+        name: 'WhatsApp Image',
+      }];
+    }
+
+    await db.collection('conversations')
+      .doc(conversationId)
+      .collection('messages')
+      .add(messageData);
+
+    // Atualizar dados da conversa
+    await conversationRef.update({
+      lastMessage: messageContent || '📷 Imagem',
+      lastMessageAt: new Date(),
+      lastMessageBy: 'patient',
+      unreadCount: admin.firestore.FieldValue.increment(1),
+      updatedAt: new Date(),
+    });
+
+    console.log('✅ [Twilio] Mensagem salva no chat interno');
 
     // Twilio espera resposta TwiML (XML)
     // Opção A: Sem resposta automática (apenas processar)

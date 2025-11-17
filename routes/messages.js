@@ -5,6 +5,7 @@ const { verifyToken } = require('../middleware/auth');
 const multer = require('multer');
 const { uploadChatMedia, generateSignedUrl } = require('../services/storage');
 const { triggerNewMessageWorkflow } = require('../services/n8n-client');
+const twilioService = require('../services/twilio-service');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -316,12 +317,16 @@ router.post('/conversations', async (req, res) => {
       patientUnreadCount: userRole === 'prescriber' ? 1 : 0, // para o paciente
       priority: 'medium',
       tags: [],
+      // WhatsApp Integration
+      whatsappEnabled: !!patientData.phone, // Habilita WhatsApp se paciente tem telefone
+      whatsappPhone: patientData.phone || null,
       createdAt: new Date(),
       updatedAt: new Date(),
       metadata: {
         patientName: patientData.name || patientData.displayName || patientData.email,
         patientEmail: patientData.email,
         patientAvatar: patientData.avatar || patientData.photoURL || null,
+        patientPhone: patientData.phone || null,
         prescriberName: prescriberData.name || prescriberData.displayName || prescriberData.email,
       },
     };
@@ -340,6 +345,7 @@ router.post('/conversations', async (req, res) => {
         content: initialMessage,
         type: 'text',
         status: 'sent',
+        channel: 'internal',
         isAiGenerated: false,
         createdAt: new Date(),
       });
@@ -638,6 +644,7 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
       content: messageContent,
       type: messageType,
       status: 'sent',
+      channel: 'internal', // 'internal' ou 'whatsapp'
       isAiGenerated: false,
       createdAt: new Date(),
     };
@@ -676,6 +683,38 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
       console.error('Falha ao notificar N8N (texto):', err.message);
     });
 
+    // 🚀 INTEGRAÇÃO WHATSAPP: Enviar via WhatsApp se habilitado e prescritor enviou
+    if (
+      userRole === 'prescriber' && 
+      conversation.whatsappEnabled && 
+      conversation.whatsappPhone &&
+      twilioService.isTwilioConfigured
+    ) {
+      console.log('📱 [WhatsApp] Enviando mensagem via Twilio para:', conversation.whatsappPhone);
+      
+      twilioService.sendTextMessage(conversation.whatsappPhone, messageContent)
+        .then(result => {
+          if (result.success) {
+            console.log('✅ [WhatsApp] Mensagem enviada com sucesso:', result.messageId);
+            // Salvar uma cópia da mensagem com channel: 'whatsapp'
+            db.collection('conversations')
+              .doc(conversationId)
+              .collection('messages')
+              .add({
+                ...messageData,
+                channel: 'whatsapp',
+                whatsappMessageId: result.messageId,
+                whatsappStatus: result.status,
+                createdAt: new Date(),
+              })
+              .catch(err => console.error('Erro ao salvar mensagem WhatsApp:', err));
+          } else {
+            console.error('❌ [WhatsApp] Erro ao enviar:', result.error);
+          }
+        })
+        .catch(err => console.error('❌ [WhatsApp] Erro ao enviar:', err.message));
+    }
+
     res.json({
       success: true,
       message: {
@@ -683,6 +722,7 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
         ...messageData,
         attachments: responseAttachments,
       },
+      whatsappSent: userRole === 'prescriber' && conversation.whatsappEnabled,
     });
   } catch (error) {
     console.error('Erro ao enviar mensagem:', error);
