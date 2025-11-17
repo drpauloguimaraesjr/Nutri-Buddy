@@ -318,17 +318,30 @@ router.post('/webhooks/zapi-whatsapp', async (req, res) => {
     const hasImage = !!image;
     const imageUrl = hasImage ? image.imageUrl : null;
 
-    console.log(`📨 Mensagem de ${senderName} (${phoneNumber}): ${messageContent}`);
+    console.log(`📨 [Z-API] Mensagem de ${senderName} (${phoneNumber}): ${messageContent}`);
 
-    // Buscar paciente por telefone
-    const patientsSnapshot = await db.collection('users')
-      .where('phone', '==', phoneNumber)
-      .where('role', '==', 'patient')
-      .limit(1)
-      .get();
+    // Gerar variações do número para buscar (com e sem +55)
+    const phoneVariations = getPhoneVariations(phoneNumber);
+    console.log(`🔍 [Z-API] Buscando paciente com variações:`, phoneVariations);
 
-    if (patientsSnapshot.empty) {
-      console.log('⚠️ Paciente não encontrado:', phoneNumber);
+    // Buscar paciente por telefone (testar múltiplas variações)
+    let patientsSnapshot = null;
+    for (const variation of phoneVariations) {
+      const snapshot = await db.collection('users')
+        .where('phone', '==', variation)
+        .where('role', '==', 'patient')
+        .limit(1)
+        .get();
+      
+      if (!snapshot.empty) {
+        patientsSnapshot = snapshot;
+        console.log(`✅ [Z-API] Paciente encontrado com número: ${variation}`);
+        break;
+      }
+    }
+
+    if (!patientsSnapshot || patientsSnapshot.empty) {
+      console.log('⚠️ [Z-API] Paciente não encontrado com nenhuma variação:', phoneVariations);
       return res.status(200).json({ received: true, patientNotFound: true });
     }
 
