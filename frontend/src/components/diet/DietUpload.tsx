@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/components/ui/ToastProvider';
 import { Upload, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import type { UploadResult } from '@/types/diet';
 
@@ -22,6 +22,7 @@ export default function DietUpload({
   onSuccess,
   onError
 }: DietUploadProps) {
+  const { showToast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
@@ -49,7 +50,11 @@ export default function DietUpload({
     // Validar arquivo
     const validationError = validateFile(file);
     if (validationError) {
-      toast.error(`❌ ${validationError}`);
+      showToast({
+        title: 'Erro ao validar arquivo',
+        description: validationError,
+        variant: 'error',
+      });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -97,7 +102,11 @@ export default function DietUpload({
       const pdfUrl = await getDownloadURL(uploadTask.snapshot.ref);
       console.log('🔗 PDF URL:', pdfUrl);
 
-      toast.success('✅ PDF enviado! Iniciando transcrição...');
+      showToast({
+        title: 'PDF enviado!',
+        description: 'Iniciando transcrição com IA...',
+        variant: 'success',
+      });
       setUploading(false);
       setTranscribing(true);
 
@@ -131,26 +140,12 @@ export default function DietUpload({
       if (result.success) {
         const summary = result.resumo;
         
-        toast.success(
-          <div className="space-y-1">
-            <div className="font-semibold">✅ Dieta transcrita com sucesso!</div>
-            <div className="text-sm text-gray-600">
-              📊 {summary?.totalCalorias || result.totalCalorias || 0} kcal/dia
-            </div>
-            <div className="text-sm text-gray-600">
-              🍽️ {summary?.totalRefeicoes || result.totalRefeicoes || 0} refeições
-            </div>
-            <div className="text-sm text-gray-600">
-              🥗 {summary?.totalAlimentos || result.totalAlimentos || 0} alimentos
-            </div>
-          </div>,
-          {
-            duration: 6000,
-            style: {
-              maxWidth: '400px',
-            },
-          }
-        );
+        showToast({
+          title: 'Dieta transcrita com sucesso!',
+          description: `📊 ${summary?.totalCalorias || result.totalCalorias || 0} kcal/dia • 🍽️ ${summary?.totalRefeicoes || result.totalRefeicoes || 0} refeições • 🥗 ${summary?.totalAlimentos || result.totalAlimentos || 0} alimentos`,
+          variant: 'success',
+          duration: 6000,
+        });
 
         onSuccess?.(result);
       } else {
@@ -159,12 +154,12 @@ export default function DietUpload({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('❌ Error processing diet PDF:', error);
-      toast.error(
-        <div className="space-y-1">
-          <div className="font-semibold">❌ Erro ao processar dieta</div>
-          <div className="text-sm">{errorMessage}</div>
-        </div>
-      );
+      showToast({
+        title: 'Erro ao processar dieta',
+        description: errorMessage,
+        variant: 'error',
+        duration: 7000,
+      });
       onError?.(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setUploading(false);
