@@ -16,14 +16,14 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]';
+  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]';
   
   const variants = {
-    default: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-    outline: 'border-2 border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500',
-    ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
-    destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+    default: 'bg-sky-500 text-white hover:bg-sky-400 focus:ring-sky-500 shadow-lg shadow-sky-500/30 hover:shadow-sky-400/40',
+    outline: 'border-2 border-slate-600 text-slate-200 hover:bg-slate-700/50 hover:border-slate-500 focus:ring-sky-500',
+    ghost: 'text-slate-300 hover:bg-slate-700/50 hover:text-white focus:ring-sky-500',
+    destructive: 'bg-red-500 text-white hover:bg-red-400 focus:ring-red-500 shadow-lg shadow-red-500/30',
+    success: 'bg-emerald-500 text-white hover:bg-emerald-400 focus:ring-emerald-500 shadow-lg shadow-emerald-500/30',
   };
 
   const sizes = {
