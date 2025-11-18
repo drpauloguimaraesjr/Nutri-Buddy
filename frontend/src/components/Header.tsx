@@ -21,15 +21,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-6 py-4">
+    <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-xl border-b border-slate-700 px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Left side */}
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+            className="lg:hidden p-2 rounded-lg hover:bg-slate-800"
           >
-            <Menu className="w-6 h-6 text-gray-600" />
+            <Menu className="w-6 h-6 text-slate-300" />
           </button>
           
           <div className="hidden lg:flex items-center gap-3 mr-4">
@@ -43,10 +43,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
           
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-white">
               Bem-vindo, {user?.displayName || 'Usuário'}!
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-400">
               {user?.role === 'prescriber' && 'Painel do Prescritor'}
               {user?.role === 'patient' && 'Painel do Paciente'}
               {user?.role === 'admin' && 'Painel Administrativo'}
@@ -56,8 +56,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <button className="p-2 rounded-lg hover:bg-gray-100 relative">
-            <Bell className="w-5 h-5 text-gray-600" />
+          <button className="p-2 rounded-lg hover:bg-slate-800 relative">
+            <Bell className="w-5 h-5 text-slate-300" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
           
@@ -65,7 +65,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="gap-2"
+            className="gap-2 text-slate-300 hover:text-white hover:bg-slate-800"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sair</span>

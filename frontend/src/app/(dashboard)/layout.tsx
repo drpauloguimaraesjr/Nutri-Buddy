@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -30,16 +31,16 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <motion.div
           className="flex flex-col items-center space-y-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+          <div className="h-16 w-16 rounded-full bg-sky-500/20 flex items-center justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-sky-500/30 border-t-sky-500" />
           </div>
-          <p className="text-gray-600 font-medium">Carregando...</p>
+          <p className="text-slate-300 font-medium">Carregando...</p>
         </motion.div>
       </div>
     );
@@ -47,19 +48,26 @@ export default function DashboardLayout({
 
   if (!isDesktop) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center px-6 text-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-sm rounded-2xl bg-white shadow-lg border border-blue-100 p-8 space-y-4"
+          className="max-w-sm rounded-2xl bg-slate-800/50 backdrop-blur-xl shadow-lg border border-slate-700 p-8 space-y-4"
         >
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-600/10">
-            <span className="text-2xl font-semibold text-blue-600">NB</span>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center">
+            <Image 
+              src="/logos/nutribuddy-icon.svg" 
+              alt="NutriBuddy" 
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-white">
             Acesse pelo computador
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-300">
             A área do prescritor foi otimizada para telas maiores. Utilize o dashboard em um
             desktop ou notebook para ter a melhor experiência.
           </p>
@@ -69,7 +77,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex relative bg-background">
+    <div className="min-h-screen flex relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Sidebar */}
       <Sidebar
         isOpen={isDesktop || sidebarOpen}

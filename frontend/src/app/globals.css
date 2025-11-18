@@ -3,8 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --background: #0f172a;
+  --background-secondary: #1e293b;
+  --foreground: #f1f5f9;
+  --accent: #0ea5e9;
 }
 
 body {
@@ -19,6 +21,14 @@ body {
   }
   
   .glass-card {
-    @apply bg-white/80 backdrop-blur-sm border border-gray-100 shadow-lg;
+    @apply bg-slate-800/80 backdrop-blur-sm border border-slate-700 shadow-lg;
+  }
+  
+  .bg-gradient-dark {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  }
+  
+  .bg-gradient-accent {
+    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   }
 }

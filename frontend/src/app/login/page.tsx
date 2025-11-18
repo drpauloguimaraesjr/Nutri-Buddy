@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Mail, Lock, LogIn, MailCheck, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -199,7 +200,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -207,15 +208,24 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-block w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">NutriBuddy</h1>
-          <p className="text-gray-600">Sistema de Nutrição Personalizada</p>
+          <div className="inline-block mb-4">
+            <Image 
+              src="/logos/nutribuddy-icon.svg" 
+              alt="NutriBuddy Logo" 
+              width={80}
+              height={80}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">NutriBuddy</h1>
+          <p className="text-slate-300">Sistema de Nutrição Personalizada</p>
         </div>
 
-        <Card>
+        <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
           <CardHeader>
-            <h2 className="text-2xl font-bold text-gray-900">Entrar</h2>
-            <p className="text-sm text-gray-600">Acesse sua conta</p>
+            <h2 className="text-2xl font-bold text-white">Entrar</h2>
+            <p className="text-sm text-slate-300">Acesse sua conta</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -250,8 +260,8 @@ export default function LoginPage() {
               />
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600">{error}</p>
+                <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                  <p className="text-sm text-red-400">{error}</p>
                 </div>
               )}
 
@@ -270,7 +280,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={openResetModal}
-                  className="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                  className="text-sm text-sky-400 hover:text-sky-300 font-medium transition-colors"
                 >
                   Esqueci minha senha
                 </button>
@@ -290,8 +300,8 @@ export default function LoginPage() {
                 <div
                   className={`rounded-lg border p-3 text-sm ${
                     magicLinkError
-                      ? 'border-red-200 bg-red-50 text-red-700'
-                      : 'border-blue-200 bg-blue-50 text-blue-700'
+                      ? 'border-red-500/30 bg-red-900/20 text-red-400'
+                      : 'border-sky-500/30 bg-sky-900/20 text-sky-400'
                   }`}
                 >
                   {magicLinkError || magicLinkInfo}
@@ -301,10 +311,10 @@ export default function LoginPage() {
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+                <div className="w-full border-t border-slate-600"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">ou</span>
+                <span className="px-2 bg-slate-800 text-slate-400">ou</span>
               </div>
             </div>
 
@@ -336,7 +346,7 @@ export default function LoginPage() {
               <span>Continuar com Google</span>
             </Button>
 
-            <div className="mt-6 text-center text-sm text-gray-600">
+            <div className="mt-6 text-center text-sm text-slate-400">
               <p>Crie uma conta ou faça login com Google</p>
             </div>
           </CardContent>
@@ -351,7 +361,7 @@ export default function LoginPage() {
           size="sm"
         >
           <form className="space-y-4" onSubmit={handleConfirmMagicLink}>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-300">
               Informe o email utilizado para receber o link de acesso. Isso garante que apenas você possa concluir o
               login neste dispositivo.
             </p>
@@ -366,7 +376,7 @@ export default function LoginPage() {
             />
 
             {magicLinkError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <div className="rounded-lg border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-400">
                 {magicLinkError}
               </div>
             )}
@@ -395,7 +405,7 @@ export default function LoginPage() {
         size="sm"
       >
         <form onSubmit={handleResetSubmit} className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-300">
             Informe o email utilizado no cadastro. Enviaremos um link para você criar uma nova senha.
           </p>
 
@@ -410,13 +420,13 @@ export default function LoginPage() {
           />
 
           {resetError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-lg border border-red-500/30 bg-red-900/20 p-3 text-sm text-red-400">
               {resetError}
             </div>
           )}
 
           {resetSuccess && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+            <div className="rounded-lg border border-green-500/30 bg-green-900/20 p-3 text-sm text-green-400">
               {resetSuccess}
             </div>
           )}
