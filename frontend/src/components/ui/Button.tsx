@@ -16,14 +16,14 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0';
+  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]';
   
   const variants = {
-    default: 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-400 hover:to-primary-500 focus:ring-primary-500 shadow-lg shadow-primary-500/30 hover:shadow-glow',
-    outline: 'border-2 border-white/20 text-foreground hover:bg-white/5 hover:border-primary-500/50 focus:ring-primary-500',
-    ghost: 'text-foreground hover:bg-white/5 hover:text-white focus:ring-primary-500',
-    destructive: 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-400 hover:to-red-500 focus:ring-red-500 shadow-lg shadow-red-500/30',
-    success: 'bg-gradient-to-r from-secondary-500 to-secondary-600 text-white hover:from-secondary-400 hover:to-secondary-500 focus:ring-secondary-500 shadow-lg shadow-secondary-500/30',
+    default: 'bg-sky-500 text-white hover:bg-sky-400 focus:ring-sky-500 shadow-lg shadow-sky-500/30 hover:shadow-sky-400/40',
+    outline: 'border-2 border-slate-600 text-slate-200 hover:bg-slate-700/50 hover:border-slate-500 focus:ring-sky-500',
+    ghost: 'text-slate-300 hover:bg-slate-700/50 hover:text-white focus:ring-sky-500',
+    destructive: 'bg-red-500 text-white hover:bg-red-400 focus:ring-red-500 shadow-lg shadow-red-500/30',
+    success: 'bg-emerald-500 text-white hover:bg-emerald-400 focus:ring-emerald-500 shadow-lg shadow-emerald-500/30',
   };
 
   const sizes = {
