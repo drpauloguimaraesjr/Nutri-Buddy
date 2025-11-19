@@ -3,9 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #0f172a;
-  --background-secondary: #1e293b;
-  --foreground: #f1f5f9;
+  /* TailAdmin Inspired Colors */
+  --background: #1C2434;
+  --background-secondary: #24303F;
+  --foreground: #DEE4EE;
+  --primary: #3C50E0;
+  --secondary: #10B981;
+  --meta: #64748B;
   --accent: #0ea5e9;
 }
 
@@ -20,15 +24,85 @@ body {
     text-wrap: balance;
   }
   
+  /* Glassmorphism Cards */
   .glass-card {
-    @apply bg-slate-800/80 backdrop-blur-sm border border-slate-700 shadow-lg;
+    @apply bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-primary/5;
   }
   
+  /* Advanced Glass Effect */
+  .glass-card-strong {
+    @apply bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl;
+  }
+  
+  /* Gradient Backgrounds */
   .bg-gradient-dark {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    background: linear-gradient(135deg, #1C2434 0%, #24303F 50%, #313D4F 100%);
   }
   
-  .bg-gradient-accent {
-    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #3C50E0 0%, #5B73E8 100%);
+  }
+  
+  .bg-gradient-secondary {
+    background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  }
+  
+  /* Smooth Animations */
+  .animate-fadeInUp {
+    animation: fadeInUp 0.6s ease-out;
+  }
+  
+  .animate-slideInRight {
+    animation: slideInRight 0.6s ease-out;
+  }
+  
+  .animate-scaleIn {
+    animation: scaleIn 0.4s ease-out;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  /* Delay utilities */
+  .delay-100 {
+    animation-delay: 0.1s;
+  }
+  
+  .delay-200 {
+    animation-delay: 0.2s;
+  }
+  
+  .delay-300 {
+    animation-delay: 0.3s;
   }
 }
