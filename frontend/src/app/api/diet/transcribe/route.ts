@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
 
     // 2. Configurar Modelo Gemini 1.5 Flash (Multimodal e Rápido)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
 
     // 3. Prompt para extração
     const prompt = `
