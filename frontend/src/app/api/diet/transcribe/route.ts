@@ -135,6 +135,7 @@ export async function POST(req: NextRequest) {
       data: dietPlan
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('❌ Erro na transcrição:', error);
     console.error('Stack trace:', error.stack);
