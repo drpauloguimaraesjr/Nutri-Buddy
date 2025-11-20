@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  getDocs, 
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
   doc,
   writeBatch
 } from 'firebase/firestore';
@@ -30,7 +30,10 @@ interface UseDietReturn {
   refresh: () => Promise<void>;
 }
 
+import { useAuth } from '@/context/AuthContext';
+
 export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDietReturn {
+  const { user } = useAuth();
   const [currentDiet, setCurrentDiet] = useState<DietPlan | null>(null);
   const [dietHistory, setDietHistory] = useState<DietPlan[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,20 +41,28 @@ export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDiet
 
   // Buscar dieta ativa atual
   const fetchCurrentDiet = useCallback(async () => {
-    if (!patientId) return;
+    if (!patientId || !user) return;
 
     try {
       setLoading(true);
       setError(null);
 
       const dietPlansRef = collection(db, 'dietPlans');
-      const q = query(
-        dietPlansRef,
+
+      // Construir constraints base
+      const constraints = [
         where('patientId', '==', patientId),
         where('isActive', '==', true),
         orderBy('createdAt', 'desc'),
         limit(1)
-      );
+      ];
+
+      // Se for prescritor, filtrar pelos seus planos para satisfazer regras de segurança
+      if (user.role === 'prescriber') {
+        constraints.push(where('prescriberId', '==', user.uid));
+      }
+
+      const q = query(dietPlansRef, ...constraints);
 
       const snapshot = await getDocs(q);
 
@@ -72,21 +83,27 @@ export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDiet
     } finally {
       setLoading(false);
     }
-  }, [patientId]);
+  }, [patientId, user]);
 
   // Buscar histórico de dietas
   const fetchDietHistory = useCallback(async () => {
-    if (!patientId) return;
+    if (!patientId || !user) return;
 
     try {
       setError(null);
 
       const dietPlansRef = collection(db, 'dietPlans');
-      const q = query(
-        dietPlansRef,
+
+      const constraints = [
         where('patientId', '==', patientId),
         orderBy('createdAt', 'desc')
-      );
+      ];
+
+      if (user.role === 'prescriber') {
+        constraints.push(where('prescriberId', '==', user.uid));
+      }
+
+      const q = query(dietPlansRef, ...constraints);
 
       const snapshot = await getDocs(q);
 
@@ -101,7 +118,7 @@ export function useDiet({ patientId, autoLoad = true }: UseDietOptions): UseDiet
       console.error('❌ Error fetching diet history:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     }
-  }, [patientId]);
+  }, [patientId, user]);
 
   // Reativar dieta antiga
   const reactivateDiet = useCallback(async (dietId: string) => {

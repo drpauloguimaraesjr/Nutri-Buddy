@@ -110,14 +110,12 @@ export default function DietUpload({
       setUploading(false);
       setTranscribing(true);
 
-      // 4. Chamar webhook N8N para transcrição
-      // Usar variável de ambiente ou URL padrão do N8N
-      const n8nUrl = process.env.NEXT_PUBLIC_N8N_TRANSCRIBE_DIET_URL || 
-                     'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-process-diet';
+      // 4. Chamar API interna para transcrição com Gemini
+      const transcribeUrl = '/api/diet/transcribe';
 
-      console.log('🤖 Calling N8N webhook:', n8nUrl);
+      console.log('🤖 Calling internal transcription API:', transcribeUrl);
 
-      const response = await fetch(n8nUrl, {
+      const response = await fetch(transcribeUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,6 +124,7 @@ export default function DietUpload({
           pdfUrl: pdfUrl,
           patientId: patientId,
           patientName: patientName || 'Paciente',
+          prescriberId: prescriberId,
         }),
       });
 
@@ -139,7 +138,7 @@ export default function DietUpload({
 
       if (result.success) {
         const summary = result.resumo;
-        
+
         showToast({
           title: 'Dieta transcrita com sucesso!',
           description: `📊 ${summary?.totalCalorias || result.totalCalorias || 0} kcal/dia • 🍽️ ${summary?.totalRefeicoes || result.totalRefeicoes || 0} refeições • 🥗 ${summary?.totalAlimentos || result.totalAlimentos || 0} alimentos`,
@@ -192,10 +191,9 @@ export default function DietUpload({
         onClick={!isProcessing ? handleButtonClick : undefined}
         className={`
           border-2 border-dashed rounded-lg p-8 text-center transition-all
-          ${
-            isProcessing
-              ? 'border-blue-400 bg-blue-50 cursor-not-allowed'
-              : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50 cursor-pointer'
+          ${isProcessing
+            ? 'border-blue-400 bg-blue-50 cursor-not-allowed'
+            : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50 cursor-pointer'
           }
         `}
       >
