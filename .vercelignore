@@ -1,0 +1,25 @@
+# Backend files (não fazer deploy)
+server.js
+routes/
+services/
+middleware/
+config/
+*.sh
+*.md
+n8n-workflows/
+archive/
+extensions/
+functions/
+utils/
+scripts/
+
+# Node
+node_modules/
+
+# Outros
+*.log
+.env.local
+.env
+Procfile
+railway.json
+

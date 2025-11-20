@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
@@ -10,7 +11,7 @@ import Header from '@/components/Header';
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const { loading } = useProtectedRoute();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -55,9 +56,9 @@ export default function DashboardLayout({
           className="max-w-sm rounded-2xl bg-slate-800/50 backdrop-blur-xl shadow-lg border border-slate-700 p-8 space-y-4"
         >
           <div className="mx-auto flex h-16 w-16 items-center justify-center">
-            <Image 
-              src="/logos/nutribuddy-icon.svg" 
-              alt="NutriBuddy" 
+            <Image
+              src="/logos/nutribuddy-icon.svg"
+              alt="NutriBuddy"
               width={64}
               height={64}
               className="object-contain"
