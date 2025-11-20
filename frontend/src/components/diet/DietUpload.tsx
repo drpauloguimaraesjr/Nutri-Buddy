@@ -129,7 +129,7 @@ export default function DietUpload({
       });
 
       if (!response.ok) {
-        throw new Error(`N8N returned status ${response.status}`);
+        throw new Error(`API returned status ${response.status}`);
       }
 
       const result: UploadResult = await response.json();
@@ -230,7 +230,7 @@ export default function DietUpload({
                     Transcrevendo com IA...
                   </div>
                   <p className="text-sm text-gray-500">
-                    GPT-4o Vision está analisando o PDF da dieta
+                    Gemini AI está analisando o PDF da dieta
                   </p>
                   <p className="text-xs text-gray-400">
                     Isso pode levar 30-45 segundos
