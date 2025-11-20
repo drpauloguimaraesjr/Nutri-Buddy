@@ -61,7 +61,37 @@ export const THEMES: Record<string, Theme> = {
       accent: '#34D399',
     },
   },
+  'nutribuddy-dark': {
+    id: 'nutribuddy-dark',
+    name: 'NutriBuddy Dark (Premium)',
+    description: 'Modo escuro premium com aurora boreal',
+    preview: '#0EA5E9',
+    colors: {
+      primary: '#38bdf8', // Sky 400
+      secondary: '#34d399', // Emerald 400
+      background: '#0f172a', // Slate 900
+      backgroundSecondary: '#1e293b', // Slate 800
+      foreground: '#f8fafc', // Slate 50
+      meta: '#94a3b8', // Slate 400
+      accent: '#0ea5e9', // Sky 500
+    },
+  },
+  'nutribuddy-light': {
+    id: 'nutribuddy-light',
+    name: 'NutriBuddy Light (Premium)',
+    description: 'Modo claro premium clean e focado',
+    preview: '#0284c7',
+    colors: {
+      primary: '#0284c7', // Sky 600
+      secondary: '#059669', // Emerald 600
+      background: '#f0f9ff', // Sky 50
+      backgroundSecondary: '#ffffff', // White
+      foreground: '#0f172a', // Slate 900
+      meta: '#64748b', // Slate 500
+      accent: '#0284c7', // Sky 600
+    },
+  },
 };
 
-export const DEFAULT_THEME_ID = 'tailadmin-ocean';
+export const DEFAULT_THEME_ID = 'nutribuddy-dark';
 

@@ -20,15 +20,28 @@ body {
     text-wrap: balance;
   }
   
+  /* Glassmorphism Premium */
   .glass-card {
-    @apply bg-slate-800/80 backdrop-blur-sm border border-slate-700 shadow-lg;
+    @apply bg-[var(--background-secondary)]/70 backdrop-blur-xl border border-[var(--foreground)]/10 shadow-xl;
+  }
+
+  .glass-panel {
+    @apply bg-[var(--background-secondary)]/90 backdrop-blur-2xl border-r border-[var(--foreground)]/5;
   }
   
-  .bg-gradient-dark {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  /* Aurora Background Effect */
+  .aurora-bg {
+    background-color: var(--background);
+    background-image: 
+      radial-gradient(at 0% 0%, var(--primary) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, var(--secondary) 0px, transparent 50%);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
   }
-  
-  .bg-gradient-accent {
-    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+
+  /* Smooth Transitions */
+  .theme-transition {
+    @apply transition-colors duration-300 ease-in-out;
   }
 }
