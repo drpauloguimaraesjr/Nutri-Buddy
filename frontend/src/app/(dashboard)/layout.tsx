@@ -1,18 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useProtectedRoute } from '@/hooks/useProtectedRoute';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 
-export default function DashboardLayout({
-  children,
-}: {
+interface DashboardLayoutProps {
   children: ReactNode;
-}) {
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { loading } = useProtectedRoute();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => {
