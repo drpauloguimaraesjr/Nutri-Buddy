@@ -20,8 +20,7 @@ interface ExtractedMeal {
 
 export async function analyzeDietLog(
     userMessage: string,
-    dietPlan: DietPlan,
-    imageUrl?: string
+    dietPlan: DietPlan
 ): Promise<ExtractedMeal | null> {
     try {
         const model = genAI.getGenerativeModel({

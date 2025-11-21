@@ -33,31 +33,6 @@ if (!admin.apps.length) {
     }
 }
 
-// Safe exports that won't crash build if initialization failed
-const getAdminDb = () => {
-    if (!admin.apps.length) {
-        console.warn('⚠️ Warning: Attempting to access Firestore without initialized app');
-        return null as unknown as admin.firestore.Firestore;
-    }
-    return admin.firestore();
-};
-
-const getAdminAuth = () => {
-    if (!admin.apps.length) {
-        console.warn('⚠️ Warning: Attempting to access Auth without initialized app');
-        return null as unknown as admin.auth.Auth;
-    }
-    return admin.auth();
-};
-
-const getAdminStorage = () => {
-    if (!admin.apps.length) {
-        console.warn('⚠️ Warning: Attempting to access Storage without initialized app');
-        return null as unknown as admin.storage.Storage;
-    }
-    return admin.storage();
-};
-
 // Export instances directly if app is initialized, otherwise proxies/nulls would be better
 // but for now let's try to initialize if possible, otherwise these will throw at runtime
 // which is better than build time if we can avoid top-level access.

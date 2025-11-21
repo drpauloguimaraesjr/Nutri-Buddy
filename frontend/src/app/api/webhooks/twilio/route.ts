@@ -104,32 +104,13 @@ export async function POST(req: NextRequest) {
 
             const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
-            // Preparar payload para API de cálculo
-            const payload = {
-                patientId,
-                date: new Date().toISOString().split('T')[0],
-                consumedMeals: [{
-                    name: analysis.mealName,
-                    foods: analysis.foods,
-                    timestamp: new Date().toISOString()
-                }]
-            };
-
             // Salvar no Firestore (append no dia)
             // A API de cálculo sobrescreve o dia todo baseada no input.
             // Precisamos primeiro PEGAR o que já foi consumido hoje e ADICIONAR o novo.
 
             const today = new Date().toISOString().split('T')[0];
-            const adherenceDocId = `${patientId}_${today}`;
-            const adherenceDoc = await adminDb.collection('dailyAdherence').doc(adherenceDocId).get();
-
-            let currentConsumedMeals = [];
-            if (adherenceDoc.exists) {
-                // Recuperar refeições já salvas para não perder
-                // Mas a estrutura salva no dailyAdherence é processada.
-                // O ideal seria ter uma collection 'mealLogs' separada.
-                // Vamos salvar em 'mealLogs' e recalcular tudo.
-            }
+            // const adherenceDocId = `${patientId}_${today}`;
+            // const adherenceDoc = await adminDb.collection('dailyAdherence').doc(adherenceDocId).get();
 
             // Salvar log bruto
             await adminDb.collection('mealLogs').add({

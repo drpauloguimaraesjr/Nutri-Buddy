@@ -84,8 +84,10 @@ export async function POST(req: NextRequest) {
         // Mapear refeições consumidas para facilitar busca
         // Normaliza nomes para comparação (lowercase, sem acentos seria ideal mas vamos simplificar)
         const consumedMap = new Map();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         consumedMeals.forEach((meal: any) => {
             // Somar aos totais
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             meal.foods.forEach((food: any) => {
                 consumedTotal.calories += food.calories || 0;
                 consumedTotal.protein += food.protein || 0;
@@ -122,8 +124,10 @@ export async function POST(req: NextRequest) {
 
         // Iterar sobre refeições PLANEJADAS para ver se foram cumpridas
         // Usando a estrutura nova (meals) ou antiga (refeicoes)
-        const plannedMeals = dietPlan.meals || []; // Assumindo que já migramos ou usamos o adaptador
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const plannedMeals = (dietPlan.meals || []) as any[]; // Assumindo que já migramos ou usamos o adaptador
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         plannedMeals.forEach((plannedMeal: any) => {
             const mealName = (plannedMeal.name || plannedMeal.nome || '').toLowerCase();
             const consumedMeal = consumedMap.get(mealName);
@@ -134,10 +138,11 @@ export async function POST(req: NextRequest) {
             };
 
             // Macros consumidos nesta refeição
-            let mealConsumedMacros = { calories: 0, protein: 0, carbs: 0, fats: 0 };
-            let foodsList: string[] = [];
+            const mealConsumedMacros = { calories: 0, protein: 0, carbs: 0, fats: 0 };
+            const foodsList: string[] = [];
 
             if (consumedMeal) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 consumedMeal.foods.forEach((f: any) => {
                     mealConsumedMacros.calories += f.calories || 0;
                     mealConsumedMacros.protein += f.protein || 0;
