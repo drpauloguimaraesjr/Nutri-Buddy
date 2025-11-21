@@ -21,7 +21,7 @@ export default function DietHistory({
 
   const handleReactivate = async (dietId: string) => {
     if (!onReactivate) return;
-    
+
     try {
       setReactivating(dietId);
       await onReactivate(dietId);
@@ -32,8 +32,27 @@ export default function DietHistory({
     }
   };
 
-  const formatDate = (dateString: Date | string) => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formatDate = (dateValue: any) => {
+    let date: Date;
+
+    // Handle Firestore Timestamp
+    if (dateValue && typeof dateValue === 'object' && 'toDate' in dateValue) {
+      date = dateValue.toDate();
+    }
+    // Handle string
+    else if (typeof dateValue === 'string') {
+      date = new Date(dateValue);
+    }
+    // Handle Date object
+    else if (dateValue instanceof Date) {
+      date = dateValue;
+    }
+    // Fallback to current date
+    else {
+      date = new Date();
+    }
+
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'short',
@@ -41,8 +60,27 @@ export default function DietHistory({
     });
   };
 
-  const formatTime = (dateString: Date | string) => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formatTime = (dateValue: any) => {
+    let date: Date;
+
+    // Handle Firestore Timestamp
+    if (dateValue && typeof dateValue === 'object' && 'toDate' in dateValue) {
+      date = dateValue.toDate();
+    }
+    // Handle string
+    else if (typeof dateValue === 'string') {
+      date = new Date(dateValue);
+    }
+    // Handle Date object
+    else if (dateValue instanceof Date) {
+      date = dateValue;
+    }
+    // Fallback to current date
+    else {
+      date = new Date();
+    }
+
     return date.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit',
@@ -86,10 +124,9 @@ export default function DietHistory({
             key={diet.id}
             className={`
               bg-white rounded-lg border p-4 transition-all
-              ${
-                diet.isActive
-                  ? 'border-blue-500 shadow-md'
-                  : 'border-gray-200 hover:border-gray-300'
+              ${diet.isActive
+                ? 'border-blue-500 shadow-md'
+                : 'border-gray-200 hover:border-gray-300'
               }
             `}
           >
