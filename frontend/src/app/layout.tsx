@@ -1,8 +1,15 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-plus-jakarta",
+});
 
 export const viewport: Viewport = {
   themeColor: '#0ea5e9',
@@ -51,7 +58,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="antialiased">
+      <body className={`${plusJakarta.variable} font-sans antialiased`}>
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

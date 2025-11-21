@@ -10,22 +10,27 @@ interface ThemeContextType {
   customColors: ThemeColors | null;
   setCustomColors: (colors: ThemeColors) => void;
   applyCustomTheme: () => void;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'nutribuddy-theme';
 const CUSTOM_COLORS_KEY = 'nutribuddy-custom-colors';
+const DARK_MODE_KEY = 'nutribuddy-dark-mode';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<Theme>(THEMES[DEFAULT_THEME_ID]);
   const [customColors, setCustomColors] = useState<ThemeColors | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
   // Load theme from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedThemeId = localStorage.getItem(STORAGE_KEY);
       const savedCustomColors = localStorage.getItem(CUSTOM_COLORS_KEY);
+      const savedDarkMode = localStorage.getItem(DARK_MODE_KEY);
 
       if (savedCustomColors) {
         try {
@@ -38,15 +43,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (savedThemeId && THEMES[savedThemeId]) {
         setCurrentTheme(THEMES[savedThemeId]);
       }
+
+      if (savedDarkMode !== null) {
+        setIsDarkMode(savedDarkMode === 'true');
+      }
     }
   }, []);
 
-  // Apply theme colors to CSS variables
+  // Apply theme colors to CSS variables and dark mode
   useEffect(() => {
     const colors = currentTheme.colors;
-    
+
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
+
+      // Apply dark/light mode
+      if (isDarkMode) {
+        root.removeAttribute('data-theme');
+      } else {
+        root.setAttribute('data-theme', 'light');
+      }
+
       root.style.setProperty('--background', colors.background);
       root.style.setProperty('--background-secondary', colors.backgroundSecondary);
       root.style.setProperty('--foreground', colors.foreground);
@@ -55,7 +72,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.style.setProperty('--meta', colors.meta);
       root.style.setProperty('--accent', colors.accent);
     }
-  }, [currentTheme]);
+  }, [currentTheme, isDarkMode]);
 
   const setTheme = (themeId: string) => {
     if (THEMES[themeId]) {
@@ -90,6 +107,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(DARK_MODE_KEY, String(newMode));
+    }
+  };
+
   return (
     <ThemeContext.Provider
       value={{
@@ -98,6 +123,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         customColors,
         setCustomColors: updateCustomColors,
         applyCustomTheme,
+        isDarkMode,
+        toggleDarkMode,
       }}
     >
       {children}
