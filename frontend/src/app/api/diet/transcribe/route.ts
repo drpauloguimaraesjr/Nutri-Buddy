@@ -287,8 +287,19 @@ Analise este PDF de plano alimentar e extraia TODOS os dados em JSON estruturado
 
       // Metadados adicionais
       metadata: {
+        // Informações básicas
         totalMeals: dietData.refeicoes.length,
         totalFoods: dietData.refeicoes.reduce((sum, ref) => sum + ref.alimentos.length, 0),
+
+        // Meta da dieta
+        meta: {
+          caloriasDiarias: dietData.totais.calorias,
+          periodo: 'Diário',
+          objetivo: 'Plano nutricional personalizado',
+          dataCriacao: new Date().toISOString()
+        },
+
+        // Macronutrientes detalhados
         macronutrientes: {
           proteinas: {
             gramas: dietData.totais.proteinas,
@@ -301,7 +312,28 @@ Analise este PDF de plano alimentar e extraia TODOS os dados em JSON estruturado
           gorduras: {
             gramas: dietData.totais.gorduras,
             percentual: (dietData.totais.gorduras * 9 / dietData.totais.calorias) * 100
+          },
+          fibras: {
+            gramas: dietData.totais.fibras || 0
           }
+        },
+
+        // Arrays vazios para compatibilidade
+        micronutrientes: [],
+        observacoes: [],
+        substituicoes: [],
+
+        // Status da transcrição
+        transcriptionStatus: 'completed',
+        transcribedAt: new Date().toISOString(),
+        model: 'gemini-2.0-flash-exp',
+
+        // Resumo
+        resumo: {
+          totalCalorias: dietData.totais.calorias,
+          totalRefeicoes: dietData.refeicoes.length,
+          totalAlimentos: dietData.refeicoes.reduce((sum, ref) => sum + ref.alimentos.length, 0),
+          objetivo: 'Plano nutricional personalizado'
         }
       }
     };
