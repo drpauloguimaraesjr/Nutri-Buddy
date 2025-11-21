@@ -145,8 +145,8 @@ export default function DashboardPage() {
     >
       <motion.div variants={fadeIn} className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-300">
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Dashboard</h1>
+          <p className="text-fluid-base text-high-contrast-muted">
             Bem-vindo de volta, {user?.displayName || 'profissional'}! Acompanhe seus pacientes em tempo real.
           </p>
         </div>
@@ -161,7 +161,7 @@ export default function DashboardPage() {
       {isLoading ? (
         <motion.div variants={fadeIn} className="text-center py-12">
           <div className="inline-block h-9 w-9 animate-spin rounded-full border-4 border-solid border-sky-500 border-r-transparent"></div>
-          <p className="mt-4 text-slate-300">Carregando dados do painel...</p>
+          <p className="mt-4 text-high-contrast-muted">Carregando dados do painel...</p>
         </motion.div>
       ) : (
         <>
@@ -190,9 +190,9 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div className="mt-4 space-y-1">
-                      <p className="text-sm font-medium text-slate-400">{card.title}</p>
-                      <p className="text-3xl font-bold text-white">{card.value}</p>
-                      <p className="text-xs text-slate-400">{card.description}</p>
+                      <p className="text-fluid-sm font-medium text-high-contrast-muted">{card.title}</p>
+                      <p className="text-fluid-3xl font-bold text-high-contrast">{card.value}</p>
+                      <p className="text-fluid-xs text-high-contrast-muted">{card.description}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -205,8 +205,8 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-semibold text-white">Visão geral dos pacientes</h2>
-                    <p className="text-sm text-slate-400">
+                    <h2 className="text-fluid-xl font-semibold text-high-contrast">Visão geral dos pacientes</h2>
+                    <p className="text-fluid-sm text-high-contrast-muted">
                       Distribuição e engajamento com base nos últimos 30 dias
                     </p>
                   </div>
@@ -264,8 +264,8 @@ export default function DashboardPage() {
 
             <Card className="h-fit">
               <CardHeader>
-                <h2 className="text-lg font-semibold text-white">Novos cadastros</h2>
-                <p className="text-sm text-slate-400">
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Novos cadastros</h2>
+                <p className="text-fluid-sm text-high-contrast-muted">
                   Últimos pacientes adicionados à sua carteira
                 </p>
               </CardHeader>
@@ -281,8 +281,8 @@ export default function DashboardPage() {
                         {patient.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{patient.name}</p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-fluid-sm font-medium text-high-contrast">{patient.name}</p>
+                        <p className="text-fluid-xs text-high-contrast-muted">
                           {patient.createdAt
                             ? `Cadastrado em ${patient.createdAt.toLocaleDateString('pt-BR')}`
                             : 'Data de cadastro não registrada'}
@@ -308,8 +308,8 @@ export default function DashboardPage() {
           <motion.div variants={fadeIn} className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold text-white">Prioridade de reengajamento</h2>
-                <p className="text-sm text-slate-400">
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Prioridade de reengajamento</h2>
+                <p className="text-fluid-sm text-high-contrast-muted">
                   Pacientes inativos ou sem consultas recentes
                 </p>
               </CardHeader>
@@ -345,8 +345,8 @@ export default function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold text-white">Acompanhamentos sugeridos</h2>
-                <p className="text-sm text-slate-400">
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Acompanhamentos sugeridos</h2>
+                <p className="text-fluid-sm text-high-contrast-muted">
                   Pacientes ativos que podem precisar de um novo contato
                 </p>
               </CardHeader>
@@ -366,9 +366,9 @@ export default function DashboardPage() {
                         <p className="text-xs text-sky-300">
                           {patient.lastConsultation
                             ? `Última consulta há ${Math.floor(
-                                (Date.now() - (patient.lastConsultation?.getTime() ?? 0)) /
-                                  (1000 * 60 * 60 * 24)
-                              )} dias`
+                              (Date.now() - (patient.lastConsultation?.getTime() ?? 0)) /
+                              (1000 * 60 * 60 * 24)
+                            )} dias`
                             : 'Sem consultas realizadas'}
                         </p>
                       </div>
