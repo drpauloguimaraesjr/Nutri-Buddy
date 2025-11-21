@@ -13,8 +13,6 @@ export async function GET() {
 
         console.log('🔍 Testing API Key:', apiKey.substring(0, 10) + '...');
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-
         // Try to list models
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
@@ -31,6 +29,7 @@ export async function GET() {
 
         const data = await response.json();
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const models = data.models?.map((m: any) => ({
             name: m.name,
             displayName: m.displayName,
@@ -44,11 +43,13 @@ export async function GET() {
             apiKeyPrefix: apiKey.substring(0, 10) + '...'
         });
 
-    } catch (error: any) {
-        console.error('❌ Error testing models:', error);
+    } catch (error) {
+        const err = error as Error;
+        console.error('❌ Error testing models:', err);
         return NextResponse.json({
-            error: error.message,
-            stack: error.stack
+            error: err.message,
+            stack: err.stack
         }, { status: 500 });
     }
 }
+```
