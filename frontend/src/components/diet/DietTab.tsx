@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { FileText, History, Loader2 } from 'lucide-react';
 import { useDiet } from '@/hooks/useDiet';
 import DietUpload from './DietUpload';
 import DietDisplay from './DietDisplay';
 import DietHistory from './DietHistory';
+import AdherenceScoreCard from '@/components/dashboard/AdherenceScoreCard';
 import type { UploadResult, DietPlan } from '@/types/diet';
+import type { DailyAdherence } from '@/types/adherence';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface DietTabProps {
   patientId: string;
@@ -22,6 +26,10 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
   const [viewMode, setViewMode] = useState<ViewMode>('current');
   const [selectedHistoryDiet, setSelectedHistoryDiet] = useState<DietPlan | null>(null);
 
+  // Estado para aderência
+  const [dailyAdherence, setDailyAdherence] = useState<DailyAdherence | null>(null);
+  const [loadingAdherence, setLoadingAdherence] = useState(false);
+
   const {
     currentDiet,
     dietHistory,
@@ -31,9 +39,38 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
     refresh,
   } = useDiet({ patientId, autoLoad: true });
 
+  // Buscar dados de aderência do dia
+  useEffect(() => {
+    const fetchAdherence = async () => {
+      if (!patientId) return;
+
+      setLoadingAdherence(true);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const docId = `${patientId}_${today}`;
+        const docRef = doc(db, 'dailyAdherence', docId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setDailyAdherence(docSnap.data() as DailyAdherence);
+        } else {
+          setDailyAdherence(null);
+        }
+      } catch (err) {
+        console.error('Error fetching adherence:', err);
+      } finally {
+        setLoadingAdherence(false);
+      }
+    };
+
+    if (viewMode === 'current') {
+      fetchAdherence();
+    }
+  }, [patientId, viewMode]);
+
   const handleUploadSuccess = async (result: UploadResult) => {
     console.log('✅ Upload success:', result);
-    
+
     // Aguardar um pouco para garantir que o Firestore foi atualizado
     setTimeout(async () => {
       await refresh();
@@ -70,6 +107,7 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
         title: 'Dieta reativada!',
         description: 'A dieta selecionada está ativa novamente.',
         variant: 'success',
+        duration: 3000,
       });
       setViewMode('current');
       setSelectedHistoryDiet(null);
@@ -79,6 +117,7 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
         title: 'Erro ao reativar dieta',
         description: errorMessage,
         variant: 'error',
+        duration: 5000,
       });
     }
   };
@@ -105,7 +144,7 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
               </p>
             </div>
           </div>
-          
+
           {!selectedHistoryDiet.isActive && (
             <button
               onClick={() => handleReactivate(selectedHistoryDiet.id!)}
@@ -133,10 +172,9 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
             onClick={() => setViewMode('current')}
             className={`
               px-4 py-3 border-b-2 font-medium text-sm transition-colors
-              ${
-                viewMode === 'current'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ${viewMode === 'current'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }
             `}
           >
@@ -155,10 +193,9 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
             onClick={() => setViewMode('history')}
             className={`
               px-4 py-3 border-b-2 font-medium text-sm transition-colors
-              ${
-                viewMode === 'history'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ${viewMode === 'history'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }
             `}
           >
@@ -184,6 +221,14 @@ export default function DietTab({ patientId, prescriberId, patientName }: DietTa
         <>
           {viewMode === 'current' && (
             <div className="space-y-6">
+              {/* Score de Aderência (apenas se tiver dieta ativa) */}
+              {currentDiet && (
+                <AdherenceScoreCard
+                  data={dailyAdherence}
+                  loading={loadingAdherence}
+                />
+              )}
+
               {currentDiet ? (
                 <DietDisplay
                   dietPlan={currentDiet}
