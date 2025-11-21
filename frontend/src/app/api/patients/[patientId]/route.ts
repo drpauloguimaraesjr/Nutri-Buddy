@@ -17,8 +17,8 @@ export async function PATCH(
         const { patientId } = params;
         const body = await req.json();
 
-        // Atualizar paciente
-        await adminDb.collection('patients').doc(patientId).update(body);
+        // Atualizar usuário (paciente) na coleção 'users'
+        await adminDb.collection('users').doc(patientId).update(body);
 
         return NextResponse.json({ success: true });
 

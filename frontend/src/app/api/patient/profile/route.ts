@@ -12,19 +12,19 @@ export async function GET(req: NextRequest) {
         const decodedToken = await adminAuth.verifyIdToken(token);
         const userId = decodedToken.uid;
 
-        // Buscar dados do paciente
-        const patientDoc = await adminDb.collection('patients').doc(userId).get();
+        // Buscar dados do usuário (paciente)
+        const userDoc = await adminDb.collection('users').doc(userId).get();
 
-        if (!patientDoc.exists) {
-            return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
+        if (!userDoc.exists) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        const patientData = patientDoc.data();
+        const userData = userDoc.data();
 
         return NextResponse.json({
-            id: patientDoc.id,
-            ...patientData,
-            prescriberId: patientData?.prescriberId || null
+            id: userDoc.id,
+            ...userData,
+            prescriberId: userData?.prescriberId || null
         });
 
     } catch (error) {
