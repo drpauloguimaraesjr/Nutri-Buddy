@@ -208,7 +208,7 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-block mb-3">
+          <div className="inline-block mb-1">
             <Image
               src="/logos/nutribuddy-icon-white.svg"
               alt="NutriBuddy Logo"
@@ -219,7 +219,7 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-4xl font-bold text-white mb-2">NutriBuddy</h1>
-          <p className="text-slate-300 text-lg">Sistema de Nutrição Personalizada</p>
+          <p className="text-slate-300 text-lg">Sistema de Acompanhamento Médico Nutricional</p>
         </div>
 
         <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">

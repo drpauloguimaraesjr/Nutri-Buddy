@@ -3,10 +3,10 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, 
-  Plus, 
-  User, 
-  Mail, 
+  Search,
+  Plus,
+  User,
+  Mail,
   Phone,
   Calendar,
   MoreVertical,
@@ -63,10 +63,10 @@ export default function PatientsPage() {
 
     try {
       setIsDeleting(true);
-      
+
       const token = await firebaseUser.getIdToken();
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      
+
       const response = await fetch(`${apiBaseUrl}/api/prescriber/patients/${selectedPatient.id}`, {
         method: 'DELETE',
         headers: {
@@ -80,11 +80,11 @@ export default function PatientsPage() {
       }
 
       removePatient(selectedPatient.id);
-      
+
       // Fechar modal
       setShowDeleteModal(false);
       setSelectedPatient(null);
-      
+
       console.log('✅ Paciente excluído com sucesso');
       showToast({
         title: 'Paciente removido',
@@ -108,10 +108,10 @@ export default function PatientsPage() {
 
     try {
       setOpenMenuId(null);
-      
+
       const token = await firebaseUser.getIdToken();
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      
+
       const response = await fetch(`${apiBaseUrl}/api/prescriber/patients/${patient.id}/send-credentials`, {
         method: 'POST',
         headers: {
@@ -142,7 +142,7 @@ export default function PatientsPage() {
           variant: 'success',
         });
       }
-      
+
       console.log('✅ Credenciais enviadas:', data);
     } catch (error) {
       console.error('❌ Erro ao enviar credenciais:', error);
@@ -302,8 +302,8 @@ export default function PatientsPage() {
       <motion.div variants={itemVariants} className="flex flex-col gap-6">
         <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Pacientes</h1>
-            <p className="text-gray-600">
+            <h1 className="text-fluid-3xl font-bold text-high-contrast">Pacientes</h1>
+            <p className="text-fluid-base text-high-contrast-muted">
               Controle centralizado de pacientes, atividades e engajamento
             </p>
           </div>
@@ -350,9 +350,9 @@ export default function PatientsPage() {
                     </span>
                   </div>
                   <div className="mt-4 space-y-1">
-                    <p className="text-sm font-medium text-gray-500">{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900">{card.value}</p>
-                    <p className="text-xs text-gray-500">{card.description}</p>
+                    <p className="text-fluid-sm font-medium text-high-contrast-muted">{card.title}</p>
+                    <p className="text-fluid-3xl font-bold text-high-contrast">{card.value}</p>
+                    <p className="text-fluid-xs text-high-contrast-muted">{card.description}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -473,7 +473,7 @@ export default function PatientsPage() {
 
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-lg font-semibold text-gray-900">{patient.name}</h3>
+                            <h3 className="text-fluid-lg font-semibold text-high-contrast">{patient.name}</h3>
                             <span
                               className={cn(
                                 'rounded-full px-2.5 py-0.5 text-xs font-medium',
@@ -486,7 +486,7 @@ export default function PatientsPage() {
                             </span>
                           </div>
 
-                          <div className="mt-3 grid gap-3 text-sm text-gray-600 sm:grid-cols-2 xl:grid-cols-3">
+                          <div className="mt-3 grid gap-3 text-fluid-sm text-high-contrast-muted sm:grid-cols-2 xl:grid-cols-3">
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4" />
                               <span className="truncate">{patient.email}</span>
@@ -591,7 +591,7 @@ export default function PatientsPage() {
           <Card className="h-fit">
             <CardContent className="space-y-4 p-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-gray-900">Cadastros recentes</h3>
+                <h3 className="text-fluid-base font-semibold text-high-contrast">Cadastros recentes</h3>
                 <span className="text-xs font-medium text-blue-600">
                   {recentPatients.length} monitorados
                 </span>
@@ -608,7 +608,7 @@ export default function PatientsPage() {
                         {patient.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{patient.name}</p>
+                        <p className="text-fluid-sm font-medium text-high-contrast">{patient.name}</p>
                         <p className="text-xs text-gray-500">
                           {patient.createdAt
                             ? `Cadastro em ${patient.createdAt.toLocaleDateString('pt-BR')}`
