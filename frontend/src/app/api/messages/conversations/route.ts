@@ -2,6 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
+export async function GET(req: NextRequest) {
+    try {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader?.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await adminAuth.verifyIdToken(token);
+        const userId = decodedToken.uid;
+
+        // Buscar conversas do usuário (como paciente ou prescritor)
+        const asPatient = await adminDb
+            .collection('conversations')
+            .where('patientId', '==', userId)
+            .get();
+
+        const asPrescriber = await adminDb
+            .collection('conversations')
+            .where('prescriberId', '==', userId)
+            .get();
+
+        const conversations = [
+            ...asPatient.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+            ...asPrescriber.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        ];
+
+        return NextResponse.json({ conversations });
+
+    } catch (error) {
+        console.error('Error fetching conversations:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
 export async function POST(req: NextRequest) {
     try {
         const authHeader = req.headers.get('Authorization');
