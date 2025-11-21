@@ -11,6 +11,16 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-plus-jakarta)', 'system-ui', 'sans-serif'],
       },
+      fontSize: {
+        'fluid-xs': 'var(--font-size-xs)',
+        'fluid-sm': 'var(--font-size-sm)',
+        'fluid-base': 'var(--font-size-base)',
+        'fluid-lg': 'var(--font-size-lg)',
+        'fluid-xl': 'var(--font-size-xl)',
+        'fluid-2xl': 'var(--font-size-2xl)',
+        'fluid-3xl': 'var(--font-size-3xl)',
+        'fluid-4xl': 'var(--font-size-4xl)',
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
