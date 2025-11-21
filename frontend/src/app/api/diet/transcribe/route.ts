@@ -41,13 +41,18 @@ interface DietDataResponse {
 }
 
 // Função para validar resposta do Gemini
-function validateDietData(data: any): data is DietDataResponse {
+function validateDietData(data: unknown): data is DietDataResponse {
+  if (!data || typeof data !== 'object') return false;
+
+  const obj = data as Record<string, unknown>;
+
   return (
-    data &&
-    typeof data.textoFormatado === 'string' &&
-    data.totais &&
-    typeof data.totais.calorias === 'number' &&
-    Array.isArray(data.refeicoes)
+    typeof obj.textoFormatado === 'string' &&
+    obj.totais !== undefined &&
+    typeof obj.totais === 'object' &&
+    obj.totais !== null &&
+    typeof (obj.totais as Record<string, unknown>).calorias === 'number' &&
+    Array.isArray(obj.refeicoes)
   );
 }
 
@@ -336,21 +341,22 @@ Analise este PDF de plano alimentar e extraia TODOS os dados em JSON estruturado
       data: dietPlan
     });
 
-  } catch (error: any) {
-    console.error('❌ Erro na transcrição:', error);
-    console.error('Stack trace:', error.stack);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('❌ Erro na transcrição:', err);
+    console.error('Stack trace:', err.stack);
 
     // Identificar tipo de erro
     let errorMessage = 'Erro ao processar dieta';
-    let errorDetails = error.toString();
+    const errorDetails = err instanceof Error ? err.message : String(error);
 
-    if (error.message?.includes('Falha ao baixar PDF')) {
+    if (err.message?.includes('Falha ao baixar PDF')) {
       errorMessage = 'Não foi possível acessar o PDF. Verifique se o link está correto.';
-    } else if (error.message?.includes('JSON')) {
+    } else if (err.message?.includes('JSON')) {
       errorMessage = 'Erro ao processar resposta da IA. Tente novamente.';
-    } else if (error.message?.includes('quota')) {
+    } else if (err.message?.includes('quota')) {
       errorMessage = 'Limite de uso da API atingido. Tente novamente em alguns minutos.';
-    } else if (error.message?.includes('timeout')) {
+    } else if (err.message?.includes('timeout')) {
       errorMessage = 'Tempo limite excedido. O PDF pode ser muito grande.';
     }
 
@@ -359,7 +365,7 @@ Analise este PDF de plano alimentar e extraia TODOS os dados em JSON estruturado
         success: false,
         message: errorMessage,
         details: errorDetails,
-        error: error.message
+        error: err.message
       },
       { status: 500 }
     );
