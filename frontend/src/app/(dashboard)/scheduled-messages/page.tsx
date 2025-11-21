@@ -138,7 +138,7 @@ export default function ScheduledMessagesPage() {
       pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       sent: 'bg-green-100 text-green-800 border-green-200',
       failed: 'bg-red-100 text-red-800 border-red-200',
-      cancelled: 'bg-gray-100 text-gray-800 border-gray-200',
+      cancelled: 'bg-gray-100 text-high-contrast border-gray-200',
     };
 
     const labels = {
@@ -150,7 +150,7 @@ export default function ScheduledMessagesPage() {
 
     return (
       <span
-        className={`px-2 py-1 text-xs font-medium rounded-full border ${
+        className={`px-2 py-1 text-fluid-xs font-medium rounded-full border ${
           styles[status as keyof typeof styles]
         }`}
       >
@@ -197,8 +197,8 @@ export default function ScheduledMessagesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mensagens Agendadas</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Mensagens Agendadas</h1>
+          <p className="text-high-contrast-muted mt-1">
             Agende lembretes e mensagens automáticas para seus pacientes
           </p>
         </div>
@@ -217,10 +217,10 @@ export default function ScheduledMessagesPage() {
           <button
             key={f}
             onClick={() => setFilter(f as 'all' | 'pending' | 'sent' | 'failed')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-fluid-sm font-medium transition-colors ${
               filter === f
                 ? 'bg-purple-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                : 'bg-white text-high-contrast-muted hover:bg-gray-50 border border-gray-200'
             }`}
           >
             {f === 'all' ? 'Todas' : f === 'pending' ? 'Pendentes' : f === 'sent' ? 'Enviadas' : 'Falhadas'}
@@ -231,24 +231,24 @@ export default function ScheduledMessagesPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
-          <p className="text-sm text-gray-600">Total</p>
-          <p className="text-2xl font-bold text-gray-900">{messages.length}</p>
+          <p className="text-fluid-sm text-high-contrast-muted">Total</p>
+          <p className="text-fluid-2xl font-bold text-high-contrast">{messages.length}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-gray-600">Pendentes</p>
-          <p className="text-2xl font-bold text-yellow-600">
+          <p className="text-fluid-sm text-high-contrast-muted">Pendentes</p>
+          <p className="text-fluid-2xl font-bold text-yellow-600">
             {messages.filter((m) => m.status === 'pending').length}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-gray-600">Enviadas</p>
-          <p className="text-2xl font-bold text-green-600">
+          <p className="text-fluid-sm text-high-contrast-muted">Enviadas</p>
+          <p className="text-fluid-2xl font-bold text-green-600">
             {messages.filter((m) => m.status === 'sent').length}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-gray-600">Falhadas</p>
-          <p className="text-2xl font-bold text-red-600">
+          <p className="text-fluid-sm text-high-contrast-muted">Falhadas</p>
+          <p className="text-fluid-2xl font-bold text-red-600">
             {messages.filter((m) => m.status === 'failed').length}
           </p>
         </Card>
@@ -259,10 +259,10 @@ export default function ScheduledMessagesPage() {
         {filteredMessages.length === 0 ? (
           <Card className="p-12 text-center">
             <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-fluid-lg font-semibold text-high-contrast mb-2">
               Nenhuma mensagem agendada
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-high-contrast-muted mb-4">
               Clique em &quot;Agendar Mensagem&quot; para criar sua primeira mensagem automática
             </p>
             <Button onClick={() => setShowCreateModal(true)}>
@@ -277,16 +277,16 @@ export default function ScheduledMessagesPage() {
                 <div className="flex-1 space-y-3">
                   {/* Header */}
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900">{message.patientName}</h3>
+                    <h3 className="font-semibold text-high-contrast">{message.patientName}</h3>
                     {getStatusBadge(message.status)}
-                    <span className="text-sm text-gray-500">{getChannelIcon(message.channel)}</span>
+                    <span className="text-fluid-sm text-high-contrast-muted">{getChannelIcon(message.channel)}</span>
                   </div>
 
                   {/* Mensagem */}
-                  <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{message.message}</p>
+                  <p className="text-high-contrast-muted bg-gray-50 p-3 rounded-lg">{message.message}</p>
 
                   {/* Meta info */}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                  <div className="flex flex-wrap items-center gap-4 text-fluid-sm text-high-contrast-muted">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       <span>{formatDateTime(message.scheduledFor)}</span>
@@ -349,15 +349,15 @@ function CreateMessageModal({
   return (
     <Modal isOpen onClose={onClose} title="Agendar Nova Mensagem">
       <div className="p-6 space-y-4">
-        <p className="text-gray-600">
+        <p className="text-high-contrast-muted">
           🚧 Formulário em desenvolvimento
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-fluid-sm text-high-contrast-muted">
           Por enquanto, use os endpoints REST para criar mensagens agendadas.
           Consulte a documentação em <code className="bg-gray-100 px-1 rounded">INTEGRACAO-WHATSAPP-CHAT-COMPLETA.md</code>
         </p>
         {templates.length > 0 && (
-          <p className="text-xs text-purple-600">
+          <p className="text-fluid-xs text-purple-600">
             {templates.length} template(s) disponível(is)
           </p>
         )}

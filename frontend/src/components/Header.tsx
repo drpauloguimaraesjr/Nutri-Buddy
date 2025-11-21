@@ -23,15 +23,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-xl border-b border-slate-700 px-6 py-4">
+    <header className="sticky top-0 z-30 bg-background-secondary/95 backdrop-blur-xl border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Left side */}
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-slate-800"
+            className="lg:hidden p-2 rounded-lg hover:bg-background-secondary"
           >
-            <Menu className="w-6 h-6 text-slate-300" />
+            <Menu className="w-6 h-6 text-high-contrast-muted" />
           </button>
 
           <div className="hidden lg:flex items-center gap-3 mr-4">
@@ -45,10 +45,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
 
           <div>
-            <h1 className="text-xl font-bold text-white">
+            <h1 className="text-fluid-xl font-bold text-high-contrast">
               Bem-vindo, {user?.displayName || 'Usuário'}!
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-fluid-sm text-high-contrast-muted">
               {user?.role === 'prescriber' && 'Painel do Prescritor'}
               {user?.role === 'patient' && 'Painel do Paciente'}
               {user?.role === 'admin' && 'Painel Administrativo'}
@@ -62,7 +62,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Theme Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-lg hover:bg-slate-800/50 text-slate-300 hover:text-white transition-colors glow-hover"
+            className="p-2 rounded-lg hover:bg-background-secondary text-high-contrast-muted hover:text-high-contrast transition-colors glow-hover"
             title="Alternar Tema (Claro/Escuro)"
           >
             {isDarkMode ? (
@@ -72,7 +72,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             )}
           </button>
 
-          <button className="p-2 rounded-lg hover:bg-slate-800/50 relative text-slate-300 hover:text-white transition-colors">
+          <button className="p-2 rounded-lg hover:bg-background-secondary relative text-high-contrast-muted hover:text-high-contrast transition-colors">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
@@ -81,7 +81,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="gap-2 text-slate-300 hover:text-white hover:bg-slate-800/50"
+            className="gap-2 text-high-contrast-muted hover:text-high-contrast hover:bg-background-secondary"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sair</span>

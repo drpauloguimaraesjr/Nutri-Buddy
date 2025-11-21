@@ -128,7 +128,7 @@ export default function PrescriberChatPage() {
       case 'resolved':
         return 'bg-emerald-100 text-emerald-700';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-gray-100 text-high-contrast-muted';
     }
   };
 
@@ -140,9 +140,9 @@ export default function PrescriberChatPage() {
         animate={{ opacity: 1, y: 0 }}
       >
         <div>
-          <p className="text-sm uppercase tracking-wide text-gray-500">Conversas</p>
-          <h1 className="text-3xl font-bold text-gray-900">Central de atendimento</h1>
-          <p className="text-gray-600 mt-1">Envie e receba mensagens diretamente pelo dashboard.</p>
+          <p className="text-fluid-sm uppercase tracking-wide text-high-contrast-muted">Conversas</p>
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Central de atendimento</h1>
+          <p className="text-high-contrast-muted mt-1">Envie e receba mensagens diretamente pelo dashboard.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={fetchConversations} disabled={isRefreshing}>
@@ -162,7 +162,7 @@ export default function PrescriberChatPage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar paciente"
-                className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2 text-fluid-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -170,19 +170,19 @@ export default function PrescriberChatPage() {
               <div className="flex flex-1 items-center justify-center">
                 <div className="text-center space-y-3">
                   <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
-                  <p className="text-sm text-gray-500">Carregando conversas...</p>
+                  <p className="text-fluid-sm text-high-contrast-muted">Carregando conversas...</p>
                 </div>
               </div>
             ) : error ? (
               <div className="flex flex-1 items-center justify-center text-center">
                 <div className="space-y-3">
                   <AlertCircle className="w-8 h-8 text-red-500 mx-auto" />
-                  <p className="text-sm text-red-600">{error}</p>
+                  <p className="text-fluid-sm text-red-600">{error}</p>
                   <Button size="sm" onClick={fetchConversations}>Tentar novamente</Button>
                 </div>
               </div>
             ) : filteredConversations.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center text-center text-gray-500 text-sm px-8">
+              <div className="flex flex-1 items-center justify-center text-center text-high-contrast-muted text-fluid-sm px-8">
                 Nenhuma conversa encontrada.
               </div>
             ) : (
@@ -202,14 +202,14 @@ export default function PrescriberChatPage() {
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="font-semibold text-gray-900">
+                          <p className="font-semibold text-high-contrast">
                             {conversation.metadata?.patientName || 'Paciente sem nome'}
                           </p>
-                          <p className="text-sm text-gray-500 line-clamp-2">
+                          <p className="text-fluid-sm text-high-contrast-muted line-clamp-2">
                             {conversation.lastMessage || 'Sem mensagens registradas.'}
                           </p>
                         </div>
-                        <div className="text-xs text-gray-400 whitespace-nowrap">
+                        <div className="text-fluid-xs text-gray-400 whitespace-nowrap">
                           {formatDistanceToNow(new Date(conversation.lastMessageAt), {
                             addSuffix: true,
                             locale: ptBR,
@@ -244,12 +244,12 @@ export default function PrescriberChatPage() {
                   <MessageSquare className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Selecione uma conversa</h3>
-                  <p className="text-sm text-gray-500">
+                  <h3 className="text-fluid-lg font-semibold text-high-contrast">Selecione uma conversa</h3>
+                  <p className="text-fluid-sm text-high-contrast-muted">
                     Escolha um paciente na lista para ver o histórico e responder por aqui.
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-fluid-sm text-high-contrast-muted">
                   <Users2 className="w-4 h-4" />
                   {conversations.length > 0
                     ? `${conversations.length} pacientes em acompanhamento`

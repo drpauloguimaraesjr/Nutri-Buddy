@@ -280,7 +280,7 @@ export default function WhatsAppDashboardPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
-          <p className="text-gray-600">Carregando conversas do WhatsApp...</p>
+          <p className="text-high-contrast-muted">Carregando conversas do WhatsApp...</p>
         </div>
       </div>
     );
@@ -296,8 +296,8 @@ export default function WhatsAppDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard WhatsApp</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Dashboard WhatsApp</h1>
+          <p className="text-high-contrast-muted mt-1">
             Acompanhe as conversas e o progresso dos seus pacientes em tempo real
           </p>
         </div>

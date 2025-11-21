@@ -118,8 +118,8 @@ export default function PlansPage() {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Planos Nutricionais</h1>
-          <p className="text-gray-600">
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Planos Nutricionais</h1>
+          <p className="text-high-contrast-muted">
             Crie, edite e acompanhe os planos alimentares dos seus pacientes.
           </p>
         </div>
@@ -133,17 +133,17 @@ export default function PlansPage() {
       {isLoading ? (
         <motion.div variants={itemVariants} className="flex flex-col items-center justify-center gap-4 py-16 text-center">
           <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-r-transparent" />
-          <p className="text-gray-600">Carregando planos...</p>
+          <p className="text-high-contrast-muted">Carregando planos...</p>
         </motion.div>
       ) : !hasPlans ? (
         <motion.div variants={itemVariants}>
           <Card>
             <CardContent className="text-center py-16">
               <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-fluid-xl font-semibold text-high-contrast mb-2">
                 Nenhum plano criado ainda
               </h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              <p className="text-high-contrast-muted mb-6 max-w-md mx-auto">
                 Comece criando planos nutricionais personalizados para seus pacientes.
                 Você pode definir refeições, objetivos e acompanhamento.
               </p>
@@ -175,17 +175,17 @@ export default function PlansPage() {
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-fluid-xl font-semibold text-high-contrast">
                         {plan.name}
                       </h3>
-                      <p className="text-sm text-gray-500">{plan.objective || 'Sem objetivo definido'}</p>
+                      <p className="text-fluid-sm text-high-contrast-muted">{plan.objective || 'Sem objetivo definido'}</p>
                     </div>
                     <div className="rounded-full bg-blue-50 p-3 text-blue-600">
                       <FileText className="w-5 h-5" />
                     </div>
                   </div>
 
-                  <div className="space-y-2 text-sm text-gray-600">
+                  <div className="space-y-2 text-fluid-sm text-high-contrast-muted">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
                       <span>{plan.patientName}</span>
@@ -206,12 +206,12 @@ export default function PlansPage() {
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-blue-700">
-                      <p className="text-xs uppercase tracking-wide">Calorias</p>
-                      <p className="text-lg font-semibold">{plan.macros?.calories ?? '-'} kcal</p>
+                      <p className="text-fluid-xs uppercase tracking-wide">Calorias</p>
+                      <p className="text-fluid-lg font-semibold">{plan.macros?.calories ?? '-'} kcal</p>
                     </div>
                     <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-green-700">
-                      <p className="text-xs uppercase tracking-wide">Proteínas</p>
-                      <p className="text-lg font-semibold">{plan.macros?.protein ?? '-'} g</p>
+                      <p className="text-fluid-xs uppercase tracking-wide">Proteínas</p>
+                      <p className="text-fluid-lg font-semibold">{plan.macros?.protein ?? '-'} g</p>
                     </div>
                   </div>
                 </CardContent>

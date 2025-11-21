@@ -348,7 +348,7 @@ export default function CreatePlanPage() {
         <Button
           type="button"
           variant="ghost"
-          className="w-fit gap-2 px-0 text-gray-600 hover:text-gray-900"
+          className="w-fit gap-2 px-0 text-high-contrast-muted hover:text-high-contrast"
           onClick={() => router.push('/plans')}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -356,8 +356,8 @@ export default function CreatePlanPage() {
         </Button>
 
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Novo plano nutricional</h1>
-          <p className="text-gray-600">
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Novo plano nutricional</h1>
+          <p className="text-high-contrast-muted">
             Configure o plano alimentar, metas nutricionais e anexe materiais para o paciente.
           </p>
         </div>
@@ -365,7 +365,7 @@ export default function CreatePlanPage() {
 
       {feedback && (
         <div
-          className={`flex items-center gap-2 rounded-xl border p-4 text-sm ${
+          className={`flex items-center gap-2 rounded-xl border p-4 text-fluid-sm ${
             feedback.type === 'success'
               ? 'border-green-200 bg-green-50 text-green-700'
               : 'border-red-200 bg-red-50 text-red-700'
@@ -385,14 +385,14 @@ export default function CreatePlanPage() {
           <CardContent className="space-y-6 p-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-gray-700">
+                <label className="text-fluid-sm font-semibold text-high-contrast-muted">
                   Paciente
                 </label>
                 <select
                   value={selectedPatientId}
                   onChange={(event) => setSelectedPatientId(event.target.value)}
                   disabled={isFormDisabled || isLoadingPatients}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-fluid-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
                   required
                 >
                   <option value="">
@@ -405,7 +405,7 @@ export default function CreatePlanPage() {
                   ))}
                 </select>
                 {!isLoadingPatients && patients.length === 0 && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-fluid-xs text-high-contrast-muted">
                     Você ainda não possui pacientes cadastrados. Adicione pacientes para criar planos.
                   </p>
                 )}
@@ -446,7 +446,7 @@ export default function CreatePlanPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-gray-700">
+              <label className="text-fluid-sm font-semibold text-high-contrast-muted">
                 Observações gerais para o paciente
               </label>
               <textarea
@@ -455,7 +455,7 @@ export default function CreatePlanPage() {
                 placeholder="Instruções adicionais, recomendações e observações importantes."
                 disabled={isFormDisabled}
                 rows={4}
-                className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
+                className="w-full rounded-lg border border-gray-300 p-3 text-fluid-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
               />
             </div>
           </CardContent>
@@ -465,7 +465,7 @@ export default function CreatePlanPage() {
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Metas nutricionais</h2>
+              <h2 className="text-fluid-lg font-semibold text-high-contrast">Metas nutricionais</h2>
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
@@ -510,7 +510,7 @@ export default function CreatePlanPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UtensilsCrossed className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Plano de refeições</h2>
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Plano de refeições</h2>
               </div>
               <Button
                 type="button"
@@ -529,7 +529,7 @@ export default function CreatePlanPage() {
               {meals.map((meal, index) => (
                 <div key={meal.id} className="rounded-xl border border-gray-200 p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-sm font-semibold text-gray-700">
+                    <h3 className="text-fluid-sm font-semibold text-high-contrast-muted">
                       Refeição {index + 1}
                     </h3>
                     {meals.length > 1 && (
@@ -573,7 +573,7 @@ export default function CreatePlanPage() {
                   </div>
 
                   <div className="mt-4 flex flex-col gap-2">
-                    <label className="text-sm font-semibold text-gray-700">
+                    <label className="text-fluid-sm font-semibold text-high-contrast-muted">
                       Descrição / Alimentos
                     </label>
                     <textarea
@@ -582,7 +582,7 @@ export default function CreatePlanPage() {
                       placeholder="Descreva os alimentos, porções e orientações específicas."
                       disabled={isFormDisabled}
                       rows={3}
-                      className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 p-3 text-fluid-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
                     />
                   </div>
                 </div>
@@ -596,14 +596,14 @@ export default function CreatePlanPage() {
             <div className="flex flex-col justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center">
               <Upload className="mx-auto h-10 w-10 text-blue-500" />
               <div>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-fluid-sm font-semibold text-high-contrast">
                   Upload do plano em PDF (opcional)
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-fluid-xs text-high-contrast-muted">
                   Use o PDF como referência. Ele ficará disponível para o paciente.
                 </p>
               </div>
-              <label className="mx-auto inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
+              <label className="mx-auto inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-fluid-sm font-medium text-white transition hover:bg-blue-700">
                 <Upload className="h-4 w-4" />
                 Selecionar PDF
                 <input
@@ -616,7 +616,7 @@ export default function CreatePlanPage() {
               </label>
               {isUploading && uploadProgress !== null && (
                 <div className="w-full">
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-fluid-xs text-high-contrast-muted">
                     <span>Enviando...</span>
                     <span>{uploadProgress}%</span>
                   </div>
@@ -632,11 +632,11 @@ export default function CreatePlanPage() {
                 <div className="w-full rounded-lg border border-blue-200 bg-blue-50 p-4">
                   <div className="flex items-center gap-2 text-blue-700">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm font-medium">
+                    <span className="text-fluid-sm font-medium">
                       Processando dieta com IA...
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-blue-600">
+                  <p className="mt-1 text-fluid-xs text-blue-600">
                     GPT-4o está analisando o PDF com precisão cirúrgica. Aguarde...
                   </p>
                 </div>
@@ -644,11 +644,11 @@ export default function CreatePlanPage() {
             </div>
 
             <div className="rounded-xl border border-gray-200 p-4">
-              <h3 className="text-sm font-semibold text-gray-700">Arquivo selecionado</h3>
+              <h3 className="text-fluid-sm font-semibold text-high-contrast-muted">Arquivo selecionado</h3>
               {planFile ? (
-                <div className="mt-3 space-y-3 text-sm text-gray-600">
+                <div className="mt-3 space-y-3 text-fluid-sm text-high-contrast-muted">
                   <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                    <span className="font-medium text-gray-900">{planFile.name}</span>
+                    <span className="font-medium text-high-contrast">{planFile.name}</span>
                     <div className="flex items-center gap-2">
                       <a
                         href={planFile.url}
@@ -670,22 +670,22 @@ export default function CreatePlanPage() {
                       </Button>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-fluid-xs text-high-contrast-muted">
                     O arquivo ficará disponível para consulta do paciente após a publicação do plano.
                   </p>
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-gray-500">
+                <p className="mt-3 text-fluid-sm text-high-contrast-muted">
                   Nenhum PDF enviado ainda.
                 </p>
               )}
               
               {aiTranscription && (
                 <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
-                  <h4 className="text-sm font-semibold text-green-900">
+                  <h4 className="text-fluid-sm font-semibold text-green-900">
                     ✅ Transcrição Automática (IA)
                   </h4>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-green-700">
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-fluid-xs text-green-700">
                     <div>
                       <span className="font-medium">📊 Calorias:</span>{' '}
                       {aiTranscription.totalCalorias} kcal
@@ -703,7 +703,7 @@ export default function CreatePlanPage() {
                       {aiTranscription.objetivo}
                     </div>
                   </div>
-                  <p className="mt-2 text-xs text-green-600">
+                  <p className="mt-2 text-fluid-xs text-green-600">
                     Os dados foram salvos automaticamente no perfil do paciente!
                   </p>
                 </div>

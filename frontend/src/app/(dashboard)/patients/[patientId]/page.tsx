@@ -644,8 +644,8 @@ export default function PatientDetailPage() {
         <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
           <AlertCircle className="h-10 w-10 text-red-500" />
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Nenhum paciente selecionado</h2>
-            <p className="text-gray-600">Volte para a lista de pacientes e tente novamente.</p>
+            <h2 className="text-fluid-lg font-semibold text-high-contrast">Nenhum paciente selecionado</h2>
+            <p className="text-high-contrast-muted">Volte para a lista de pacientes e tente novamente.</p>
           </div>
         </div>
       );
@@ -669,7 +669,7 @@ export default function PatientDetailPage() {
         return renderDietTab();
       default:
       return (
-        <div className="py-12 text-center text-gray-500">
+        <div className="py-12 text-center text-high-contrast-muted">
           Conteúdo da aba <span className="font-semibold">{activeTab}</span> ainda em desenvolvimento.
         </div>
       );
@@ -700,10 +700,10 @@ export default function PatientDetailPage() {
                 <QrCode className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-green-900">
+                <h3 className="text-fluid-lg font-semibold text-green-900">
                   Ativar Paciente no WhatsApp
                 </h3>
-                <p className="mt-1 text-sm text-green-700">
+                <p className="mt-1 text-fluid-sm text-green-700">
                   Envie o QR Code ou link para {patient?.name} iniciar a conversação.
                   O paciente manda a primeira mensagem (Meta não bloqueia!) 🎯
                 </p>
@@ -715,7 +715,7 @@ export default function PatientDetailPage() {
         {/* QR Code */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">QR Code de Ativação</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">QR Code de Ativação</h3>
             
             <div className="flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8">
               <img 
@@ -725,8 +725,8 @@ export default function PatientDetailPage() {
               />
               
               <div className="text-center">
-                <p className="font-semibold text-gray-900">Paciente escaneia e envia!</p>
-                <p className="text-sm text-gray-600">
+                <p className="font-semibold text-high-contrast">Paciente escaneia e envia!</p>
+                <p className="text-fluid-sm text-high-contrast-muted">
                   WhatsApp abre com mensagem pronta
                 </p>
               </div>
@@ -786,11 +786,11 @@ export default function PatientDetailPage() {
         {/* Link Direto */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Link Direto (WhatsApp Web)</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Link Direto (WhatsApp Web)</h3>
             
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <p className="mb-2 text-sm font-medium text-gray-700">Cole este link para o paciente:</p>
-              <code className="block break-all rounded bg-white p-3 text-xs text-gray-800">
+              <p className="mb-2 text-fluid-sm font-medium text-high-contrast-muted">Cole este link para o paciente:</p>
+              <code className="block break-all rounded bg-white p-3 text-fluid-xs text-high-contrast">
                 {whatsappLink}
               </code>
             </div>
@@ -805,18 +805,18 @@ export default function PatientDetailPage() {
         {/* Mensagem que será enviada */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Mensagem de Ativação</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Mensagem de Ativação</h3>
             
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <p className="mb-2 text-sm font-medium text-green-700">
+              <p className="mb-2 text-fluid-sm font-medium text-green-700">
                 Quando o paciente escanear/clicar, WhatsApp abre com:
               </p>
               <div className="rounded-lg bg-white p-4 shadow-sm">
-                <p className="text-gray-800">{activationMessage}</p>
+                <p className="text-high-contrast">{activationMessage}</p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-fluid-sm text-blue-800">
               <p>
                 <strong>💡 Como funciona:</strong> Quando o paciente clica no link ou escaneia 
                 o QR Code, o WhatsApp dele abre automaticamente com esta mensagem pronta. 
@@ -839,14 +839,14 @@ export default function PatientDetailPage() {
                   <MessageSquare className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Chat Direto com Paciente</h3>
-                  <p className="text-sm text-gray-600">
+                  <h3 className="text-fluid-lg font-semibold text-high-contrast">Chat Direto com Paciente</h3>
+                  <p className="text-fluid-sm text-high-contrast-muted">
                     Envie mensagens direto pelo dashboard
                   </p>
                 </div>
               </div>
 
-              <p className="text-sm text-gray-600">
+              <p className="text-fluid-sm text-high-contrast-muted">
                 Inicie uma conversa com {patient?.name} diretamente pela central de atendimento.
                 {' '}As mensagens serão sincronizadas e você receberá notificações em tempo real.
               </p>
@@ -875,9 +875,9 @@ export default function PatientDetailPage() {
         {/* Enviar por Email */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Enviar por Email</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Enviar por Email</h3>
             
-            <p className="text-sm text-gray-600">
+            <p className="text-fluid-sm text-high-contrast-muted">
               Envie o QR Code por email para {patient?.email}
             </p>
 
@@ -895,7 +895,7 @@ export default function PatientDetailPage() {
               <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
               <div>
                 <p className="font-semibold text-yellow-900">Aguardando Ativação</p>
-                <p className="mt-1 text-sm text-yellow-700">
+                <p className="mt-1 text-fluid-sm text-yellow-700">
                   Paciente ainda não enviou a primeira mensagem. Envie o QR Code ou link acima.
                 </p>
               </div>
@@ -916,8 +916,8 @@ export default function PatientDetailPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Peso Atual</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-fluid-sm text-high-contrast-muted">Peso Atual</p>
+                  <p className="text-fluid-3xl font-bold text-high-contrast">
                     {patient?.weight ? `${patient.weight}kg` : '--'}
                   </p>
                 </div>
@@ -933,8 +933,8 @@ export default function PatientDetailPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Peso Meta</p>
-                  <p className="text-3xl font-bold text-gray-900">{targetWeight}kg</p>
+                  <p className="text-fluid-sm text-high-contrast-muted">Peso Meta</p>
+                  <p className="text-fluid-3xl font-bold text-high-contrast">{targetWeight}kg</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
                   <span className="text-2xl">🎯</span>
@@ -948,8 +948,8 @@ export default function PatientDetailPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Falta Perder</p>
-                  <p className="text-3xl font-bold text-purple-600">
+                  <p className="text-fluid-sm text-high-contrast-muted">Falta Perder</p>
+                  <p className="text-fluid-3xl font-bold text-purple-600">
                     {patient?.weight ? `${(patient.weight - targetWeight).toFixed(1)}kg` : '--'}
                   </p>
                 </div>
@@ -966,8 +966,8 @@ export default function PatientDetailPage() {
           <CardContent className="p-6 space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold text-gray-900">Progresso da Meta</h3>
-                <span className="text-sm font-medium text-purple-600">
+                <h3 className="text-fluid-lg font-semibold text-high-contrast">Progresso da Meta</h3>
+                <span className="text-fluid-sm font-medium text-purple-600">
                   {patient?.weight ? Math.round(((initialWeight - patient.weight) / (initialWeight - targetWeight)) * 100) : 0}% concluído
                 </span>
               </div>
@@ -983,18 +983,18 @@ export default function PatientDetailPage() {
 
             <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
               <div>
-                <p className="text-xs text-gray-600">Peso Inicial</p>
-                <p className="text-lg font-semibold text-gray-900">{initialWeight}kg</p>
+                <p className="text-fluid-xs text-high-contrast-muted">Peso Inicial</p>
+                <p className="text-fluid-lg font-semibold text-high-contrast">{initialWeight}kg</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-gray-600">Progresso</p>
-                <p className="text-lg font-semibold text-purple-600">
+                <p className="text-fluid-xs text-high-contrast-muted">Progresso</p>
+                <p className="text-fluid-lg font-semibold text-purple-600">
                   {patient?.weight ? `-${(initialWeight - patient.weight).toFixed(1)}kg` : '--'}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-600">Meta Final</p>
-                <p className="text-lg font-semibold text-gray-900">{targetWeight}kg</p>
+                <p className="text-fluid-xs text-high-contrast-muted">Meta Final</p>
+                <p className="text-fluid-lg font-semibold text-high-contrast">{targetWeight}kg</p>
               </div>
             </div>
           </CardContent>
@@ -1003,11 +1003,11 @@ export default function PatientDetailPage() {
         {/* Objetivo Principal */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Objetivo Principal</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Objetivo Principal</h3>
             <select 
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white p-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              className="w-full rounded-lg border border-gray-200 bg-white p-3 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
             >
               <option value="lose_weight">Perder peso</option>
               <option value="gain_muscle">Ganhar massa muscular</option>
@@ -1020,25 +1020,25 @@ export default function PatientDetailPage() {
             
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted mb-1">
                   Peso Inicial (kg)
                 </label>
                 <input
                   type="number"
                   value={initialWeight}
                   onChange={(e) => setInitialWeight(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted mb-1">
                   Peso Meta (kg)
                 </label>
                 <input
                   type="number"
                   value={targetWeight}
                   onChange={(e) => setTargetWeight(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
               </div>
             </div>
@@ -1049,7 +1049,7 @@ export default function PatientDetailPage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Metas Semanais</h3>
+              <h3 className="text-fluid-lg font-semibold text-high-contrast">Metas Semanais</h3>
               <Button variant="outline" size="sm">
                 <Plus className="mr-1 h-4 w-4" />
                 Adicionar
@@ -1066,7 +1066,7 @@ export default function PatientDetailPage() {
                     defaultChecked
                     className="h-5 w-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                   />
-                  <span className="flex-1 text-sm text-gray-700">{goal}</span>
+                  <span className="flex-1 text-fluid-sm text-high-contrast-muted">{goal}</span>
                   <button
                     onClick={() => setWeeklyGoals(weeklyGoals.filter((_, i) => i !== index))}
                     className="text-red-600 hover:text-red-700"
@@ -1077,7 +1077,7 @@ export default function PatientDetailPage() {
               ))}
               
               {weeklyGoals.length === 0 && (
-                <p className="text-center text-sm text-gray-400 py-4">
+                <p className="text-center text-fluid-sm text-gray-400 py-4">
                   Nenhuma meta semanal adicionada ainda
                 </p>
               )}
@@ -1088,7 +1088,7 @@ export default function PatientDetailPage() {
         {/* Conquistas/Badges */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Conquistas</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Conquistas</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { emoji: '🔥', title: '7 dias seguidos', achieved: true },
@@ -1105,7 +1105,7 @@ export default function PatientDetailPage() {
                   }`}
                 >
                   <span className="text-3xl">{badge.emoji}</span>
-                  <p className="text-center text-xs font-medium text-gray-700">{badge.title}</p>
+                  <p className="text-center text-fluid-xs font-medium text-high-contrast-muted">{badge.title}</p>
                 </div>
               ))}
             </div>
@@ -1215,14 +1215,14 @@ export default function PatientDetailPage() {
         {/* Upload InBody */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Bioimpedância InBody 770</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Bioimpedância InBody 770</h3>
             
             <div className="grid gap-4 md:grid-cols-2">
               <label className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 p-6 text-center transition hover:border-purple-400 hover:bg-purple-100 cursor-pointer">
                 <Upload className="h-10 w-10 text-purple-500" />
                 <div>
-                  <p className="font-medium text-gray-900">Upload PDF InBody</p>
-                  <p className="text-sm text-gray-500">Dados da bioimpedância</p>
+                  <p className="font-medium text-high-contrast">Upload PDF InBody</p>
+                  <p className="text-fluid-sm text-high-contrast-muted">Dados da bioimpedância</p>
                 </div>
                 <input
                   type="file"
@@ -1234,7 +1234,7 @@ export default function PatientDetailPage() {
               </label>
 
               <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <h4 className="mb-2 flex items-center gap-2 text-fluid-sm font-semibold text-high-contrast-muted">
                   <FileText className="h-4 w-4" />
                   PDF Carregado
                 </h4>
@@ -1242,8 +1242,8 @@ export default function PatientDetailPage() {
                 {inbodyFile ? (
                   <div className="flex items-center justify-between rounded-lg bg-purple-50 p-3">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{inbodyFile.name}</p>
-                      <p className="text-xs text-purple-600">InBody pronto</p>
+                      <p className="text-fluid-sm font-medium text-high-contrast">{inbodyFile.name}</p>
+                      <p className="text-fluid-xs text-purple-600">InBody pronto</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {inbodyFile.url && (
@@ -1251,7 +1251,7 @@ export default function PatientDetailPage() {
                           href={inbodyFile.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                          className="inline-flex items-center rounded-lg border-2 border-gray-300 px-3 py-1.5 text-fluid-sm font-medium text-high-contrast-muted transition hover:bg-gray-50"
                         >
                           <Download className="mr-2 h-4 w-4" />
                           Ver
@@ -1260,7 +1260,7 @@ export default function PatientDetailPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Nenhum PDF enviado.</p>
+                  <p className="text-fluid-sm text-high-contrast-muted">Nenhum PDF enviado.</p>
                 )}
               </div>
             </div>
@@ -1272,8 +1272,8 @@ export default function PatientDetailPage() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Peso</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-fluid-sm text-high-contrast-muted">Peso</p>
+                <p className="text-fluid-2xl font-bold text-high-contrast">
                   {patient?.weight ? `${patient.weight}kg` : '--'}
                 </p>
               </div>
@@ -1283,8 +1283,8 @@ export default function PatientDetailPage() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Altura</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-fluid-sm text-high-contrast-muted">Altura</p>
+                <p className="text-fluid-2xl font-bold text-high-contrast">
                   {patient?.height ? `${patient.height}cm` : '--'}
                 </p>
               </div>
@@ -1294,8 +1294,8 @@ export default function PatientDetailPage() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-sm text-gray-600">IMC</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <p className="text-fluid-sm text-high-contrast-muted">IMC</p>
+                <p className="text-fluid-2xl font-bold text-purple-600">
                   {patient?.weight && patient?.height
                     ? (patient.weight / Math.pow(patient.height / 100, 2)).toFixed(1)
                     : '--'}
@@ -1307,8 +1307,8 @@ export default function PatientDetailPage() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Gordura</p>
-                <p className="text-2xl font-bold text-blue-600">{bodyFat}%</p>
+                <p className="text-fluid-sm text-high-contrast-muted">Gordura</p>
+                <p className="text-fluid-2xl font-bold text-blue-600">{bodyFat}%</p>
               </div>
             </CardContent>
           </Card>
@@ -1318,7 +1318,7 @@ export default function PatientDetailPage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Medidas Corporais</h3>
+              <h3 className="text-fluid-lg font-semibold text-high-contrast">Medidas Corporais</h3>
               <Button variant="outline" size="sm">
                 <Plus className="mr-1 h-4 w-4" />
                 Adicionar Medição
@@ -1342,7 +1342,7 @@ export default function PatientDetailPage() {
                 >
                   <span className="text-2xl">{measure.icon}</span>
                   <div className="flex-1">
-                    <p className="text-xs text-gray-600">{measure.label}</p>
+                    <p className="text-fluid-xs text-high-contrast-muted">{measure.label}</p>
                     <input
                       type="number"
                       value={measurements[measure.key as keyof typeof measurements]}
@@ -1350,7 +1350,7 @@ export default function PatientDetailPage() {
                         ...measurements,
                         [measure.key]: Number(e.target.value)
                       })}
-                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm font-semibold text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded border border-gray-300 px-2 py-1 text-fluid-sm font-semibold text-high-contrast focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
                 </div>
@@ -1362,30 +1362,30 @@ export default function PatientDetailPage() {
         {/* Composição Corporal */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Composição Corporal</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Composição Corporal</h3>
 
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2 rounded-lg border border-gray-200 bg-gradient-to-br from-blue-50 to-blue-100 p-4">
-                <p className="text-sm text-blue-700">% de Gordura</p>
+                <p className="text-fluid-sm text-blue-700">% de Gordura</p>
                 <input
                   type="number"
                   value={bodyFat}
                   onChange={(e) => setBodyFat(Number(e.target.value))}
-                  className="w-20 text-3xl font-bold text-blue-900 bg-transparent border-b border-blue-300 focus:border-blue-500 focus:outline-none"
+                  className="w-20 text-fluid-3xl font-bold text-blue-900 bg-transparent border-b border-blue-300 focus:border-blue-500 focus:outline-none"
                 />
-                <p className="text-xs text-blue-600">Meta: 15%</p>
+                <p className="text-fluid-xs text-blue-600">Meta: 15%</p>
               </div>
 
               <div className="space-y-2 rounded-lg border border-gray-200 bg-gradient-to-br from-green-50 to-green-100 p-4">
-                <p className="text-sm text-green-700">Massa Magra</p>
-                <p className="text-3xl font-bold text-green-900">65kg</p>
-                <p className="text-xs text-green-600">82% do peso total</p>
+                <p className="text-fluid-sm text-green-700">Massa Magra</p>
+                <p className="text-fluid-3xl font-bold text-green-900">65kg</p>
+                <p className="text-fluid-xs text-green-600">82% do peso total</p>
               </div>
 
               <div className="space-y-2 rounded-lg border border-gray-200 bg-gradient-to-br from-purple-50 to-purple-100 p-4">
-                <p className="text-sm text-purple-700">Massa Gorda</p>
-                <p className="text-3xl font-bold text-purple-900">14kg</p>
-                <p className="text-xs text-purple-600">18% do peso total</p>
+                <p className="text-fluid-sm text-purple-700">Massa Gorda</p>
+                <p className="text-fluid-3xl font-bold text-purple-900">14kg</p>
+                <p className="text-fluid-xs text-purple-600">18% do peso total</p>
               </div>
             </div>
           </CardContent>
@@ -1395,7 +1395,7 @@ export default function PatientDetailPage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Fotos de Progresso</h3>
+              <h3 className="text-fluid-lg font-semibold text-high-contrast">Fotos de Progresso</h3>
               <Button variant="outline" size="sm">
                 <Upload className="mr-1 h-4 w-4" />
                 Adicionar Fotos
@@ -1407,8 +1407,8 @@ export default function PatientDetailPage() {
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-gray-900">Antes - 10/01/2025</p>
-                    <p className="text-sm text-gray-600">80kg</p>
+                    <p className="font-semibold text-high-contrast">Antes - 10/01/2025</p>
+                    <p className="text-fluid-sm text-high-contrast-muted">80kg</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -1419,7 +1419,7 @@ export default function PatientDetailPage() {
                     >
                       <div className="text-center">
                         <p className="text-4xl">📷</p>
-                        <p className="mt-1 text-xs text-gray-500">{view}</p>
+                        <p className="mt-1 text-fluid-xs text-high-contrast-muted">{view}</p>
                       </div>
                     </div>
                   ))}
@@ -1430,8 +1430,8 @@ export default function PatientDetailPage() {
               <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-gray-900">Atual - 10/02/2025</p>
-                    <p className="text-sm text-purple-600">75kg (-5kg)</p>
+                    <p className="font-semibold text-high-contrast">Atual - 10/02/2025</p>
+                    <p className="text-fluid-sm text-purple-600">75kg (-5kg)</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -1442,7 +1442,7 @@ export default function PatientDetailPage() {
                     >
                       <div className="text-center">
                         <p className="text-4xl">📷</p>
-                        <p className="mt-1 text-xs text-gray-500">{view}</p>
+                        <p className="mt-1 text-fluid-xs text-high-contrast-muted">{view}</p>
                       </div>
                     </div>
                   ))}
@@ -1450,7 +1450,7 @@ export default function PatientDetailPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-fluid-sm text-blue-800">
               <p>
                 <strong>Dica:</strong> Tire fotos no mesmo horário, com a mesma iluminação e nas
                 mesmas posições para melhor comparação.
@@ -1462,17 +1462,17 @@ export default function PatientDetailPage() {
         {/* Histórico de Medidas */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Histórico de Medições</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Histórico de Medições</h3>
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="pb-2 text-left font-semibold text-gray-700">Data</th>
-                    <th className="pb-2 text-center font-semibold text-gray-700">Peso</th>
-                    <th className="pb-2 text-center font-semibold text-gray-700">Gordura</th>
-                    <th className="pb-2 text-center font-semibold text-gray-700">Cintura</th>
-                    <th className="pb-2 text-center font-semibold text-gray-700">Quadril</th>
+                    <th className="pb-2 text-left font-semibold text-high-contrast-muted">Data</th>
+                    <th className="pb-2 text-center font-semibold text-high-contrast-muted">Peso</th>
+                    <th className="pb-2 text-center font-semibold text-high-contrast-muted">Gordura</th>
+                    <th className="pb-2 text-center font-semibold text-high-contrast-muted">Cintura</th>
+                    <th className="pb-2 text-center font-semibold text-high-contrast-muted">Quadril</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1484,11 +1484,11 @@ export default function PatientDetailPage() {
                     { date: '10/01/25', weight: '80kg', fat: '22%', waist: '90cm', hip: '100cm' },
                   ].map((entry, index) => (
                     <tr key={index} className="border-b border-gray-100">
-                      <td className="py-3 text-gray-900">{entry.date}</td>
-                      <td className="py-3 text-center text-gray-700">{entry.weight}</td>
-                      <td className="py-3 text-center text-gray-700">{entry.fat}</td>
-                      <td className="py-3 text-center text-gray-700">{entry.waist}</td>
-                      <td className="py-3 text-center text-gray-700">{entry.hip}</td>
+                      <td className="py-3 text-high-contrast">{entry.date}</td>
+                      <td className="py-3 text-center text-high-contrast-muted">{entry.weight}</td>
+                      <td className="py-3 text-center text-high-contrast-muted">{entry.fat}</td>
+                      <td className="py-3 text-center text-high-contrast-muted">{entry.waist}</td>
+                      <td className="py-3 text-center text-high-contrast-muted">{entry.hip}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1514,49 +1514,49 @@ export default function PatientDetailPage() {
         {/* Dados Pessoais */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Dados Pessoais</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Dados Pessoais</h3>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Nome Completo</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Nome Completo</label>
                 <input
                   type="text"
                   defaultValue={patient?.name}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Email</label>
                 <input
                   type="email"
                   defaultValue={patient?.email}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Telefone</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Telefone</label>
                 <input
                   type="tel"
                   defaultValue={patient?.phone || ''}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Data de Nascimento</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Data de Nascimento</label>
                 <input
                   type="date"
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Gênero</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Gênero</label>
                 <select
                   defaultValue={patient?.gender || ''}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
                   <option value="">Selecione...</option>
                   <option value="male">Masculino</option>
@@ -1566,11 +1566,11 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Profissão</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Profissão</label>
                 <input
                   type="text"
                   placeholder="Ex: Desenvolvedor"
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
               </div>
             </div>
@@ -1580,11 +1580,11 @@ export default function PatientDetailPage() {
         {/* Alergias e Restrições */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Alergias e Restrições Alimentares</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Alergias e Restrições Alimentares</h3>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Alergias Alimentares</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Alergias Alimentares</label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {['Lactose', 'Glúten', 'Amendoim', 'Frutos do mar', 'Ovo', 'Soja'].map((allergy) => (
                     <label
@@ -1603,21 +1603,21 @@ export default function PatientDetailPage() {
                         }}
                         className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                       />
-                      <span className="text-sm text-gray-700">{allergy}</span>
+                      <span className="text-fluid-sm text-high-contrast-muted">{allergy}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">
                   Outras Alergias (descreva)
                 </label>
                 <textarea
                   value={otherAllergies}
                   onChange={(e) => setOtherAllergies(e.target.value)}
                   placeholder="Ex: Alergia a corantes artificiais..."
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={2}
                 />
               </div>
@@ -1628,11 +1628,11 @@ export default function PatientDetailPage() {
         {/* Condições de Saúde */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Condições de Saúde</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Condições de Saúde</h3>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">
                   Condições Médicas Existentes
                 </label>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -1654,7 +1654,7 @@ export default function PatientDetailPage() {
                           }}
                           className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                         />
-                        <span className="text-sm text-gray-700">{condition}</span>
+                        <span className="text-fluid-sm text-high-contrast-muted">{condition}</span>
                       </label>
                     )
                   )}
@@ -1662,12 +1662,12 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Medicamentos em Uso</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Medicamentos em Uso</label>
                 <textarea
                   value={medications}
                   onChange={(e) => setMedications(e.target.value)}
                   placeholder="Liste os medicamentos que o paciente toma regularmente..."
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={3}
                 />
               </div>
@@ -1678,15 +1678,15 @@ export default function PatientDetailPage() {
         {/* Preferências Alimentares */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Preferências Alimentares</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Preferências Alimentares</h3>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Estilo Alimentar</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Estilo Alimentar</label>
                 <select 
                   value={foodStyle}
                   onChange={(e) => setFoodStyle(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
                   <option value="">Nenhum</option>
                   <option value="vegetarian">Vegetariano</option>
@@ -1699,25 +1699,25 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">
                   Alimentos que NÃO Gosta
                 </label>
                 <textarea
                   value={dislikedFoods}
                   onChange={(e) => setDislikedFoods(e.target.value)}
                   placeholder="Ex: Brócolis, berinjela, fígado..."
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={2}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Alimentos Favoritos</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Alimentos Favoritos</label>
                 <textarea
                   value={favoriteFoods}
                   onChange={(e) => setFavoriteFoods(e.target.value)}
                   placeholder="Ex: Frango, batata doce, abacate..."
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                   rows={2}
                 />
               </div>
@@ -1728,17 +1728,17 @@ export default function PatientDetailPage() {
         {/* Estilo de Vida */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Estilo de Vida</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Estilo de Vida</h3>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">
                   Nível de Atividade Física
                 </label>
                 <select 
                   value={activityLevel}
                   onChange={(e) => setActivityLevel(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
                   <option value="sedentary">Sedentário (pouco ou nenhum exercício)</option>
                   <option value="light">Leve (1-2x por semana)</option>
@@ -1749,11 +1749,11 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Qualidade do Sono</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Qualidade do Sono</label>
                 <select 
                   value={sleepQuality}
                   onChange={(e) => setSleepQuality(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
                   <option value="poor">Ruim (menos de 5h)</option>
                   <option value="fair">Regular (5-6h)</option>
@@ -1763,11 +1763,11 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Nível de Estresse</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Nível de Estresse</label>
                 <select 
                   value={stressLevel}
                   onChange={(e) => setStressLevel(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
                   <option value="low">Baixo</option>
                   <option value="moderate">Moderado</option>
@@ -1776,11 +1776,11 @@ export default function PatientDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Consumo de Água/Dia</label>
+                <label className="block text-fluid-sm font-medium text-high-contrast-muted">Consumo de Água/Dia</label>
                 <select 
                   value={waterIntake}
                   onChange={(e) => setWaterIntake(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
                   <option value="low">Menos de 1L</option>
                   <option value="moderate">1-2L</option>
@@ -1814,10 +1814,10 @@ export default function PatientDetailPage() {
                 <Bot className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-purple-900">
+                <h3 className="text-fluid-lg font-semibold text-purple-900">
                   Personalidade da IA para {patient?.name}
                 </h3>
-                <p className="mt-1 text-sm text-purple-700">
+                <p className="mt-1 text-fluid-sm text-purple-700">
                   Configure como a IA deve conversar com este paciente especificamente.
                 </p>
               </div>
@@ -1830,7 +1830,7 @@ export default function PatientDetailPage() {
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-500" />
-              <h3 className="text-lg font-semibold text-gray-900">Tom de Voz</h3>
+              <h3 className="text-fluid-lg font-semibold text-high-contrast">Tom de Voz</h3>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -1875,9 +1875,9 @@ export default function PatientDetailPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{tone.emoji}</span>
-                      <span className="font-semibold text-gray-900">{tone.label}</span>
+                      <span className="font-semibold text-high-contrast">{tone.label}</span>
                     </div>
-                    <p className="mt-1 text-sm text-gray-600">{tone.description}</p>
+                    <p className="mt-1 text-fluid-sm text-high-contrast-muted">{tone.description}</p>
                   </div>
                 </label>
               ))}
@@ -1888,7 +1888,7 @@ export default function PatientDetailPage() {
         {/* Estilo */}
         <Card>
           <CardContent className="p-6 space-y-3">
-            <h3 className="text-lg font-semibold text-gray-900">Estilo de Comunicação</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Estilo de Comunicação</h3>
 
             {[
               { label: 'Usar emojis', state: aiUseEmojis, setState: setAiUseEmojis },
@@ -1901,7 +1901,7 @@ export default function PatientDetailPage() {
                 key={index}
                 className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 cursor-pointer hover:bg-gray-100"
               >
-                <span className="font-medium text-gray-900">{style.label}</span>
+                <span className="font-medium text-high-contrast">{style.label}</span>
                 <input
                   type="checkbox"
                   checked={style.state}
@@ -1916,43 +1916,43 @@ export default function PatientDetailPage() {
         {/* Frases */}
         <Card>
           <CardContent className="p-6 space-y-3">
-            <h3 className="text-lg font-semibold text-gray-900">Frases Personalizadas</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Frases Personalizadas</h3>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-fluid-sm font-medium text-high-contrast-muted mb-1">
                 Quando acerta
               </label>
               <textarea
                 value={aiPhraseSuccess}
                 onChange={(e) => setAiPhraseSuccess(e.target.value)}
                 placeholder="Ex: Isso aí! Você está arrasando! 💪"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 rows={2}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-fluid-sm font-medium text-high-contrast-muted mb-1">
                 Quando erra
               </label>
               <textarea
                 value={aiPhraseFail}
                 onChange={(e) => setAiPhraseFail(e.target.value)}
                 placeholder="Ex: Relaxa! Um dia não define sua jornada."
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 rows={2}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-fluid-sm font-medium text-high-contrast-muted mb-1">
                 Quando desmotivado
               </label>
               <textarea
                 value={aiPhraseMotivation}
                 onChange={(e) => setAiPhraseMotivation(e.target.value)}
                 placeholder="Ex: Eu sei que tá difícil. Mas você é capaz!"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 rows={2}
               />
             </div>
@@ -1977,13 +1977,13 @@ export default function PatientDetailPage() {
         {/* Adicionar Nova Nota */}
         <Card>
           <CardContent className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Adicionar Nota</h3>
+            <h3 className="text-fluid-lg font-semibold text-high-contrast">Adicionar Nota</h3>
 
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Escreva uma anotação sobre este paciente..."
-              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
               rows={4}
             />
 
@@ -1992,7 +1992,7 @@ export default function PatientDetailPage() {
                 <select 
                   value={noteType}
                   onChange={(e) => setNoteType(e.target.value)}
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                 >
                   <option value="consultation">📋 Consulta</option>
                   <option value="whatsapp">💬 WhatsApp</option>
@@ -2011,7 +2011,7 @@ export default function PatientDetailPage() {
                     onChange={(e) => setNoteImportant(e.target.checked)}
                     className="h-4 w-4 rounded border-gray-300 text-purple-600" 
                   />
-                  <span className="text-sm text-gray-700">Marcar como importante</span>
+                  <span className="text-fluid-sm text-high-contrast-muted">Marcar como importante</span>
                 </label>
               </div>
 
@@ -2039,24 +2039,24 @@ export default function PatientDetailPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-2xl">⚠️</span>
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-fluid-xs font-medium text-red-700">
                           IMPORTANTE
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-fluid-sm text-high-contrast-muted">
                         <span className="font-medium">Dr. Paulo Guimarães</span> • 10/02/2025 14:30
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-800 leading-relaxed">
+                  <p className="text-high-contrast leading-relaxed">
                     Paciente relatou dificuldade em seguir o plano nos finais de semana devido a
                     compromissos sociais. Ajustamos para incluir opções mais flexíveis no sábado e
                     domingo, mantendo a meta de 80/20.
                   </p>
 
                   <div className="mt-4 flex items-center gap-2">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-fluid-xs font-medium text-high-contrast-muted">
                       Alerta
                     </span>
                   </div>
@@ -2075,19 +2075,19 @@ export default function PatientDetailPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-2xl">📊</span>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-fluid-sm text-high-contrast-muted">
                         <span className="font-medium">Dr. Paulo Guimarães</span> • 08/02/2025 09:15
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-800 leading-relaxed">
+                  <p className="text-high-contrast leading-relaxed">
                     Plano alimentar atualizado. Calorias ajustadas de 2000 para 1800 kcal/dia devido
                     ao bom progresso inicial. Paciente demonstrou boa adesão na primeira semana.
                   </p>
 
                   <div className="mt-4 flex items-center gap-2">
-                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-fluid-xs font-medium text-blue-700">
                       Ajuste no plano
                     </span>
                   </div>
@@ -2106,19 +2106,19 @@ export default function PatientDetailPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-2xl">🎉</span>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-fluid-sm text-high-contrast-muted">
                         <span className="font-medium">Sistema</span> • 07/02/2025 08:00
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-800 leading-relaxed">
+                  <p className="text-high-contrast leading-relaxed">
                     Paciente conquistou o badge &quot;7 dias seguidos&quot;! Manteve 100% de aderência ao plano
                     durante toda a semana.
                   </p>
 
                   <div className="mt-4 flex items-center gap-2">
-                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
+                    <span className="rounded-full bg-purple-100 px-3 py-1 text-fluid-xs font-medium text-purple-700">
                       Conquista
                     </span>
                   </div>
@@ -2137,19 +2137,19 @@ export default function PatientDetailPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-2xl">💬</span>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-fluid-sm text-high-contrast-muted">
                         <span className="font-medium">Dr. Paulo Guimarães</span> • 03/02/2025 16:45
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-800 leading-relaxed">
+                  <p className="text-high-contrast leading-relaxed">
                     Conversa no WhatsApp: Paciente perguntou sobre substituições para o jantar.
                     Orientado sobre opções de proteínas magras e indicado receitas alternativas.
                   </p>
 
                   <div className="mt-4 flex items-center gap-2">
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-fluid-xs font-medium text-green-700">
                       WhatsApp
                     </span>
                   </div>
@@ -2168,20 +2168,20 @@ export default function PatientDetailPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-2xl">📋</span>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-fluid-sm text-high-contrast-muted">
                         <span className="font-medium">Dr. Paulo Guimarães</span> • 10/01/2025 10:00
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-800 leading-relaxed">
+                  <p className="text-high-contrast leading-relaxed">
                     Primeira consulta realizada. Paciente apresenta objetivo de perder 10kg em 3 meses.
                     Peso inicial: 85kg. IMC: 27.8 (sobrepeso). Plano alimentar de 2000 kcal/dia iniciado.
                     Solicitado exames de rotina.
                   </p>
 
                   <div className="mt-4 flex items-center gap-2">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-fluid-xs font-medium text-high-contrast-muted">
                       Consulta
                     </span>
                   </div>
@@ -2194,23 +2194,23 @@ export default function PatientDetailPage() {
         {/* Estatísticas */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">Estatísticas de Acompanhamento</h3>
+            <h3 className="mb-4 text-fluid-lg font-semibold text-high-contrast">Estatísticas de Acompanhamento</h3>
             <div className="grid gap-4 md:grid-cols-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-purple-600">15</p>
-                <p className="text-sm text-gray-600">Total de notas</p>
+                <p className="text-fluid-2xl font-bold text-purple-600">15</p>
+                <p className="text-fluid-sm text-high-contrast-muted">Total de notas</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">5</p>
-                <p className="text-sm text-gray-600">Consultas</p>
+                <p className="text-fluid-2xl font-bold text-blue-600">5</p>
+                <p className="text-fluid-sm text-high-contrast-muted">Consultas</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">8</p>
-                <p className="text-sm text-gray-600">Interações WhatsApp</p>
+                <p className="text-fluid-2xl font-bold text-green-600">8</p>
+                <p className="text-fluid-sm text-high-contrast-muted">Interações WhatsApp</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-red-600">2</p>
-                <p className="text-sm text-gray-600">Alertas importantes</p>
+                <p className="text-fluid-2xl font-bold text-red-600">2</p>
+                <p className="text-fluid-sm text-high-contrast-muted">Alertas importantes</p>
               </div>
             </div>
           </CardContent>
@@ -2224,7 +2224,7 @@ export default function PatientDetailPage() {
     if (!patientId || !user?.uid) {
       return (
         <Card>
-          <CardContent className="p-6 text-center text-gray-600">
+          <CardContent className="p-6 text-center text-high-contrast-muted">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
             <p>Carregando informações...</p>
           </CardContent>
@@ -2247,7 +2247,7 @@ export default function PatientDetailPage() {
         <Card>
           <CardContent className="flex items-center gap-3 p-6">
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            <p className="text-gray-600">Carregando informações do paciente...</p>
+            <p className="text-high-contrast-muted">Carregando informações do paciente...</p>
           </CardContent>
         </Card>
       );
@@ -2256,7 +2256,7 @@ export default function PatientDetailPage() {
     if (!patient) {
       return (
         <Card>
-          <CardContent className="p-6 text-center text-gray-600">
+          <CardContent className="p-6 text-center text-high-contrast-muted">
             Não encontramos este paciente. Volte para a lista e tente novamente.
           </CardContent>
         </Card>
@@ -2271,36 +2271,36 @@ export default function PatientDetailPage() {
       <Card>
         <CardContent className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{patient.name}</h1>
-            <p className="text-sm text-gray-600">{patient.email}</p>
-            {patient.phone && <p className="text-sm text-gray-600">{patient.phone}</p>}
+            <h1 className="text-fluid-3xl font-bold text-high-contrast">{patient.name}</h1>
+            <p className="text-fluid-sm text-high-contrast-muted">{patient.email}</p>
+            {patient.phone && <p className="text-fluid-sm text-high-contrast-muted">{patient.phone}</p>}
           </div>
           <div className="flex flex-col items-start gap-3 md:items-end">
             <div className="flex items-center gap-2">
               <span
-                className={`rounded-full px-3 py-1 text-sm font-medium ${
+                className={`rounded-full px-3 py-1 text-fluid-sm font-medium ${
                   patient.status === 'inactive'
-                    ? 'bg-gray-100 text-gray-600'
+                    ? 'bg-gray-100 text-high-contrast-muted'
                     : 'bg-green-100 text-green-700'
                 }`}
               >
                 {patient.status === 'inactive' ? 'Inativo' : 'Ativo'}
               </span>
               {patient.planUpdatedAt && (
-                <span className="text-xs text-gray-500">
+                <span className="text-fluid-xs text-high-contrast-muted">
                   Última atualização: {patient.planUpdatedAt.toLocaleDateString('pt-BR')}
                 </span>
               )}
             </div>
 
             {canManageRole && (
-              <div className="flex flex-col gap-1 text-sm text-gray-600">
-                <span className="font-medium text-gray-700">Função do usuário</span>
+              <div className="flex flex-col gap-1 text-fluid-sm text-high-contrast-muted">
+                <span className="font-medium text-high-contrast-muted">Função do usuário</span>
                 <div className="flex items-center gap-2">
                   <select
                     value={selectedRole}
                     onChange={(event) => handleRoleUpdate(event.target.value as UserRole)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-fluid-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   >
                     <option value="patient">Paciente</option>
                     <option value="prescriber">Prescritor</option>
@@ -2314,10 +2314,10 @@ export default function PatientDetailPage() {
             )}
 
             {user?.role === 'prescriber' && (
-              <div className="flex flex-col gap-1 text-sm text-gray-600">
-                <span className="font-medium text-gray-700">Prescritor responsável</span>
+              <div className="flex flex-col gap-1 text-fluid-sm text-high-contrast-muted">
+                <span className="font-medium text-high-contrast-muted">Prescritor responsável</span>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-gray-900">
+                  <span className="text-high-contrast">
                     {patient.prescriberId
                       ? isPatientAssignedToUser
                         ? 'Você está cuidando deste paciente'
@@ -2335,7 +2335,7 @@ export default function PatientDetailPage() {
                   )}
                 </div>
                 {isPatientAssignedToUser && (
-                  <div className="flex items-center gap-1 text-xs text-green-600">
+                  <div className="flex items-center gap-1 text-fluid-xs text-green-600">
                     <CheckCircle2 className="h-4 w-4" />
                     <span>Paciente sob seus cuidados</span>
                   </div>

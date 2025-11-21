@@ -341,7 +341,7 @@ export default function PatientsPage() {
                     </div>
                     <span
                       className={cn(
-                        'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium',
+                        'inline-flex items-center gap-1 rounded-full px-3 py-1 text-fluid-xs font-medium',
                         isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                       )}
                     >
@@ -372,7 +372,7 @@ export default function PatientsPage() {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Buscar por nome, email ou telefone"
-                  className="w-full border-none bg-transparent text-sm outline-none placeholder:text-gray-400"
+                  className="w-full border-none bg-transparent text-fluid-sm outline-none placeholder:text-gray-400"
                 />
               </div>
 
@@ -402,7 +402,7 @@ export default function PatientsPage() {
       {error && (
         <motion.div variants={itemVariants}>
           <Card className="border border-red-200 bg-red-50">
-            <CardContent className="flex flex-col gap-3 p-5 text-sm text-red-700 md:flex-row md:items-center md:justify-between">
+            <CardContent className="flex flex-col gap-3 p-5 text-fluid-sm text-red-700 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="font-semibold">Não foi possível carregar os pacientes.</p>
                 <p className="text-red-600/80">{error}</p>
@@ -419,17 +419,17 @@ export default function PatientsPage() {
       {isLoading ? (
         <motion.div variants={itemVariants} className="text-center py-12">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Carregando pacientes...</p>
+          <p className="mt-4 text-high-contrast-muted">Carregando pacientes...</p>
         </motion.div>
       ) : filteredPatients.length === 0 ? (
         <motion.div variants={itemVariants}>
           <Card>
             <CardContent className="text-center py-12">
               <User className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-fluid-lg font-semibold text-high-contrast mb-2">
                 Nenhum paciente encontrado
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-high-contrast-muted mb-4">
                 {searchTerm
                   ? 'Tente ajustar sua busca'
                   : 'Comece adicionando seu primeiro paciente'}
@@ -467,7 +467,7 @@ export default function PatientsPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-semibold text-white">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-fluid-lg font-semibold text-white">
                           {patient.name.charAt(0).toUpperCase()}
                         </div>
 
@@ -476,10 +476,10 @@ export default function PatientsPage() {
                             <h3 className="text-fluid-lg font-semibold text-high-contrast">{patient.name}</h3>
                             <span
                               className={cn(
-                                'rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                'rounded-full px-2.5 py-0.5 text-fluid-xs font-medium',
                                 patient.status === 'active'
                                   ? 'bg-green-100 text-green-700'
-                                  : 'bg-gray-100 text-gray-700'
+                                  : 'bg-gray-100 text-high-contrast-muted'
                               )}
                             >
                               {patient.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -515,7 +515,7 @@ export default function PatientsPage() {
                             event.stopPropagation();
                             setOpenMenuId(openMenuId === patient.id ? null : patient.id);
                           }}
-                          className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100"
+                          className="rounded-lg p-2 text-high-contrast-muted transition-colors hover:bg-gray-100"
                         >
                           <MoreVertical className="h-5 w-5" />
                         </button>
@@ -538,7 +538,7 @@ export default function PatientsPage() {
                                   setOpenMenuId(null);
                                   router.push(`/patients/${patient.id}`);
                                 }}
-                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100"
+                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-fluid-sm text-high-contrast-muted transition hover:bg-gray-100"
                               >
                                 <Edit className="h-4 w-4" />
                                 <span>Ver/Editar paciente</span>
@@ -549,7 +549,7 @@ export default function PatientsPage() {
                                   event.stopPropagation();
                                   handleSendCredentials(patient, 'email');
                                 }}
-                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-blue-600 transition hover:bg-blue-50"
+                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-fluid-sm text-blue-600 transition hover:bg-blue-50"
                               >
                                 <Send className="h-4 w-4" />
                                 <span>Enviar credenciais por email</span>
@@ -559,7 +559,7 @@ export default function PatientsPage() {
                                   event.stopPropagation();
                                   handleSendCredentials(patient, 'whatsapp');
                                 }}
-                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-green-600 transition hover:bg-green-50"
+                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-fluid-sm text-green-600 transition hover:bg-green-50"
                               >
                                 <MessageCircle className="h-4 w-4" />
                                 <span>Enviar credenciais por WhatsApp</span>
@@ -572,7 +572,7 @@ export default function PatientsPage() {
                                   setSelectedPatient(patient);
                                   setShowDeleteModal(true);
                                 }}
-                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                                className="flex w-full items-center gap-2 px-4 py-2 text-left text-fluid-sm text-red-600 transition hover:bg-red-50"
                               >
                                 <Trash2 className="h-4 w-4" />
                                 <span>Excluir paciente</span>
@@ -592,24 +592,24 @@ export default function PatientsPage() {
             <CardContent className="space-y-4 p-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-fluid-base font-semibold text-high-contrast">Cadastros recentes</h3>
-                <span className="text-xs font-medium text-blue-600">
+                <span className="text-fluid-xs font-medium text-blue-600">
                   {recentPatients.length} monitorados
                 </span>
               </div>
               <div className="space-y-4">
                 {recentPatients.length === 0 ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-fluid-sm text-high-contrast-muted">
                     Quando novos pacientes forem cadastrados, eles aparecerão aqui automaticamente.
                   </p>
                 ) : (
                   recentPatients.map((patient) => (
                     <div key={patient.id} className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-fluid-sm font-semibold text-blue-600">
                         {patient.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
                         <p className="text-fluid-sm font-medium text-high-contrast">{patient.name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-fluid-xs text-high-contrast-muted">
                           {patient.createdAt
                             ? `Cadastro em ${patient.createdAt.toLocaleDateString('pt-BR')}`
                             : 'Data não registrada'}
@@ -619,7 +619,7 @@ export default function PatientsPage() {
                             'mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium',
                             (patient.status ?? 'active') === 'active'
                               ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-600'
+                              : 'bg-gray-100 text-high-contrast-muted'
                           )}
                         >
                           {patient.status === 'inactive' ? 'Acompanhar reativação' : 'Ativo'}

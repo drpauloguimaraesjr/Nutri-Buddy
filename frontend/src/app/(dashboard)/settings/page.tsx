@@ -31,7 +31,7 @@ export default function SettingsPage() {
     >
       {/* Header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-3xl font-bold text-white">Configurações</h1>
+        <h1 className="text-fluid-3xl font-bold text-white">Configurações</h1>
         <p className="text-slate-300">Gerencie suas informações e preferências</p>
       </motion.div>
 
@@ -39,8 +39,8 @@ export default function SettingsPage() {
       <motion.div variants={itemVariants}>
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-bold text-white">Aparência</h2>
-            <p className="text-sm text-slate-400">Personalize o visual do sistema</p>
+            <h2 className="text-fluid-xl font-bold text-white">Aparência</h2>
+            <p className="text-fluid-sm text-slate-400">Personalize o visual do sistema</p>
           </CardHeader>
           <CardContent>
             <ThemeSelector />
@@ -52,7 +52,7 @@ export default function SettingsPage() {
       <motion.div variants={itemVariants}>
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-bold text-white">Perfil</h2>
+            <h2 className="text-fluid-xl font-bold text-white">Perfil</h2>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center gap-6">
@@ -60,7 +60,7 @@ export default function SettingsPage() {
                 {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-white">
+                <h3 className="text-fluid-xl font-semibold text-white">
                   {user?.displayName || 'Usuário'}
                 </h3>
                 <p className="text-slate-300">
@@ -75,7 +75,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
                 <Mail className="w-5 h-5 text-slate-400" />
                 <div>
-                  <p className="text-sm text-slate-400">Email</p>
+                  <p className="text-fluid-sm text-slate-400">Email</p>
                   <p className="font-medium text-white">{user?.email}</p>
                 </div>
               </div>
@@ -86,7 +86,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
                       <Briefcase className="w-5 h-5 text-slate-400" />
                       <div>
-                        <p className="text-sm text-slate-400">Especialidade</p>
+                        <p className="text-fluid-sm text-slate-400">Especialidade</p>
                         <p className="font-medium text-white">{user.specialty}</p>
                       </div>
                     </div>
@@ -96,7 +96,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
                       <User className="w-5 h-5 text-slate-400" />
                       <div>
-                        <p className="text-sm text-slate-400">Registro Profissional</p>
+                        <p className="text-fluid-sm text-slate-400">Registro Profissional</p>
                         <p className="font-medium text-white">{user.registrationNumber}</p>
                       </div>
                     </div>
@@ -106,7 +106,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
                       <Building className="w-5 h-5 text-slate-400" />
                       <div>
-                        <p className="text-sm text-slate-400">Clínica</p>
+                        <p className="text-fluid-sm text-slate-400">Clínica</p>
                         <p className="font-medium text-white">{user.clinicName}</p>
                       </div>
                     </div>
@@ -122,12 +122,12 @@ export default function SettingsPage() {
       <motion.div variants={itemVariants}>
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-bold text-white">Informações da Conta</h2>
+            <h2 className="text-fluid-xl font-bold text-white">Informações da Conta</h2>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-slate-400">Membro desde</p>
+                <p className="text-fluid-sm text-slate-400">Membro desde</p>
                 <p className="font-medium text-white">
                   {user?.createdAt
                     ? new Date(user.createdAt).toLocaleDateString('pt-BR', {
@@ -139,8 +139,8 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-400">ID do Usuário</p>
-                <p className="font-mono text-sm text-white">{user?.uid}</p>
+                <p className="text-fluid-sm text-slate-400">ID do Usuário</p>
+                <p className="font-mono text-fluid-sm text-white">{user?.uid}</p>
               </div>
             </div>
           </CardContent>

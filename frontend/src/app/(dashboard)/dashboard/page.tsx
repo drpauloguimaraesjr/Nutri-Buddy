@@ -179,7 +179,7 @@ export default function DashboardPage() {
                       </div>
                       <span
                         className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium',
+                          'inline-flex items-center gap-1 rounded-full px-3 py-1 text-fluid-xs font-medium',
                           isPositive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                         )}
                       >
@@ -215,7 +215,7 @@ export default function DashboardPage() {
               <CardContent className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-xl border border-slate-600/50 bg-slate-700/30 p-5">
-                    <div className="flex items-center justify-between text-sm font-medium text-slate-300">
+                    <div className="flex items-center justify-between text-fluid-sm font-medium text-slate-300">
                       <span>Ativos vs Inativos</span>
                       <span>
                         {stats.active}/{stats.total}
@@ -227,35 +227,35 @@ export default function DashboardPage() {
                         style={{ width: `${stats.activePercentage}%` }}
                       />
                     </div>
-                    <p className="mt-3 text-xs text-slate-400">
+                    <p className="mt-3 text-fluid-xs text-slate-400">
                       {stats.activePercentage}% dos pacientes estão ativos atualmente.
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-600/50 bg-slate-700/30 p-5">
-                    <div className="flex items-center justify-between text-sm font-medium text-slate-300">
+                    <div className="flex items-center justify-between text-fluid-sm font-medium text-slate-300">
                       <span>Consultas registradas</span>
                       <span>{analytics.consultationsLast30Days}</span>
                     </div>
-                    <p className="mt-3 text-3xl font-semibold text-white">
+                    <p className="mt-3 text-fluid-3xl font-semibold text-white">
                       {analytics.consultationsLast30Days}
                     </p>
-                    <p className="mt-2 text-xs text-slate-400">
+                    <p className="mt-2 text-fluid-xs text-slate-400">
                       Pacientes acompanhados nos últimos 30 dias. Mantenha o ritmo adicionando novas sessões.
                     </p>
                   </div>
                 </div>
                 <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-5">
-                  <p className="text-sm font-medium text-sky-300">
+                  <p className="text-fluid-sm font-medium text-sky-300">
                     Indicadores antropométricos gerais
                   </p>
-                  <div className="mt-3 grid gap-4 text-sm text-sky-200 md:grid-cols-2">
+                  <div className="mt-3 grid gap-4 text-fluid-sm text-sky-200 md:grid-cols-2">
                     <div className="flex flex-col">
-                      <span className="text-xs uppercase tracking-wide text-sky-400">Idade média</span>
-                      <span className="text-lg font-semibold">{analytics.averageAge || '—'} anos</span>
+                      <span className="text-fluid-xs uppercase tracking-wide text-sky-400">Idade média</span>
+                      <span className="text-fluid-lg font-semibold">{analytics.averageAge || '—'} anos</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs uppercase tracking-wide text-sky-400">IMC médio</span>
-                      <span className="text-lg font-semibold">{analytics.averageBmi}</span>
+                      <span className="text-fluid-xs uppercase tracking-wide text-sky-400">IMC médio</span>
+                      <span className="text-fluid-lg font-semibold">{analytics.averageBmi}</span>
                     </div>
                   </div>
                 </div>
@@ -271,13 +271,13 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {analytics.recentPatients.length === 0 ? (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-fluid-sm text-slate-400">
                     Ainda não há novos cadastros recentes. Assim que adicionar novos pacientes, eles aparecerão aqui.
                   </p>
                 ) : (
                   analytics.recentPatients.map((patient) => (
                     <div key={patient.id} className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500/20 text-sm font-semibold text-sky-300 border border-sky-500/30">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500/20 text-fluid-sm font-semibold text-sky-300 border border-sky-500/30">
                         {patient.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
@@ -315,15 +315,15 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {analytics.inactivePatients.length === 0 ? (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-fluid-sm text-slate-400">
                     Nenhum paciente inativo no momento. Excelente trabalho!
                   </p>
                 ) : (
                   analytics.inactivePatients.map((patient) => (
                     <div key={patient.id} className="flex items-start justify-between gap-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
                       <div>
-                        <p className="text-sm font-semibold text-amber-300">{patient.name}</p>
-                        <p className="text-xs text-amber-400">
+                        <p className="text-fluid-sm font-semibold text-amber-300">{patient.name}</p>
+                        <p className="text-fluid-xs text-amber-400">
                           Última consulta:{' '}
                           {patient.lastConsultation
                             ? patient.lastConsultation.toLocaleDateString('pt-BR')
@@ -352,7 +352,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {analytics.patientsNeedingFollowUp.length === 0 ? (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-fluid-sm text-slate-400">
                     Todos os pacientes ativos estão atualizados! Continue acompanhando esse indicador.
                   </p>
                 ) : (
@@ -362,8 +362,8 @@ export default function DashboardPage() {
                       className="flex items-center justify-between rounded-lg border border-sky-500/30 bg-sky-500/10 p-4"
                     >
                       <div>
-                        <p className="text-sm font-medium text-sky-200">{patient.name}</p>
-                        <p className="text-xs text-sky-300">
+                        <p className="text-fluid-sm font-medium text-sky-200">{patient.name}</p>
+                        <p className="text-fluid-xs text-sky-300">
                           {patient.lastConsultation
                             ? `Última consulta há ${Math.floor(
                               (Date.now() - (patient.lastConsultation?.getTime() ?? 0)) /

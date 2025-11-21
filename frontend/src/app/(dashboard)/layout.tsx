@@ -64,10 +64,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               priority
             />
           </div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-fluid-2xl font-bold text-white">
             Acesse pelo computador
           </h1>
-          <p className="text-sm text-slate-300">
+          <p className="text-fluid-sm text-slate-300">
             A área do prescritor foi otimizada para telas maiores. Utilize o dashboard em um
             desktop ou notebook para ter a melhor experiência.
           </p>

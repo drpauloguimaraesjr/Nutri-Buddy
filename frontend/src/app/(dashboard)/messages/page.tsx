@@ -63,8 +63,8 @@ export default function MessagesPage() {
         className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mensagens</h1>
-          <p className="text-gray-600">
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Mensagens</h1>
+          <p className="text-high-contrast-muted">
             Gerencie todas as conversas com seus pacientes
           </p>
         </div>
@@ -121,13 +121,13 @@ export default function MessagesPage() {
                     >
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    <span className="text-fluid-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
                       {stat.change}
                     </span>
                   </div>
                   <div className="mt-4">
-                    <p className="text-sm text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    <p className="text-fluid-sm text-high-contrast-muted">{stat.title}</p>
+                    <p className="text-fluid-2xl font-bold text-high-contrast mt-1">{stat.value}</p>
                   </div>
                 </CardContent>
               </Card>

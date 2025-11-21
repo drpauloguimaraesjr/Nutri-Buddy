@@ -93,8 +93,8 @@ export default function AnalyticsPage() {
     >
       <motion.div variants={fade} className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics de Pacientes</h1>
-          <p className="text-gray-600">
+          <h1 className="text-fluid-3xl font-bold text-high-contrast">Analytics de Pacientes</h1>
+          <p className="text-high-contrast-muted">
             Visualize padrões de cadastro, engajamento e perfil dos pacientes.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
       {isLoading ? (
         <motion.div variants={fade} className="text-center py-12">
           <div className="inline-block h-9 w-9 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Carregando analytics...</p>
+          <p className="mt-4 text-high-contrast-muted">Carregando analytics...</p>
         </motion.div>
       ) : (
         <>
@@ -160,9 +160,9 @@ export default function AnalyticsPage() {
                       </div>
                     </div>
                     <div className="mt-4 space-y-1">
-                      <p className="text-sm font-medium text-gray-500">{card.title}</p>
-                      <p className="text-3xl font-bold text-gray-900">{card.value}</p>
-                      <p className="text-xs text-gray-500">{card.description}</p>
+                      <p className="text-fluid-sm font-medium text-high-contrast-muted">{card.title}</p>
+                      <p className="text-fluid-3xl font-bold text-high-contrast">{card.value}</p>
+                      <p className="text-fluid-xs text-high-contrast-muted">{card.description}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -173,8 +173,8 @@ export default function AnalyticsPage() {
           <motion.div variants={fade} className="grid gap-6 lg:grid-cols-[2fr_1fr]">
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold text-gray-900">Distribuição por faixa etária</h2>
-                <p className="text-sm text-gray-500">Entenda o perfil dos pacientes por idade</p>
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Distribuição por faixa etária</h2>
+                <p className="text-fluid-sm text-high-contrast-muted">Entenda o perfil dos pacientes por idade</p>
               </CardHeader>
               <CardContent className="space-y-5">
                 {insights.ageDistribution.map((group) => {
@@ -182,7 +182,7 @@ export default function AnalyticsPage() {
                     stats.total > 0 ? Math.round((group.total / stats.total) * 100) : 0;
                   return (
                     <div key={group.id}>
-                      <div className="flex items-center justify-between text-sm font-medium text-gray-600">
+                      <div className="flex items-center justify-between text-fluid-sm font-medium text-high-contrast-muted">
                         <span>{group.label}</span>
                         <span>{group.total} pacientes</span>
                       </div>
@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <p className="mt-1 text-xs text-gray-500">{percentage}% da base</p>
+                      <p className="mt-1 text-fluid-xs text-high-contrast-muted">{percentage}% da base</p>
                     </div>
                   );
                 })}
@@ -201,8 +201,8 @@ export default function AnalyticsPage() {
 
             <Card className="h-fit">
               <CardHeader>
-                <h2 className="text-lg font-semibold text-gray-900">Distribuição por gênero</h2>
-                <p className="text-sm text-gray-500">Dados autodeclarados durante o cadastro</p>
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Distribuição por gênero</h2>
+                <p className="text-fluid-sm text-high-contrast-muted">Dados autodeclarados durante o cadastro</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {([
@@ -211,9 +211,9 @@ export default function AnalyticsPage() {
                   { label: 'Outro/Não informado', value: insights.gender.other, accent: 'bg-purple-500' },
                 ] as const).map((item) => (
                   <div key={item.label} className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
-                    <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                    <span className="text-fluid-sm font-medium text-high-contrast-muted">{item.label}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-gray-900">{item.value}</span>
+                      <span className="text-fluid-sm font-semibold text-high-contrast">{item.value}</span>
                       <span className={cn('h-2 w-8 rounded-full', item.accent)} />
                     </div>
                   </div>
@@ -225,24 +225,24 @@ export default function AnalyticsPage() {
           <motion.div variants={fade} className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold text-gray-900">Metas mais comuns</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Metas mais comuns</h2>
+                <p className="text-fluid-sm text-high-contrast-muted">
                   Insight baseado nas metas cadastradas pelos pacientes
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {insights.topGoals.length === 0 ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-fluid-sm text-high-contrast-muted">
                     Nenhuma meta cadastrada até o momento. Configure metas nos perfis dos pacientes para visualizar tendências.
                   </p>
                 ) : (
                   insights.topGoals.map(([goal, total]) => (
                     <div key={goal} className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50 p-4">
                       <div>
-                        <p className="text-sm font-semibold text-blue-800 capitalize">{goal}</p>
-                        <p className="text-xs text-blue-600">{total} pacientes com essa meta</p>
+                        <p className="text-fluid-sm font-semibold text-blue-800 capitalize">{goal}</p>
+                        <p className="text-fluid-xs text-blue-600">{total} pacientes com essa meta</p>
                       </div>
-                      <span className="text-sm font-medium text-blue-700">
+                      <span className="text-fluid-sm font-medium text-blue-700">
                         {Math.round((total / stats.total) * 100)}%
                       </span>
                     </div>
@@ -253,22 +253,22 @@ export default function AnalyticsPage() {
 
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold text-gray-900">Últimas consultas registradas</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-fluid-lg font-semibold text-high-contrast">Últimas consultas registradas</h2>
+                <p className="text-fluid-sm text-high-contrast-muted">
                   acompanhe quem teve contato mais recente com você.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {insights.lastConsultations.length === 0 ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-fluid-sm text-high-contrast-muted">
                     Ainda não há consultas registradas. Conforme atualizar os prontuários, as informações aparecerão aqui.
                   </p>
                 ) : (
                   insights.lastConsultations.map((patient) => (
                     <div key={patient.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{patient.name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-fluid-sm font-medium text-high-contrast">{patient.name}</p>
+                        <p className="text-fluid-xs text-high-contrast-muted">
                           {patient.lastConsultation?.toLocaleDateString('pt-BR')}
                         </p>
                       </div>
