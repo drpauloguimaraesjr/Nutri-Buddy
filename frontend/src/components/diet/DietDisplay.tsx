@@ -33,8 +33,26 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
   };
 
 
-  const formatDate = (dateString: Date | string) => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const formatDate = (dateValue: any) => {
+    let date: Date;
+
+    // Handle Firestore Timestamp
+    if (dateValue && typeof dateValue === 'object' && 'toDate' in dateValue) {
+      date = dateValue.toDate();
+    }
+    // Handle string
+    else if (typeof dateValue === 'string') {
+      date = new Date(dateValue);
+    }
+    // Handle Date object
+    else if (dateValue instanceof Date) {
+      date = dateValue;
+    }
+    // Fallback to current date
+    else {
+      date = new Date();
+    }
+
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
