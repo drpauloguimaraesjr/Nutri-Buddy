@@ -89,6 +89,7 @@ export interface DietPlan {
   createdAt: Date | string;
   updatedAt: Date | string;
   deactivatedAt?: Date | string;
+  formattedText?: string; // Texto formatado da dieta
   metadata: {
     meta: DietMeta;
     macronutrientes: Macronutrientes;
@@ -99,6 +100,8 @@ export interface DietPlan {
     transcribedAt: string;
     model: string;
     resumo: DietSummary;
+    totalMeals?: number;
+    totalFoods?: number;
   };
 }
 

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Calendar, User, Target, Flame } from 'lucide-react';
+import { ChevronDown, ChevronUp, Calendar, User, Target, Flame, FileText, List } from 'lucide-react';
 import type { DietPlan, Refeicao } from '@/types/diet';
+import FormattedDietText from './FormattedDietText';
 
 interface DietDisplayProps {
   dietPlan: DietPlan;
@@ -11,6 +12,7 @@ interface DietDisplayProps {
 
 export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayProps) {
   const [expandedMeals, setExpandedMeals] = useState<Set<number>>(new Set([0])); // Primeira refeição expandida por padrão
+  const [viewMode, setViewMode] = useState<'formatted' | 'structured'>('formatted'); // Novo: modo de visualização
 
   const toggleMeal = (index: number) => {
     setExpandedMeals((prev) => {
@@ -148,86 +150,125 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
         </div>
       </div>
 
-      {/* Controles de expansão */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-gray-900">
-          Refeições ({dietPlan.meals?.length || 0})
-        </h3>
-        <div className="flex gap-2">
-          <button
-            onClick={expandAll}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-          >
-            Expandir todas
-          </button>
-          <span className="text-gray-300">|</span>
-          <button
-            onClick={collapseAll}
-            className="text-sm text-gray-600 hover:text-gray-700 font-medium"
-          >
-            Recolher todas
-          </button>
-        </div>
-      </div>
-
-      {/* Lista de refeições */}
-      <div className="space-y-3">
-        {dietPlan.meals?.map((meal, index) => (
-          <MealCard
-            key={index}
-            meal={meal}
-            isExpanded={expandedMeals.has(index)}
-            onToggle={() => toggleMeal(index)}
-          />
-        ))}
-      </div>
-
-      {/* Substituições permitidas */}
-      {dietPlan.metadata?.substituicoes && dietPlan.metadata.substituicoes.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-amber-900 mb-4">
-            🔄 Substituições Permitidas
-          </h3>
-          <div className="space-y-3">
-            {dietPlan.metadata.substituicoes.map((sub, index) => (
-              <div key={index} className="bg-white rounded-lg p-4 border border-amber-200">
-                <div className="font-medium text-gray-900 mb-2">
-                  {sub.alimentoOriginal}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {sub.substitutos.map((substituto, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full"
-                    >
-                      {substituto}
-                    </span>
-                  ))}
-                </div>
-                {sub.observacao && (
-                  <p className="text-sm text-gray-600 mt-2 italic">{sub.observacao}</p>
-                )}
-              </div>
-            ))}
+      {/* Toggle de visualização */}
+      <div className="bg-background-secondary rounded-lg border border-border p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-fluid-sm text-high-contrast-muted">Modo de visualização:</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewMode('formatted')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${viewMode === 'formatted'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-background text-high-contrast-muted hover:bg-background-secondary'
+                }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span className="text-fluid-sm font-medium">Texto Formatado</span>
+            </button>
+            <button
+              onClick={() => setViewMode('structured')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${viewMode === 'structured'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-background text-high-contrast-muted hover:bg-background-secondary'
+                }`}
+            >
+              <List className="w-4 h-4" />
+              <span className="text-fluid-sm font-medium">Visualização Estruturada</span>
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Exibição do texto formatado */}
+      {viewMode === 'formatted' && dietPlan.formattedText && (
+        <FormattedDietText formattedText={dietPlan.formattedText} />
       )}
 
-      {/* Observações do nutricionista */}
-      {dietPlan.metadata?.observacoes && dietPlan.metadata.observacoes.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-4">
-            📝 Observações do Nutricionista
-          </h3>
-          <ul className="space-y-2">
-            {dietPlan.metadata.observacoes.map((obs, index) => (
-              <li key={index} className="flex items-start gap-2 text-gray-700">
-                <span className="text-blue-600 mt-1">•</span>
-                <span>{obs}</span>
-              </li>
+      {/* Exibição estruturada (original) */}
+      {viewMode === 'structured' && (
+        <>
+          {/* Controles de expansão */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-fluid-xl font-semibold text-high-contrast">
+              Refeições ({dietPlan.meals?.length || 0})
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={expandAll}
+                className="text-fluid-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Expandir todas
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={collapseAll}
+                className="text-fluid-sm text-high-contrast-muted hover:text-high-contrast font-medium"
+              >
+                Recolher todas
+              </button>
+            </div>
+          </div>
+
+          {/* Lista de refeições */}
+          <div className="space-y-3">
+            {dietPlan.meals?.map((meal, index) => (
+              <MealCard
+                key={index}
+                meal={meal}
+                isExpanded={expandedMeals.has(index)}
+                onToggle={() => toggleMeal(index)}
+              />
             ))}
-          </ul>
-        </div>
+          </div>
+
+          {/* Substituições permitidas */}
+          {dietPlan.metadata?.substituicoes && dietPlan.metadata.substituicoes.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+              <h3 className="text-fluid-lg font-semibold text-amber-900 mb-4">
+                🔄 Substituições Permitidas
+              </h3>
+              <div className="space-y-3">
+                {dietPlan.metadata.substituicoes.map((sub, index) => (
+                  <div key={index} className="bg-white rounded-lg p-4 border border-amber-200">
+                    <div className="font-medium text-gray-900 mb-2">
+                      {sub.alimentoOriginal}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {sub.substitutos.map((substituto, i) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1 bg-amber-100 text-amber-800 text-fluid-sm rounded-full"
+                        >
+                          {substituto}
+                        </span>
+                      ))}
+                    </div>
+                    {sub.observacao && (
+                      <p className="text-fluid-sm text-gray-600 mt-2 italic">{sub.observacao}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Observações do nutricionista */}
+          {dietPlan.metadata?.observacoes && dietPlan.metadata.observacoes.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-fluid-lg font-semibold text-blue-900 mb-4">
+                📝 Observações do Nutricionista
+              </h3>
+              <ul className="space-y-2">
+                {dietPlan.metadata.observacoes.map((obs, index) => (
+                  <li key={index} className="flex items-start gap-2 text-gray-700">
+                    <span className="text-blue-600 mt-1">•</span>
+                    <span>{obs}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
