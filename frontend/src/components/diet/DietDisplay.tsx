@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Calendar, User, Target, Flame, FileText, List } from 'lucide-react';
-import type { DietPlan, Refeicao } from '@/types/diet';
+import type { DietPlan } from '@/types/diet';
 import FormattedDietText from './FormattedDietText';
 
 interface DietDisplayProps {
@@ -274,13 +274,50 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
   );
 }
 
+// Interface flexível para aceitar ambos os formatos de refeição
+interface MealData {
+  name?: string;
+  nome?: string;
+  time?: string;
+  horario?: string;
+  foods?: Array<{
+    name?: string;
+    nome?: string;
+    amount?: string | number;
+    quantidade?: string | number;
+    unit?: string;
+    unidade?: string;
+    observacao?: string;
+  }>;
+  alimentos?: Array<{
+    name?: string;
+    nome?: string;
+    amount?: string | number;
+    quantidade?: string | number;
+    unit?: string;
+    unidade?: string;
+    observacao?: string;
+  }>;
+  macros?: {
+    calories?: number;
+    calorias?: number;
+    protein?: number;
+    proteinas?: number;
+    carbs?: number;
+    carboidratos?: number;
+    fats?: number;
+    gorduras?: number;
+  };
+}
+
+
 // Componente individual de refeição
 function MealCard({
   meal,
   isExpanded,
   onToggle,
 }: {
-  meal: any; // Aceita ambos os formatos
+  meal: MealData;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
@@ -346,6 +383,7 @@ function MealCard({
       {isExpanded && (
         <div className="px-6 py-4 border-t border-border bg-background">
           <ul className="space-y-2">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {mealFoods.map((food: any, i: number) => {
               const foodName = food.name || food.nome || 'Alimento';
               const foodAmount = food.amount || food.quantidade || '';
