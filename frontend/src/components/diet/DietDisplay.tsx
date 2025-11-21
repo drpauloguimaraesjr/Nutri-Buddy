@@ -158,8 +158,8 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
             <button
               onClick={() => setViewMode('formatted')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${viewMode === 'formatted'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-background text-high-contrast-muted hover:bg-background-secondary'
+                ? 'bg-blue-500 text-white'
+                : 'bg-background text-high-contrast-muted hover:bg-background-secondary'
                 }`}
             >
               <FileText className="w-4 h-4" />
@@ -168,8 +168,8 @@ export default function DietDisplay({ dietPlan, onRetranscribe }: DietDisplayPro
             <button
               onClick={() => setViewMode('structured')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${viewMode === 'structured'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-background text-high-contrast-muted hover:bg-background-secondary'
+                ? 'bg-blue-500 text-white'
+                : 'bg-background text-high-contrast-muted hover:bg-background-secondary'
                 }`}
             >
               <List className="w-4 h-4" />
@@ -280,10 +280,16 @@ function MealCard({
   isExpanded,
   onToggle,
 }: {
-  meal: Refeicao;
+  meal: any; // Aceita ambos os formatos
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  // Adaptar para ambos os formatos (antigo e novo)
+  const mealName = meal.name || meal.nome || 'Refeição';
+  const mealTime = meal.time || meal.horario || '';
+  const mealFoods = meal.foods || meal.alimentos || [];
+  const mealMacros = meal.macros;
+
   const getMealIcon = (mealName: string) => {
     const name = mealName.toLowerCase();
     if (name.includes('café') || name.includes('manhã')) return '☕';
@@ -292,71 +298,79 @@ function MealCard({
     if (name.includes('jantar')) return '🌙';
     if (name.includes('ceia')) return '🥛';
     if (name.includes('treino') || name.includes('pré') || name.includes('pós')) return '💪';
+    if (name.includes('jejum')) return '⏰';
     return '🍴';
   };
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+    <div className="bg-background-secondary rounded-lg shadow border border-border overflow-hidden">
       {/* Header da refeição */}
       <button
         onClick={onToggle}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-background transition-colors"
       >
         <div className="flex items-center gap-4">
-          <span className="text-2xl">{getMealIcon(meal.nome)}</span>
+          <span className="text-2xl">{getMealIcon(mealName)}</span>
           <div className="text-left">
             <div className="flex items-center gap-3">
-              <h4 className="font-semibold text-gray-900">{meal.nome}</h4>
-              <span className="text-sm text-gray-500">{meal.horario}</span>
+              <h4 className="font-semibold text-high-contrast">{mealName}</h4>
+              <span className="text-fluid-sm text-high-contrast-muted">{mealTime}</span>
             </div>
-            {meal.macros && (
+            {mealMacros && (
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-sm text-gray-600">
-                  {meal.macros.calorias} kcal
+                <span className="text-fluid-sm text-high-contrast-muted">
+                  {mealMacros.calories || mealMacros.calorias || 0} kcal
                 </span>
-                <span className="text-xs text-gray-400">
-                  P: {meal.macros.proteinas}g | C: {meal.macros.carboidratos}g | G:{' '}
-                  {meal.macros.gorduras}g
+                <span className="text-fluid-xs text-high-contrast-muted">
+                  P: {mealMacros.protein || mealMacros.proteinas || 0}g |
+                  C: {mealMacros.carbs || mealMacros.carboidratos || 0}g |
+                  G: {mealMacros.fats || mealMacros.gorduras || 0}g
                 </span>
               </div>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">
-            {meal.alimentos?.length || 0} alimentos
+          <span className="text-fluid-sm text-high-contrast-muted">
+            {mealFoods.length} alimentos
           </span>
           {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-400" />
+            <ChevronUp className="w-5 h-5 text-high-contrast-muted" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
+            <ChevronDown className="w-5 h-5 text-high-contrast-muted" />
           )}
         </div>
       </button>
 
       {/* Conteúdo expandido */}
       {isExpanded && (
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="px-6 py-4 border-t border-border bg-background">
           <ul className="space-y-2">
-            {meal.alimentos?.map((alimento, i) => (
-              <li
-                key={i}
-                className="flex items-start justify-between gap-4 py-2 px-3 bg-white rounded border border-gray-200"
-              >
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{alimento.nome}</div>
-                  {alimento.observacao && (
-                    <div className="text-sm text-gray-500 mt-0.5 italic">
-                      {alimento.observacao}
-                    </div>
-                  )}
-                </div>
-                <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                  {alimento.quantidade}
-                  {alimento.unidade}
-                </div>
-              </li>
-            ))}
+            {mealFoods.map((food: any, i: number) => {
+              const foodName = food.name || food.nome || 'Alimento';
+              const foodAmount = food.amount || food.quantidade || '';
+              const foodUnit = food.unit || food.unidade || '';
+              const foodObs = food.observacao;
+
+              return (
+                <li
+                  key={i}
+                  className="flex items-start justify-between gap-4 py-2 px-3 bg-background-secondary rounded border border-border"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-high-contrast">{foodName}</div>
+                    {foodObs && (
+                      <div className="text-fluid-sm text-high-contrast-muted mt-0.5 italic">
+                        {foodObs}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-fluid-sm font-medium text-high-contrast-muted whitespace-nowrap">
+                    {foodAmount}{foodUnit}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
