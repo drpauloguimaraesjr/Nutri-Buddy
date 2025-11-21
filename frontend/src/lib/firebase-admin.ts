@@ -33,6 +33,36 @@ if (!admin.apps.length) {
     }
 }
 
-export const adminDb = admin.firestore();
-export const adminAuth = admin.auth();
-export const adminStorage = admin.storage();
+// Safe exports that won't crash build if initialization failed
+const getAdminDb = () => {
+    if (!admin.apps.length) {
+        console.warn('⚠️ Warning: Attempting to access Firestore without initialized app');
+        return null as unknown as admin.firestore.Firestore;
+    }
+    return admin.firestore();
+};
+
+const getAdminAuth = () => {
+    if (!admin.apps.length) {
+        console.warn('⚠️ Warning: Attempting to access Auth without initialized app');
+        return null as unknown as admin.auth.Auth;
+    }
+    return admin.auth();
+};
+
+const getAdminStorage = () => {
+    if (!admin.apps.length) {
+        console.warn('⚠️ Warning: Attempting to access Storage without initialized app');
+        return null as unknown as admin.storage.Storage;
+    }
+    return admin.storage();
+};
+
+// Export instances directly if app is initialized, otherwise proxies/nulls would be better
+// but for now let's try to initialize if possible, otherwise these will throw at runtime
+// which is better than build time if we can avoid top-level access.
+// However, to fix the build error specifically:
+
+export const adminDb = admin.apps.length ? admin.firestore() : {} as admin.firestore.Firestore;
+export const adminAuth = admin.apps.length ? admin.auth() : {} as admin.auth.Auth;
+export const adminStorage = admin.apps.length ? admin.storage() : {} as admin.storage.Storage;
