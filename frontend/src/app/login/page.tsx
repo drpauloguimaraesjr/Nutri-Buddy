@@ -208,18 +208,18 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-block mb-4">
-            <Image 
-              src="/logos/nutribuddy-icon.svg" 
-              alt="NutriBuddy Logo" 
-              width={80}
-              height={80}
+          <div className="inline-block mb-6">
+            <Image
+              src="/logos/nutribuddy-icon-white.svg"
+              alt="NutriBuddy Logo"
+              width={120}
+              height={120}
               className="object-contain"
               priority
             />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">NutriBuddy</h1>
-          <p className="text-slate-300">Sistema de Nutrição Personalizada</p>
+          <h1 className="text-4xl font-bold text-white mb-2">NutriBuddy</h1>
+          <p className="text-slate-300 text-lg">Sistema de Nutrição Personalizada</p>
         </div>
 
         <Card className="bg-slate-800/50 backdrop-blur-xl border-slate-700">
@@ -298,11 +298,10 @@ export default function LoginPage() {
 
               {(magicLinkInfo || magicLinkError) && (
                 <div
-                  className={`rounded-lg border p-3 text-sm ${
-                    magicLinkError
+                  className={`rounded-lg border p-3 text-sm ${magicLinkError
                       ? 'border-red-500/30 bg-red-900/20 text-red-400'
                       : 'border-sky-500/30 bg-sky-900/20 text-sky-400'
-                  }`}
+                    }`}
                 >
                   {magicLinkError || magicLinkInfo}
                 </div>
