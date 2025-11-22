@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
         console.log('✅ Message saved:', msgRef.id);
 
         // 4. Disparar Webhook do n8n (WhatsApp workflow)
-        const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-whatsapp';
+        const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-chat-producao';
 
         try {
             const webhookPayload = {
