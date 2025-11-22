@@ -131,35 +131,26 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
     }
   };
 
-  // Buscar QR Code na montagem
+  // Não buscar QR Code automaticamente na montagem
   useEffect(() => {
-    // Setar status inicial sem fazer fetch
     setConnectionStatus('disconnected');
     setLoading(false);
-  }, []);
+    // Verificar status inicial apenas
+    checkConnectionStatus();
+  }, [checkConnectionStatus]);
 
-  // Auto-refresh do QR Code (expira a cada 60 segundos) - DESABILITADO
+  // Auto-refresh DESABILITADO - QR Code só é gerado sob demanda
+
+  // Verificar status periodicamente apenas se estiver tentando conectar
   useEffect(() => {
-    if (false && connectionStatus === 'connecting' && qrCode && autoRefresh) {
-      console.log('⏱️ Auto-refresh do QR Code ativado (60s)');
+    if (connectionStatus === 'connecting' || qrCode) {
       const interval = setInterval(() => {
-        setRetryCount(prev => prev + 1);
-        console.log('🔄 Renovando QR Code...');
-        fetchQRCode();
-      }, 60000); // 60 segundos
+        checkConnectionStatus();
+      }, 5000); // 5 segundos
 
       return () => clearInterval(interval);
     }
-  }, [connectionStatus, qrCode, autoRefresh, fetchQRCode]);
-
-  // Verificar status periodicamente (a cada 10 segundos)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      checkConnectionStatus();
-    }, 10000); // 10 segundos
-
-    return () => clearInterval(interval);
-  }, [checkConnectionStatus]);
+  }, [connectionStatus, qrCode, checkConnectionStatus]);
 
   if (loading && !qrCode) {
     return (
