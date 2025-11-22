@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bot, Sparkles, Save, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import type { 
-  AIProfileType, 
-  MessageFrequency, 
-  EmojiLevel, 
-  FeedbackStyle, 
+import type {
+  AIProfileType,
+  MessageFrequency,
+  EmojiLevel,
+  FeedbackStyle,
   ResponseTiming,
-  AIProfileConfig as AIProfileConfigType 
+  AIProfileConfig as AIProfileConfigType
 } from '@/types';
 
 interface AIProfileMetadata {
@@ -31,133 +31,133 @@ const PROFILE_TYPES: Array<{
   value: AIProfileType;
   metadata: AIProfileMetadata;
 }> = [
-  {
-    value: 'welcoming',
-    metadata: {
-      emoji: '🤗',
-      name: 'Acolhedor e Suave',
-      description: 'Tom calmo, paciente e empático. Ideal para pacientes ansiosos ou sensíveis.',
-      characteristics: [
-        'Linguagem suave e reconfortante',
-        'Valida emoções antes de orientar',
-        'Evita pressão e palavras imperativas',
-        'Foco no progresso, não na perfeição'
-      ],
-      example: 'Tudo bem se hoje não foi como planejado. Amanhã é uma nova chance 💙'
+    {
+      value: 'welcoming',
+      metadata: {
+        emoji: '🤗',
+        name: 'Acolhedor e Suave',
+        description: 'Tom calmo, paciente e empático. Ideal para pacientes ansiosos ou sensíveis.',
+        characteristics: [
+          'Linguagem suave e reconfortante',
+          'Valida emoções antes de orientar',
+          'Evita pressão e palavras imperativas',
+          'Foco no progresso, não na perfeição'
+        ],
+        example: 'Tudo bem se hoje não foi como planejado. Amanhã é uma nova chance 💙'
+      }
+    },
+    {
+      value: 'motivational',
+      metadata: {
+        emoji: '🔥',
+        name: 'Motivacional e Energético',
+        description: 'Entusiasmado e inspirador. Ideal para pacientes desmotivados que precisam de energia.',
+        characteristics: [
+          'Linguagem positiva e energizante',
+          'Celebra cada pequena conquista',
+          'Usa analogias de superação',
+          'Frases curtas e impactantes'
+        ],
+        example: 'ISSO! Mais uma refeição saudável! Você está arrasando! 🔥'
+      }
+    },
+    {
+      value: 'direct',
+      metadata: {
+        emoji: '💪',
+        name: 'Firme e Direto',
+        description: 'Objetivo e sem rodeios. Ideal para pacientes que precisam de limites claros.',
+        characteristics: [
+          'Comunicação clara e objetiva',
+          'Apresenta fatos e consequências',
+          'Estabelece expectativas claras',
+          'Não aceita desculpas, oferece soluções'
+        ],
+        example: '3 refeições fora do plano essa semana. Vamos ajustar? 📊'
+      }
+    },
+    {
+      value: 'humorous',
+      metadata: {
+        emoji: '😄',
+        name: 'Descontraído com Humor',
+        description: 'Leve e bem-humorado. Ideal para pacientes que respondem bem à leveza.',
+        characteristics: [
+          'Usa humor saudável (nunca ofensivo)',
+          'Metáforas e comparações engraçadas',
+          'Torna o processo mais leve',
+          'Equilíbrio entre diversão e seriedade'
+        ],
+        example: 'Pizza às 23h? Aquele momento "fome da madrugada atacou"? 😄 Amanhã compensamos!'
+      }
+    },
+    {
+      value: 'mindful',
+      metadata: {
+        emoji: '🧘',
+        name: 'Zen e Mindful',
+        description: 'Reflexivo e consciente. Ideal para pacientes que valorizam conexão mente-corpo.',
+        characteristics: [
+          'Incentiva autopercepção corporal',
+          'Questiona em vez de instruir',
+          'Linguagem de mindfulness',
+          'Conecta alimentação com emoções'
+        ],
+        example: 'Como você se sentiu após essa refeição? Mais energizado ou pesado? 🌱'
+      }
+    },
+    {
+      value: 'educational',
+      metadata: {
+        emoji: '📚',
+        name: 'Educativo e Técnico',
+        description: 'Informativo e didático. Ideal para pacientes curiosos que gostam de entender o porquê.',
+        characteristics: [
+          'Explica o raciocínio das recomendações',
+          'Usa dados e fatos científicos',
+          'Ensina enquanto orienta',
+          'Empodera através do conhecimento'
+        ],
+        example: 'Proteína no café da manhã mantém saciedade. Estudos mostram redução de 60% na compulsão 📚'
+      }
+    },
+    {
+      value: 'coach',
+      metadata: {
+        emoji: '🎯',
+        name: 'Coach Esportivo',
+        description: 'Desafiador e focado em performance. Ideal para pacientes competitivos.',
+        characteristics: [
+          'Linguagem de treino e performance',
+          'Estabelece metas e desafios',
+          'Usa métricas mensuráveis',
+          'Celebra recordes pessoais'
+        ],
+        example: 'META DA SEMANA: 5 dias com café proteico. Você topa? 🎯'
+      }
+    },
+    {
+      value: 'partner',
+      metadata: {
+        emoji: '🤝',
+        name: 'Parceiro de Jornada',
+        description: 'Colaborativo e de parceria. Ideal para pacientes que valorizam trabalho em equipe.',
+        characteristics: [
+          'Usa "nós" em vez de "você"',
+          'Compartilha a responsabilidade',
+          'Cria senso de time',
+          'Celebra conquistas em conjunto'
+        ],
+        example: 'Vamos ajustar o jantar juntos? O que você acha de... 🤝'
+      }
     }
-  },
-  {
-    value: 'motivational',
-    metadata: {
-      emoji: '🔥',
-      name: 'Motivacional e Energético',
-      description: 'Entusiasmado e inspirador. Ideal para pacientes desmotivados que precisam de energia.',
-      characteristics: [
-        'Linguagem positiva e energizante',
-        'Celebra cada pequena conquista',
-        'Usa analogias de superação',
-        'Frases curtas e impactantes'
-      ],
-      example: 'ISSO! Mais uma refeição saudável! Você está arrasando! 🔥'
-    }
-  },
-  {
-    value: 'direct',
-    metadata: {
-      emoji: '💪',
-      name: 'Firme e Direto',
-      description: 'Objetivo e sem rodeios. Ideal para pacientes que precisam de limites claros.',
-      characteristics: [
-        'Comunicação clara e objetiva',
-        'Apresenta fatos e consequências',
-        'Estabelece expectativas claras',
-        'Não aceita desculpas, oferece soluções'
-      ],
-      example: '3 refeições fora do plano essa semana. Vamos ajustar? 📊'
-    }
-  },
-  {
-    value: 'humorous',
-    metadata: {
-      emoji: '😄',
-      name: 'Descontraído com Humor',
-      description: 'Leve e bem-humorado. Ideal para pacientes que respondem bem à leveza.',
-      characteristics: [
-        'Usa humor saudável (nunca ofensivo)',
-        'Metáforas e comparações engraçadas',
-        'Torna o processo mais leve',
-        'Equilíbrio entre diversão e seriedade'
-      ],
-      example: 'Pizza às 23h? Aquele momento "fome da madrugada atacou"? 😄 Amanhã compensamos!'
-    }
-  },
-  {
-    value: 'mindful',
-    metadata: {
-      emoji: '🧘',
-      name: 'Zen e Mindful',
-      description: 'Reflexivo e consciente. Ideal para pacientes que valorizam conexão mente-corpo.',
-      characteristics: [
-        'Incentiva autopercepção corporal',
-        'Questiona em vez de instruir',
-        'Linguagem de mindfulness',
-        'Conecta alimentação com emoções'
-      ],
-      example: 'Como você se sentiu após essa refeição? Mais energizado ou pesado? 🌱'
-    }
-  },
-  {
-    value: 'educational',
-    metadata: {
-      emoji: '📚',
-      name: 'Educativo e Técnico',
-      description: 'Informativo e didático. Ideal para pacientes curiosos que gostam de entender o porquê.',
-      characteristics: [
-        'Explica o raciocínio das recomendações',
-        'Usa dados e fatos científicos',
-        'Ensina enquanto orienta',
-        'Empodera através do conhecimento'
-      ],
-      example: 'Proteína no café da manhã mantém saciedade. Estudos mostram redução de 60% na compulsão 📚'
-    }
-  },
-  {
-    value: 'coach',
-    metadata: {
-      emoji: '🎯',
-      name: 'Coach Esportivo',
-      description: 'Desafiador e focado em performance. Ideal para pacientes competitivos.',
-      characteristics: [
-        'Linguagem de treino e performance',
-        'Estabelece metas e desafios',
-        'Usa métricas mensuráveis',
-        'Celebra recordes pessoais'
-      ],
-      example: 'META DA SEMANA: 5 dias com café proteico. Você topa? 🎯'
-    }
-  },
-  {
-    value: 'partner',
-    metadata: {
-      emoji: '🤝',
-      name: 'Parceiro de Jornada',
-      description: 'Colaborativo e de parceria. Ideal para pacientes que valorizam trabalho em equipe.',
-      characteristics: [
-        'Usa "nós" em vez de "você"',
-        'Compartilha a responsabilidade',
-        'Cria senso de time',
-        'Celebra conquistas em conjunto'
-      ],
-      example: 'Vamos ajustar o jantar juntos? O que você acha de... 🤝'
-    }
-  }
-];
+  ];
 
 export default function AIProfileConfig({ patientId, patientName, onSave }: AIProfileConfigProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  
+
   const [selectedProfile, setSelectedProfile] = useState<AIProfileType>('welcoming');
   const [messageFrequency, setMessageFrequency] = useState<MessageFrequency>('medium');
   const [emojiLevel, setEmojiLevel] = useState<EmojiLevel>('medium');
@@ -167,13 +167,13 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
 
   useEffect(() => {
     loadProfile();
-  }, [patientId]);
+  }, [patientId, loadProfile]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       const token = await (await import('@/lib/firebase')).auth.currentUser?.getIdToken();
-      
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/prescriber/patients/${patientId}/ai-profile`,
         {
@@ -204,7 +204,7 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
     } finally {
       setLoading(false);
     }
-  };
+  }, [patientId]);
 
   const handleSave = async () => {
     try {
@@ -221,7 +221,7 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
       };
 
       const token = await (await import('@/lib/firebase')).auth.currentUser?.getIdToken();
-      
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/prescriber/patients/${patientId}/ai-profile`,
         {
@@ -280,7 +280,7 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
                 Personalidade da IA para {patientName}
               </h3>
               <p className="mt-1 text-sm text-purple-700">
-                Configure como a IA deve conversar especificamente com este paciente. 
+                Configure como a IA deve conversar especificamente com este paciente.
                 Cada perfil tem um tom, frequência e estilo únicos de comunicação.
               </p>
             </div>
@@ -290,9 +290,8 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
 
       {/* Feedback */}
       {feedback && (
-        <Card className={`border-l-4 ${
-          feedback.type === 'success' ? 'border-l-green-500 bg-green-50' : 'border-l-red-500 bg-red-50'
-        }`}>
+        <Card className={`border-l-4 ${feedback.type === 'success' ? 'border-l-green-500 bg-green-50' : 'border-l-red-500 bg-red-50'
+          }`}>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               {feedback.type === 'success' ? (
@@ -300,9 +299,8 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
               ) : (
                 <AlertCircle className="h-5 w-5 text-red-600" />
               )}
-              <p className={`text-sm font-medium ${
-                feedback.type === 'success' ? 'text-green-800' : 'text-red-800'
-              }`}>
+              <p className={`text-sm font-medium ${feedback.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
                 {feedback.message}
               </p>
             </div>
@@ -322,11 +320,10 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
             {PROFILE_TYPES.map(({ value, metadata }) => (
               <label
                 key={value}
-                className={`flex flex-col gap-3 rounded-lg border-2 p-4 cursor-pointer transition ${
-                  selectedProfile === value
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-25'
-                }`}
+                className={`flex flex-col gap-3 rounded-lg border-2 p-4 cursor-pointer transition ${selectedProfile === value
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-25'
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <input
@@ -345,7 +342,7 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
                     <p className="mt-1 text-sm text-gray-600">{metadata.description}</p>
                   </div>
                 </div>
-                
+
                 {selectedProfile === value && (
                   <div className="ml-7 space-y-2 text-sm">
                     <div className="rounded-lg bg-purple-100 p-3">
@@ -386,11 +383,10 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
               ].map(freq => (
                 <label
                   key={freq.value}
-                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${
-                    messageFrequency === freq.value
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-purple-300'
-                  }`}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${messageFrequency === freq.value
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300'
+                    }`}
                 >
                   <input
                     type="radio"
@@ -425,11 +421,10 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
               ].map(emoji => (
                 <label
                   key={emoji.value}
-                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${
-                    emojiLevel === emoji.value
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-purple-300'
-                  }`}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${emojiLevel === emoji.value
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300'
+                    }`}
                 >
                   <input
                     type="radio"
@@ -464,11 +459,10 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
               ].map(style => (
                 <label
                   key={style.value}
-                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${
-                    feedbackStyle === style.value
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-purple-300'
-                  }`}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${feedbackStyle === style.value
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300'
+                    }`}
                 >
                   <input
                     type="radio"
@@ -503,11 +497,10 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
               ].map(timing => (
                 <label
                   key={timing.value}
-                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${
-                    responseTiming === timing.value
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-purple-300'
-                  }`}
+                  className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer transition ${responseTiming === timing.value
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300'
+                    }`}
                 >
                   <input
                     type="radio"

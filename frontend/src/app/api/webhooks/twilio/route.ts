@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Buscar ou Criar Conversa
-        let conversationSnapshot = await adminDb
+        const conversationSnapshot = await adminDb
             .collection('conversations')
             .where('patientId', '==', patientId)
             .where('prescriberId', '==', prescriberId)
