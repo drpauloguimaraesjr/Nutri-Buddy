@@ -119,7 +119,7 @@ export default function PrescriberChatPage() {
     } finally {
       setIsLoadingPatients(false);
     }
-  }, [apiBaseUrl, firebaseUser]);
+  }, [firebaseUser]);
 
   const handleStartConversation = async (patientId: string) => {
     if (!firebaseUser) return;
