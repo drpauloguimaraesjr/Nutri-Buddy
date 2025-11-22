@@ -17,18 +17,17 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Buscar QR Code via Z-API
+  // Buscar QR Code via Evolution API
   const fetchQRCode = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      console.log('📱 Buscando QR Code Z-API');
+      console.log('📱 Buscando QR Code Evolution API');
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      
-      // Tentar endpoint de teste primeiro (sem auth)
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/qrcode-test`, {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/qrcode`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -45,13 +44,20 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
         setQrCode(data.base64);
         setConnectionStatus('connecting');
         console.log('✅ QR Code recebido');
-      } else if (data.status === 'connected') {
+      } else if (data.qrcode && data.qrcode.base64) {
+        // Algumas versões retornam dentro de um objeto qrcode
+        setQrCode(data.qrcode.base64);
+        setConnectionStatus('connecting');
+      } else if (data.instance?.state === 'open' || data.state === 'open') {
         setConnectionStatus('connected');
         setPhoneNumber(data.phone || '');
         console.log('✅ WhatsApp já conectado');
         if (onConnected) onConnected();
       } else {
-        setError('Não foi possível gerar QR Code');
+        // Se não veio base64 e não está conectado, tenta mostrar o que veio para debug
+        console.warn('⚠️ Resposta inesperada:', data);
+        if (data.qrcode) setQrCode(data.qrcode); // Tenta usar direto se for string
+        else setError('Não foi possível gerar QR Code');
       }
     } catch (err) {
       console.error('❌ Erro ao buscar QR Code:', err);
@@ -61,13 +67,12 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
     }
   }, [onConnected]);
 
-  // Verificar status da conexão via Z-API
+  // Verificar status da conexão via Evolution API
   const checkConnectionStatus = useCallback(async () => {
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      
-      // Usar endpoint de teste (sem auth)
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status-test`, {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
+      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +81,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.connected) {
           setConnectionStatus('connected');
           setPhoneNumber(data.phone || '');
@@ -86,7 +91,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
         } else {
           setConnectionStatus('disconnected');
           setPhoneNumber('');
-          console.log('⚠️ Status: Desconectado');
+          // console.log('⚠️ Status: Desconectado'); // Comentado para não poluir console
         }
       }
     } catch {
@@ -95,7 +100,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
     }
   }, [onConnected]);
 
-  // Desconectar WhatsApp via Z-API
+  // Desconectar WhatsApp via Evolution API
   const handleDisconnect = async () => {
     if (!window.confirm('Deseja realmente desconectar o WhatsApp?')) {
       return;
@@ -103,15 +108,14 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
 
     try {
       setLoading(true);
-      
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      
+
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
       const response = await fetch(`${apiBaseUrl}/api/whatsapp/disconnect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
       });
 
       if (response.ok) {
@@ -229,7 +233,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
                 className="w-64 h-64 object-contain"
               />
             </div>
-            
+
             <div className="text-center space-y-2">
               <p className="text-sm text-gray-600">
                 {retryCount > 0 && `QR Code atualizado ${retryCount} vez${retryCount > 1 ? 'es' : ''}`}

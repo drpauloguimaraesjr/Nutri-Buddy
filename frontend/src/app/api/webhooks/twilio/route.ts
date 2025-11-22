@@ -26,26 +26,52 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Identificar Paciente
-        const phone = normalizePhone(from);
-        console.log('🔍 Searching patient with phone:', phone);
+        const normalizedPhone = normalizePhone(from);
+        console.log('🔍 Raw From:', from);
+        console.log('🔍 Normalized Phone:', normalizedPhone);
+        console.log('🔍 Searching for phone variants:', [normalizedPhone, `+${normalizedPhone}`]);
 
-        // Buscar na coleção 'users' com role 'patient'
-        let patientSnapshot = await adminDb
+        // Buscar na coleção 'users' por telefone (sem filtro de role primeiro para debug)
+        console.log('🔍 Searching users by phone (any role)...');
+        let userSnapshot = await adminDb
             .collection('users')
-            .where('role', '==', 'patient')
-            .where('phone', '==', phone)
+            .where('phone', '==', normalizedPhone)
             .limit(1)
             .get();
 
-        // Tentar com +
-        if (patientSnapshot.empty) {
-            patientSnapshot = await adminDb
+        if (userSnapshot.empty) {
+            console.log('🔍 Not found with normalized phone. Trying with +...');
+            userSnapshot = await adminDb
                 .collection('users')
-                .where('role', '==', 'patient')
-                .where('phone', '==', `+${phone}`)
+                .where('phone', '==', `+${normalizedPhone}`)
                 .limit(1)
                 .get();
         }
+
+        if (userSnapshot.empty) {
+            console.log('❌ User not found with any phone variant');
+            twiml.message('Olá! Não encontrei seu cadastro no NutriBuddy. Por favor, entre em contato com seu nutricionista para verificar seu número.');
+            return new NextResponse(twiml.toString(), {
+                headers: { 'Content-Type': 'text/xml' },
+            });
+        }
+
+        const userDoc = userSnapshot.docs[0];
+        const userData = userDoc.data();
+        console.log('✅ User found:', { id: userDoc.id, role: userData.role, name: userData.name });
+
+        if (userData.role !== 'patient') {
+            console.log('🚫 User is not a patient. Role:', userData.role);
+            // Opcional: Permitir outros roles para teste ou retornar erro específico
+            // Por enquanto, vamos bloquear mas logar
+            twiml.message('Olá! Seu cadastro não está identificado como paciente. Entre em contato com o suporte.');
+            return new NextResponse(twiml.toString(), {
+                headers: { 'Content-Type': 'text/xml' },
+            });
+        }
+
+        // Se chegou aqui, é paciente
+        const patientSnapshot = userSnapshot; // Reutilizar para manter compatibilidade com código abaixo
 
         if (patientSnapshot.empty) {
             console.log('❌ Patient not found');
@@ -70,6 +96,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Buscar ou Criar Conversa
+        console.log('🔍 Step 2: Finding/Creating conversation...');
         const conversationSnapshot = await adminDb
             .collection('conversations')
             .where('patientId', '==', patientId)
@@ -80,6 +107,7 @@ export async function POST(req: NextRequest) {
         let conversationId: string;
 
         if (conversationSnapshot.empty) {
+            console.log('✨ Creating new conversation...');
             // Criar nova conversa
             const prescriberDoc = await adminDb.collection('users').doc(prescriberId).get();
             const conversationRef = await adminDb.collection('conversations').add({
@@ -105,6 +133,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Salvar Mensagem do Paciente
+        console.log('💾 Step 3: Saving message...');
         const messageType = mediaUrl ? (mediaContentType?.startsWith('image/') ? 'image' : 'audio') : 'text';
 
         const messageData = {
@@ -140,7 +169,9 @@ export async function POST(req: NextRequest) {
         console.log('✅ Message saved:', msgRef.id);
 
         // 4. Disparar Webhook do n8n (WhatsApp workflow)
+        console.log('🚀 Step 4: Triggering n8n...');
         const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-chat-producao';
+        console.log('🔗 n8n URL:', n8nWebhookUrl);
 
         try {
             const webhookPayload = {
@@ -148,7 +179,6 @@ export async function POST(req: NextRequest) {
                 patientId,
                 prescriberId,
                 messageId: msgRef.id,
-                senderRole: 'patient',
                 content: body,
                 type: messageType,
                 mediaUrl: mediaUrl || null,
@@ -156,9 +186,9 @@ export async function POST(req: NextRequest) {
                 patientPhone: from // Incluir telefone para resposta
             };
 
-            console.log('🚀 Triggering n8n WhatsApp webhook:', webhookPayload);
+            console.log('📦 Payload:', JSON.stringify(webhookPayload, null, 2));
 
-            await fetch(n8nWebhookUrl, {
+            const n8nResponse = await fetch(n8nWebhookUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -166,12 +196,21 @@ export async function POST(req: NextRequest) {
                 body: JSON.stringify(webhookPayload),
             });
 
-            console.log('✅ n8n WhatsApp webhook triggered successfully');
+            console.log('📡 n8n Response Status:', n8nResponse.status);
+            const n8nText = await n8nResponse.text();
+            console.log('📡 n8n Response Body:', n8nText);
+
+            if (!n8nResponse.ok) {
+                console.error('❌ n8n returned error status');
+            } else {
+                console.log('✅ n8n WhatsApp webhook triggered successfully');
+            }
         } catch (error) {
             console.error('❌ Error triggering n8n webhook:', error);
         }
 
         // 5. Responder com confirmação (a IA vai responder depois via Twilio API)
+        console.log('✅ Step 5: Sending confirmation response to Twilio');
         twiml.message('✅ Mensagem recebida! Estou processando...');
 
         return new NextResponse(twiml.toString(), {
