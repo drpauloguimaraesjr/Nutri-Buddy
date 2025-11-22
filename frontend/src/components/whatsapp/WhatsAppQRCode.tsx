@@ -13,9 +13,7 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  const [retryCount, setRetryCount] = useState(0);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Buscar QR Code via Evolution API
   const fetchQRCode = useCallback(async () => {
@@ -220,28 +218,6 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
                 alt="QR Code do WhatsApp"
                 className="w-64 h-64 object-contain"
               />
-            </div>
-
-            <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
-                {retryCount > 0 && `QR Code atualizado ${retryCount} vez${retryCount > 1 ? 'es' : ''}`}
-              </p>
-              <p className="text-xs text-gray-500">
-                ⏱️ QR Code expira em 60 segundos
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="autoRefresh"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="w-4 h-4 text-green-600 rounded"
-              />
-              <label htmlFor="autoRefresh" className="text-sm text-gray-600">
-                Renovar QR Code automaticamente
-              </label>
             </div>
 
             <Button
