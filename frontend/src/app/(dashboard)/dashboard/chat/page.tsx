@@ -86,7 +86,7 @@ export default function PrescriberChatPage() {
               validDate = date.toISOString();
             }
           }
-        } catch (e) {
+        } catch {
           console.warn('Data inválida recebida:', conversation.lastMessageAt);
         }
 
@@ -340,7 +340,7 @@ export default function PrescriberChatPage() {
                                   addSuffix: true,
                                   locale: ptBR,
                                 });
-                              } catch (e) {
+                              } catch {
                                 return 'Data desconhecida';
                               }
                             })()}
