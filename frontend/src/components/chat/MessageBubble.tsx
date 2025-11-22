@@ -187,12 +187,12 @@ export const MessageBubble = memo(function MessageBubble({
                 <span>IA</span>
               </div>
             )}
-            
+
             {channel === 'whatsapp' && (
               <div className={cn(
                 "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
-                isOwn 
-                  ? "bg-white/20" 
+                isOwn
+                  ? "bg-white/20"
                   : "bg-green-50 text-green-600 border border-green-200"
               )}>
                 <span>📱</span>
@@ -211,7 +211,9 @@ export const MessageBubble = memo(function MessageBubble({
             )}
           </div>
 
-          <p className="text-sm whitespace-pre-wrap break-words">{content}</p>
+          <p className="text-sm whitespace-pre-wrap break-words">
+            {typeof content === 'string' ? content : JSON.stringify(content)}
+          </p>
 
           {attachments.length > 0 && (
             <div className="mt-3 space-y-3">

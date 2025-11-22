@@ -89,11 +89,11 @@ export function ChatInterface({
       : new Date(),
     attachments: Array.isArray(rawMessage?.attachments)
       ? rawMessage.attachments.map((attachment) => ({
-          ...attachment,
-          urlExpiresAt: attachment?.urlExpiresAt
-            ? new Date(attachment.urlExpiresAt)
-            : undefined,
-        }))
+        ...attachment,
+        urlExpiresAt: attachment?.urlExpiresAt
+          ? new Date(attachment.urlExpiresAt)
+          : undefined,
+      }))
       : [],
   });
 
@@ -105,10 +105,10 @@ export function ChatInterface({
   // Detectar se precisa mostrar botão de scroll
   const handleScroll = () => {
     if (!messagesContainerRef.current) return;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    
+
     setShowScrollButton(!isNearBottom);
   };
 
@@ -203,7 +203,7 @@ export function ChatInterface({
         );
 
         setMessages(formattedMessages);
-        
+
         // Scroll para o final após carregar
         setTimeout(() => scrollToBottom(false), 100);
       } catch (err) {
@@ -248,7 +248,7 @@ export function ChatInterface({
       const newMessage = normalizeMessage(data.message as RawMessage);
 
       setMessages((prev) => [...prev, newMessage]);
-      
+
       // Scroll para o final
       setTimeout(() => scrollToBottom(true), 100);
     } catch (err) {
@@ -334,6 +334,42 @@ export function ChatInterface({
     );
   }
 
+  const handleSimulatePatient = async (content: string) => {
+    if (!conversationId || !firebaseUser) return;
+
+    try {
+      const token = await firebaseUser.getIdToken();
+      const response = await fetch(
+        `${apiBaseUrl}/api/messages/conversations/${conversationId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            content,
+            type: 'text',
+            forceRole: 'patient',
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Erro ao enviar mensagem simulada');
+      }
+
+      const data = await response.json();
+      const newMessage = normalizeMessage(data.message as RawMessage);
+
+      setMessages((prev) => [...prev, newMessage]);
+      setTimeout(() => scrollToBottom(true), 100);
+    } catch (err) {
+      console.error('Erro ao enviar mensagem simulada:', err);
+      throw err;
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col overflow-hidden">
       {/* Header */}
@@ -370,8 +406,8 @@ export function ChatInterface({
                     onChange={async (e) => {
                       const newValue = e.target.checked;
                       // Atualizar UI otimisticamente
-                      setConversation(prev => prev ? {...prev, whatsappEnabled: newValue} : null);
-                      
+                      setConversation(prev => prev ? { ...prev, whatsappEnabled: newValue } : null);
+
                       try {
                         const token = await firebaseUser?.getIdToken();
                         await fetch(`${apiBaseUrl}/api/messages/conversations/${conversationId}`, {
@@ -385,7 +421,7 @@ export function ChatInterface({
                       } catch (error) {
                         console.error('Erro ao atualizar WhatsApp:', error);
                         // Reverter em caso de erro
-                        setConversation(prev => prev ? {...prev, whatsappEnabled: !newValue} : null);
+                        setConversation(prev => prev ? { ...prev, whatsappEnabled: !newValue } : null);
                       }
                     }}
                     className="sr-only peer"
@@ -471,7 +507,11 @@ export function ChatInterface({
       </AnimatePresence>
 
       {/* Input */}
-      <ChatInput onSend={handleSendMessage} onSendMedia={handleSendMedia} />
+      <ChatInput
+        onSend={handleSendMessage}
+        onSendMedia={handleSendMedia}
+        onSimulatePatient={handleSimulatePatient}
+      />
     </Card>
   );
 }

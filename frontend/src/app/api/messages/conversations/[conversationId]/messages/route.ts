@@ -37,10 +37,12 @@ export async function POST(
         const conversationData = conversationDoc.data();
         const senderRole = userId === conversationData?.patientId ? 'patient' : 'prescriber';
 
+        const finalSenderRole = body.forceRole || senderRole;
+
         const messageData = {
             conversationId,
             senderId: userId,
-            senderRole,
+            senderRole: finalSenderRole,
             content,
             type,
             isAiGenerated: false,
@@ -69,7 +71,7 @@ export async function POST(
 
         // 3. Enviar para n8n (Apenas se for PACIENTE)
         // O n8n vai processar e responder se necessário
-        if (senderRole === 'patient') {
+        if (finalSenderRole === 'patient') {
             try {
                 // Não esperar a resposta do n8n para não travar a UI
                 fetch(N8N_WEBHOOK_URL, {
@@ -79,7 +81,7 @@ export async function POST(
                         conversationId,
                         messageId: msgRef.id,
                         senderId: userId,
-                        senderRole,
+                        senderRole: finalSenderRole,
                         content,
                         type,
                         patientId: conversationData?.patientId,

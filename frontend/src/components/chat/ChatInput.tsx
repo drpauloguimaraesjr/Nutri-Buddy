@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 interface ChatInputProps {
   onSend: (message: string) => Promise<void>;
   onSendMedia: (file: File, mediaType: 'image' | 'audio') => Promise<void>;
+  onSimulatePatient?: (message: string) => Promise<void>;
   placeholder?: string;
   disabled?: boolean;
   maxLength?: number;
@@ -16,6 +17,7 @@ interface ChatInputProps {
 export function ChatInput({
   onSend,
   onSendMedia,
+  onSimulatePatient,
   placeholder = 'Digite sua mensagem...',
   disabled = false,
   maxLength = 1000,
@@ -288,6 +290,29 @@ export function ChatInput({
               <Send className="w-5 h-5" />
             )}
           </Button>
+
+          {onSimulatePatient && (
+            <Button
+              onClick={async () => {
+                const trimmedMessage = message.trim();
+                if (!trimmedMessage || isSending || disabled) return;
+                try {
+                  setIsSending(true);
+                  await onSimulatePatient(trimmedMessage);
+                  setMessage('');
+                  if (textareaRef.current) textareaRef.current.style.height = 'auto';
+                } finally {
+                  setIsSending(false);
+                }
+              }}
+              disabled={!message.trim() || isSending || disabled}
+              variant="outline"
+              className="flex-shrink-0 px-3 py-3 rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50"
+              title="Simular mensagem do paciente (Teste)"
+            >
+              <span className="text-xs font-bold">Simular</span>
+            </Button>
+          )}
         </div>
 
         {(isRecording || isUploadingMedia) && (
