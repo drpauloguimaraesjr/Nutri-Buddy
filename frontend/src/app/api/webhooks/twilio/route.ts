@@ -148,6 +148,7 @@ export async function POST(req: NextRequest) {
                 patientId,
                 prescriberId,
                 messageId: msgRef.id,
+                senderRole: 'patient',
                 content: body,
                 type: messageType,
                 mediaUrl: mediaUrl || null,
