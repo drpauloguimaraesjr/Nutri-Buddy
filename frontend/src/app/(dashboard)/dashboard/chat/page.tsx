@@ -392,89 +392,90 @@ export default function PrescriberChatPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
 
 
-        {/* Modal de Seleção de Pacientes */}
-        <AnimatePresence>
-          {
-            showPatientModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between p-6 border-b">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Iniciar nova conversa</h2>
-                      <p className="text-sm text-gray-600 mt-1">Selecione um paciente para começar</p>
-                    </div>
-                    <button
-                      onClick={() => setShowPatientModal(false)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+      {/* Modal de Seleção de Pacientes */}
+      <AnimatePresence>
+        {
+          showPatientModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Iniciar nova conversa</h2>
+                    <p className="text-sm text-gray-600 mt-1">Selecione um paciente para começar</p>
                   </div>
+                  <button
+                    onClick={() => setShowPatientModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-                  {/* Search */}
-                  <div className="p-6 border-b">
-                    <div className="relative">
-                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        value={patientSearchTerm}
-                        onChange={(e) => setPatientSearchTerm(e.target.value)}
-                        placeholder="Buscar por nome ou email"
-                        className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                {/* Search */}
+                <div className="p-6 border-b">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={patientSearchTerm}
+                      onChange={(e) => setPatientSearchTerm(e.target.value)}
+                      placeholder="Buscar por nome ou email"
+                      className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
+                </div>
 
-                  {/* Patient List */}
-                  <div className="flex-1 overflow-y-auto p-6">
-                    {isLoadingPatients ? (
-                      <div className="flex items-center justify-center py-12">
-                        <div className="text-center space-y-3">
-                          <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
-                          <p className="text-sm text-gray-600">Carregando pacientes...</p>
-                        </div>
+                {/* Patient List */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {isLoadingPatients ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center space-y-3">
+                        <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
+                        <p className="text-sm text-gray-600">Carregando pacientes...</p>
                       </div>
-                    ) : filteredPatients.length === 0 ? (
-                      <div className="text-center py-12 text-gray-500">
-                        <Users2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                        <p>Nenhum paciente encontrado</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredPatients.map((patient) => (
-                          <button
-                            key={patient.id}
-                            onClick={() => handleStartConversation(patient.id)}
-                            className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold text-gray-900">{patient.name}</p>
-                                <p className="text-sm text-gray-600">{patient.email}</p>
-                                {patient.phone && (
-                                  <p className="text-xs text-gray-500 mt-1">{patient.phone}</p>
-                                )}
-                              </div>
-                              <MessageSquare className="w-5 h-5 text-blue-600" />
+                    </div>
+                  ) : filteredPatients.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <Users2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p>Nenhum paciente encontrado</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredPatients.map((patient) => (
+                        <button
+                          key={patient.id}
+                          onClick={() => handleStartConversation(patient.id)}
+                          className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold text-gray-900">{patient.name}</p>
+                              <p className="text-sm text-gray-600">{patient.email}</p>
+                              {patient.phone && (
+                                <p className="text-xs text-gray-500 mt-1">{patient.phone}</p>
+                              )}
                             </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              </div>
-            )
-          }
-        </AnimatePresence >
-      </>
-      );
+                            <MessageSquare className="w-5 h-5 text-blue-600" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )
+        }
+      </AnimatePresence >
+    </>
+  );
 }
