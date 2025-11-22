@@ -139,8 +139,8 @@ export async function POST(req: NextRequest) {
 
         console.log('✅ Message saved:', msgRef.id);
 
-        // 4. Disparar Webhook do n8n
-        const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-chat-interno-teste';
+        // 4. Disparar Webhook do n8n (WhatsApp workflow)
+        const n8nWebhookUrl = process.env.N8N_WHATSAPP_WEBHOOK_URL || 'https://n8n-production-3eae.up.railway.app/webhook/nutribuddy-whatsapp';
 
         try {
             const webhookPayload = {
@@ -151,10 +151,11 @@ export async function POST(req: NextRequest) {
                 content: body,
                 type: messageType,
                 mediaUrl: mediaUrl || null,
-                source: 'whatsapp'
+                source: 'whatsapp',
+                patientPhone: from // Incluir telefone para resposta
             };
 
-            console.log('🚀 Triggering n8n webhook:', webhookPayload);
+            console.log('🚀 Triggering n8n WhatsApp webhook:', webhookPayload);
 
             await fetch(n8nWebhookUrl, {
                 method: 'POST',
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
                 body: JSON.stringify(webhookPayload),
             });
 
-            console.log('✅ n8n webhook triggered successfully');
+            console.log('✅ n8n WhatsApp webhook triggered successfully');
         } catch (error) {
             console.error('❌ Error triggering n8n webhook:', error);
         }

@@ -1,0 +1,391 @@
+{
+    "name": "📱 WhatsApp - NutriBuddy (Twilio)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "nutribuddy-whatsapp",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-whatsapp",
+            "name": "Webhook: WhatsApp (do NutriBuddy)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "nutribuddy-whatsapp-handler"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Processar dados do webhook do NutriBuddy\nconst body = $input.first().json.body || $input.first().json;\n\nconsole.log('📱 [WHATSAPP] Mensagem recebida:', body);\n\n// Validar campos\nif (!body.conversationId || !body.content) {\n  throw new Error('Campos obrigatórios faltando');\n}\n\n// Extrair telefone do paciente\nconst patientPhone = body.patientPhone || body.from;\n\nreturn {\n  json: {\n    conversationId: body.conversationId,\n    patientId: body.patientId,\n    prescriberId: body.prescriberId,\n    content: body.content,\n    type: body.type || 'text',\n    mediaUrl: body.mediaUrl || null,\n    patientPhone: patientPhone,\n    source: 'whatsapp'\n  }\n};"
+            },
+            "id": "process-webhook",
+            "name": "1. Processar Webhook",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "=https://nutribuddy.dog/api/n8n/conversations/{{ $json.conversationId }}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "nutribuddy-secret-2024"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "fetch-conversation",
+            "name": "2. Buscar Conversa",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "=https://nutribuddy.dog/api/n8n/conversations/{{ $('1. Processar Webhook').first().json.conversationId }}/messages?limit=10",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "nutribuddy-secret-2024"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "fetch-history",
+            "name": "3. Buscar Histórico",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "=https://nutribuddy.dog/api/n8n/patients/{{ $('1. Processar Webhook').first().json.patientId }}/diet",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "nutribuddy-secret-2024"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "fetch-diet",
+            "name": "4. Buscar Dieta",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Construir contexto para IA\nconst currentItem = $('1. Processar Webhook').first().json;\nconst conversation = $('2. Buscar Conversa').first().json;\nconst history = $('3. Buscar Histórico').first().json.messages || [];\nconst dietPlan = $('4. Buscar Dieta').first().json.data || {};\n\n// Formatar histórico\nconst formattedHistory = history\n  .slice(-5)\n  .map(msg => `${msg.senderRole === 'patient' ? 'Paciente' : 'Nutricionista'}: ${msg.content}`)\n  .join('\\n');\n\n// Formatar dieta\nconst dietInfo = dietPlan.meals ? \n  dietPlan.meals.map(meal => \n    `${meal.name}: ${meal.foods.map(f => `${f.name} (${f.quantity})`).join(', ')}`\n  ).join('\\n') : \n  'Dieta não disponível';\n\nconst context = `\nVocê é um assistente nutricional do NutriBuddy via WhatsApp.\n\nPACIENTE: ${conversation.patientName || 'Paciente'}\n\nDIETA PRESCRITA:\n${dietInfo}\n\nMACROS DIÁRIOS:\n- Proteínas: ${dietPlan.macros?.protein || 'N/A'}g\n- Carboidratos: ${dietPlan.macros?.carbs || 'N/A'}g\n- Gorduras: ${dietPlan.macros?.fats || 'N/A'}g\n- Calorias: ${dietPlan.macros?.calories || 'N/A'}kcal\n\nÚLTIMAS MENSAGENS:\n${formattedHistory}\n\nMENSAGEM ATUAL: \"${currentItem.content}\"\n\nINSTRUÇÕES:\n1. Responda de forma CONCISA (máximo 160 caracteres se possível)\n2. Use emojis para tornar mais amigável\n3. Foque na dieta prescrita\n4. Se for dúvida sobre alimento → Confirme se está na dieta\n5. Se for relato de refeição → Parabenize e dê feedback\n6. Tom amigável e motivador\n\nResponda APENAS em JSON:\n{\n  \"resposta\": \"sua resposta aqui (concisa para WhatsApp)\"\n}\n`;\n\nreturn {\n  json: {\n    ...currentItem,\n    context,\n    patientName: conversation.patientName\n  }\n};"
+            },
+            "id": "build-context",
+            "name": "5. Construir Contexto",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "gpt-4o",
+                    "mode": "list",
+                    "cachedResultName": "GPT-4O"
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "content": "={{ $json.context }}"
+                        }
+                    ]
+                },
+                "options": {
+                    "maxTokens": 300,
+                    "temperature": 0.7
+                }
+            },
+            "id": "ai-response",
+            "name": "6. IA Gera Resposta",
+            "type": "@n8n/n8n-nodes-langchain.openAi",
+            "typeVersion": 1.3,
+            "position": [
+                1560,
+                300
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "fAe6rjFEnsEKA5I8",
+                    "name": "OpenAi account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse resposta da IA\nconst currentItem = $('5. Construir Contexto').first().json;\nconst aiResponse = $input.first().json.message?.content || $input.first().json.text || '{}';\n\nconsole.log('=== RESPOSTA IA ===');\nconsole.log(aiResponse);\n\nlet parsed;\ntry {\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('JSON não encontrado');\n  }\n} catch (error) {\n  console.error('Erro ao fazer parse:', error);\n  parsed = {\n    resposta: aiResponse\n  };\n}\n\nreturn {\n  json: {\n    ...currentItem,\n    resposta: parsed.resposta || aiResponse\n  }\n};"
+            },
+            "id": "parse-response",
+            "name": "7. Parse Resposta",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1780,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://nutribuddy.dog/api/n8n/conversations/{{ $json.conversationId }}/messages",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "nutribuddy-secret-2024"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "senderId",
+                            "value": "={{ $json.prescriberId }}"
+                        },
+                        {
+                            "name": "senderRole",
+                            "value": "prescriber"
+                        },
+                        {
+                            "name": "content",
+                            "value": "={{ $json.resposta }}"
+                        },
+                        {
+                            "name": "type",
+                            "value": "text"
+                        },
+                        {
+                            "name": "isAiGenerated",
+                            "value": "true"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "save-message",
+            "name": "8. Salvar Mensagem",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                2000,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://nutribuddy.dog/api/n8n/whatsapp/send",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "nutribuddy-secret-2024"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "to",
+                            "value": "={{ $('7. Parse Resposta').first().json.patientPhone }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $('7. Parse Resposta').first().json.resposta }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-whatsapp",
+            "name": "9. Enviar WhatsApp",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                2220,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { success: true, sent: true } }}",
+                "options": {}
+            },
+            "id": "respond-webhook",
+            "name": "10. Responder Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                2440,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook: WhatsApp (do NutriBuddy)": {
+            "main": [
+                [
+                    {
+                        "node": "1. Processar Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "1. Processar Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "2. Buscar Conversa",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "2. Buscar Conversa": {
+            "main": [
+                [
+                    {
+                        "node": "3. Buscar Histórico",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "3. Buscar Histórico": {
+            "main": [
+                [
+                    {
+                        "node": "4. Buscar Dieta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "4. Buscar Dieta": {
+            "main": [
+                [
+                    {
+                        "node": "5. Construir Contexto",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "5. Construir Contexto": {
+            "main": [
+                [
+                    {
+                        "node": "6. IA Gera Resposta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "6. IA Gera Resposta": {
+            "main": [
+                [
+                    {
+                        "node": "7. Parse Resposta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "7. Parse Resposta": {
+            "main": [
+                [
+                    {
+                        "node": "8. Salvar Mensagem",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "8. Salvar Mensagem": {
+            "main": [
+                [
+                    {
+                        "node": "9. Enviar WhatsApp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "9. Enviar WhatsApp": {
+            "main": [
+                [
+                    {
+                        "node": "10. Responder Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "tags": []
+}
