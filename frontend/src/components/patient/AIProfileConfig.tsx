@@ -165,10 +165,6 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
   const [responseTiming, setResponseTiming] = useState<ResponseTiming>('respectful');
   const [customInstructions, setCustomInstructions] = useState('');
 
-  useEffect(() => {
-    loadProfile();
-  }, [patientId, loadProfile]);
-
   const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
@@ -205,6 +201,10 @@ export default function AIProfileConfig({ patientId, patientName, onSave }: AIPr
       setLoading(false);
     }
   }, [patientId]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleSave = async () => {
     try {
