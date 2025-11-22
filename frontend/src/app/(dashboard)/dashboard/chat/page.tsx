@@ -12,13 +12,18 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 
+interface MessageObject {
+  content: string;
+  [key: string]: unknown;
+}
+
 interface Conversation {
   id: string;
   patientId: string;
   prescriberId: string;
   status: string;
   kanbanColumn: 'new' | 'in-progress' | 'waiting-response' | 'resolved';
-  lastMessage: string | { content: string;[key: string]: any };
+  lastMessage: string | MessageObject;
   lastMessageAt: string | Date;
   unreadCount: number;
   priority: 'low' | 'medium' | 'high';
@@ -332,7 +337,7 @@ export default function PrescriberChatPage() {
                             <p className="text-fluid-sm text-high-contrast-muted line-clamp-2">
                               {typeof conversation.lastMessage === 'string'
                                 ? conversation.lastMessage
-                                : (conversation.lastMessage as any)?.content || 'Mensagem sem texto'}
+                                : (conversation.lastMessage as MessageObject)?.content || 'Mensagem sem texto'}
                             </p>
                           </div>
                           <div className="text-fluid-xs text-gray-400 whitespace-nowrap">
