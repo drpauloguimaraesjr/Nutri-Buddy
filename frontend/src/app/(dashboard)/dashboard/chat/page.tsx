@@ -60,15 +60,13 @@ export default function PrescriberChatPage() {
   const [isLoadingPatients, setIsLoadingPatients] = useState(false);
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-
   const fetchConversations = useCallback(async () => {
     if (!firebaseUser) return;
 
     try {
       setIsRefreshing(true);
       const token = await firebaseUser.getIdToken();
-      const response = await fetch(`${apiBaseUrl}/api/messages/conversations`, {
+      const response = await fetch('/api/messages/conversations', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -96,7 +94,7 @@ export default function PrescriberChatPage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [apiBaseUrl, firebaseUser, selectedConversationId]);
+  }, [firebaseUser, selectedConversationId]);
 
   const fetchPatients = useCallback(async () => {
     if (!firebaseUser) return;
@@ -104,7 +102,7 @@ export default function PrescriberChatPage() {
     try {
       setIsLoadingPatients(true);
       const token = await firebaseUser.getIdToken();
-      const response = await fetch(`${apiBaseUrl}/api/patients`, {
+      const response = await fetch('/api/patients', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -130,7 +128,7 @@ export default function PrescriberChatPage() {
       const token = await firebaseUser.getIdToken();
 
       // Primeiro, vincular o paciente ao prescritor se ainda não estiver
-      await fetch(`${apiBaseUrl}/api/patients/${patientId}`, {
+      await fetch(`/api/patients/${patientId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +140,7 @@ export default function PrescriberChatPage() {
       });
 
       // Criar ou buscar conversa
-      const response = await fetch(`${apiBaseUrl}/api/messages/conversations`, {
+      const response = await fetch('/api/messages/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
