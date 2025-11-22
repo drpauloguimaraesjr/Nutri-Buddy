@@ -175,7 +175,7 @@ export function ChatInterface({
     };
 
     initConversation();
-  }, [conversationId, prescriberId, firebaseUser, apiBaseUrl, onConversationCreated]);
+  }, [conversationId, prescriberId, firebaseUser, onConversationCreated]);
 
   // Buscar mensagens
   useEffect(() => {
@@ -217,7 +217,7 @@ export function ChatInterface({
     const interval = setInterval(fetchMessages, 3000);
 
     return () => clearInterval(interval);
-  }, [conversationId, firebaseUser, apiBaseUrl]);
+  }, [conversationId, firebaseUser]);
 
   // Enviar mensagem
   const handleSendMessage = async (content: string) => {
