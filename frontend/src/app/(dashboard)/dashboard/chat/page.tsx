@@ -18,7 +18,7 @@ interface Conversation {
   prescriberId: string;
   status: string;
   kanbanColumn: 'new' | 'in-progress' | 'waiting-response' | 'resolved';
-  lastMessage: string;
+  lastMessage: string | { content: string;[key: string]: any };
   lastMessageAt: string | Date;
   unreadCount: number;
   priority: 'low' | 'medium' | 'high';
@@ -329,8 +329,9 @@ export default function PrescriberChatPage() {
                             <p className="font-semibold text-high-contrast">
                               {conversation.metadata?.patientName || 'Paciente sem nome'}
                             </p>
-                            <p className="text-fluid-sm text-high-contrast-muted line-clamp-2">
-                              {conversation.lastMessage || 'Sem mensagens registradas.'}
+                              {typeof conversation.lastMessage === 'string' 
+                                ? conversation.lastMessage 
+                                : (conversation.lastMessage as any)?.content || 'Mensagem sem texto'}
                             </p>
                           </div>
                           <div className="text-fluid-xs text-gray-400 whitespace-nowrap">
@@ -357,120 +358,122 @@ export default function PrescriberChatPage() {
                           )}
                         </div>
                       </button>
-                    );
+              );
                   })}
-                </div>
+            </div>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
-          <Card className="h-[calc(100vh-15rem)]">
-            <CardContent className="p-0 h-full">
-              {selectedConversation ? (
-                <ChatInterface conversationId={selectedConversation.id} />
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 px-6">
-                  <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                    <MessageSquare className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h3 className="text-fluid-lg font-semibold text-high-contrast">Selecione uma conversa</h3>
-                    <p className="text-fluid-sm text-high-contrast-muted">
-                      Escolha um paciente na lista para ver o histórico e responder por aqui.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-fluid-sm text-high-contrast-muted">
-                    <Users2 className="w-4 h-4" />
-                    {conversations.length > 0
-                      ? `${conversations.length} pacientes em acompanhamento`
-                      : 'Nenhuma conversa ativa'}
-                  </div>
+        <Card className="h-[calc(100vh-15rem)]">
+          <CardContent className="p-0 h-full">
+            {selectedConversation ? (
+              <ChatInterface conversationId={selectedConversation.id} />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-4 px-6">
+                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                  <MessageSquare className="w-7 h-7" />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Modal de Seleção de Pacientes */}
-      <AnimatePresence>
-        {showPatientModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Iniciar nova conversa</h2>
-                  <p className="text-sm text-gray-600 mt-1">Selecione um paciente para começar</p>
+                  <h3 className="text-fluid-lg font-semibold text-high-contrast">Selecione uma conversa</h3>
+                  <p className="text-fluid-sm text-high-contrast-muted">
+                    Escolha um paciente na lista para ver o histórico e responder por aqui.
+                  </p>
                 </div>
-                <button
-                  onClick={() => setShowPatientModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Search */}
-              <div className="p-6 border-b">
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    value={patientSearchTerm}
-                    onChange={(e) => setPatientSearchTerm(e.target.value)}
-                    placeholder="Buscar por nome ou email"
-                    className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                <div className="flex items-center gap-2 text-fluid-sm text-high-contrast-muted">
+                  <Users2 className="w-4 h-4" />
+                  {conversations.length > 0
+                    ? `${conversations.length} pacientes em acompanhamento`
+                    : 'Nenhuma conversa ativa'}
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div >
 
-              {/* Patient List */}
-              <div className="flex-1 overflow-y-auto p-6">
-                {isLoadingPatients ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center space-y-3">
-                      <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
-                      <p className="text-sm text-gray-600">Carregando pacientes...</p>
-                    </div>
-                  </div>
-                ) : filteredPatients.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <Users2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>Nenhum paciente encontrado</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {filteredPatients.map((patient) => (
-                      <button
-                        key={patient.id}
-                        onClick={() => handleStartConversation(patient.id)}
-                        className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-gray-900">{patient.name}</p>
-                            <p className="text-sm text-gray-600">{patient.email}</p>
-                            {patient.phone && (
-                              <p className="text-xs text-gray-500 mt-1">{patient.phone}</p>
-                            )}
-                          </div>
-                          <MessageSquare className="w-5 h-5 text-blue-600" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
+      {/* Modal de Seleção de Pacientes */ }
+      <AnimatePresence>
+  {
+    showPatientModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Iniciar nova conversa</h2>
+              <p className="text-sm text-gray-600 mt-1">Selecione um paciente para começar</p>
+            </div>
+            <button
+              onClick={() => setShowPatientModal(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+
+          {/* Search */}
+          <div className="p-6 border-b">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={patientSearchTerm}
+                onChange={(e) => setPatientSearchTerm(e.target.value)}
+                placeholder="Buscar por nome ou email"
+                className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Patient List */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {isLoadingPatients ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
+                  <p className="text-sm text-gray-600">Carregando pacientes...</p>
+                </div>
+              </div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Users2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>Nenhum paciente encontrado</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredPatients.map((patient) => (
+                  <button
+                    key={patient.id}
+                    onClick={() => handleStartConversation(patient.id)}
+                    className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900">{patient.name}</p>
+                        <p className="text-sm text-gray-600">{patient.email}</p>
+                        {patient.phone && (
+                          <p className="text-xs text-gray-500 mt-1">{patient.phone}</p>
+                        )}
+                      </div>
+                      <MessageSquare className="w-5 h-5 text-blue-600" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
+      </AnimatePresence >
     </>
   );
 }
