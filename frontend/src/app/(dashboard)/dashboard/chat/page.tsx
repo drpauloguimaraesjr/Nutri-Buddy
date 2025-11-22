@@ -77,10 +77,24 @@ export default function PrescriberChatPage() {
       }
 
       const data = await response.json();
-      const formatted = (data.conversations as Conversation[]).map((conversation) => ({
-        ...conversation,
-        lastMessageAt: conversation.lastMessageAt || new Date().toISOString(),
-      }));
+      const formatted = (data.conversations as Conversation[]).map((conversation) => {
+        let validDate = new Date().toISOString();
+        try {
+          if (conversation.lastMessageAt) {
+            const date = new Date(conversation.lastMessageAt);
+            if (!isNaN(date.getTime())) {
+              validDate = date.toISOString();
+            }
+          }
+        } catch (e) {
+          console.warn('Data inválida recebida:', conversation.lastMessageAt);
+        }
+
+        return {
+          ...conversation,
+          lastMessageAt: validDate,
+        };
+      });
 
       setConversations(formatted);
       if (!selectedConversationId && formatted.length > 0) {
@@ -320,10 +334,16 @@ export default function PrescriberChatPage() {
                             </p>
                           </div>
                           <div className="text-fluid-xs text-gray-400 whitespace-nowrap">
-                            {formatDistanceToNow(new Date(conversation.lastMessageAt), {
-                              addSuffix: true,
-                              locale: ptBR,
-                            })}
+                            {(() => {
+                              try {
+                                return formatDistanceToNow(new Date(conversation.lastMessageAt), {
+                                  addSuffix: true,
+                                  locale: ptBR,
+                                });
+                              } catch (e) {
+                                return 'Data desconhecida';
+                              }
+                            })()}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 mt-3 text-xs">
