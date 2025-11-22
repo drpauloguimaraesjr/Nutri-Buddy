@@ -80,7 +80,7 @@ export function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+  // const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
   const normalizeMessage = (rawMessage: RawMessage): Message => ({
     ...rawMessage,
@@ -129,7 +129,7 @@ export function ChatInterface({
         if (conversationId) {
           // Buscar conversa existente
           const response = await fetch(
-            `${apiBaseUrl}/api/messages/conversations/${conversationId}`,
+            `/api/messages/conversations/${conversationId}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -145,7 +145,7 @@ export function ChatInterface({
           setConversation(data.conversation);
         } else if (prescriberId) {
           // Criar nova conversa
-          const response = await fetch(`${apiBaseUrl}/api/messages/conversations`, {
+          const response = await fetch(`/api/messages/conversations`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -185,7 +185,7 @@ export function ChatInterface({
       try {
         const token = await firebaseUser.getIdToken();
         const response = await fetch(
-          `${apiBaseUrl}/api/messages/conversations/${conversationId}/messages`,
+          `/api/messages/conversations/${conversationId}/messages`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -226,7 +226,7 @@ export function ChatInterface({
     try {
       const token = await firebaseUser.getIdToken();
       const response = await fetch(
-        `${apiBaseUrl}/api/messages/conversations/${conversationId}/messages`,
+        `/api/messages/conversations/${conversationId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -267,7 +267,7 @@ export function ChatInterface({
       formData.append('mediaType', mediaType);
 
       const response = await fetch(
-        `${apiBaseUrl}/api/messages/conversations/${conversationId}/attachments`,
+        `/api/messages/conversations/${conversationId}/attachments`,
         {
           method: 'POST',
           headers: {
@@ -340,7 +340,7 @@ export function ChatInterface({
     try {
       const token = await firebaseUser.getIdToken();
       const response = await fetch(
-        `${apiBaseUrl}/api/messages/conversations/${conversationId}/messages`,
+        `/api/messages/conversations/${conversationId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -410,7 +410,7 @@ export function ChatInterface({
 
                       try {
                         const token = await firebaseUser?.getIdToken();
-                        await fetch(`${apiBaseUrl}/api/messages/conversations/${conversationId}`, {
+                        await fetch(`/api/messages/conversations/${conversationId}`, {
                           method: 'PATCH',
                           headers: {
                             'Content-Type': 'application/json',
