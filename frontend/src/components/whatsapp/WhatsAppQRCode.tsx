@@ -25,9 +25,8 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
 
       console.log('📱 Buscando QR Code Evolution API');
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/qrcode`, {
+      // Usar caminho relativo para evitar problemas de CORS/URL
+      const response = await fetch('/api/whatsapp/qrcode', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -70,9 +69,8 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
   // Verificar status da conexão via Evolution API
   const checkConnectionStatus = useCallback(async () => {
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/status`, {
+      // Usar caminho relativo
+      const response = await fetch('/api/whatsapp/status', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -109,9 +107,8 @@ export function WhatsAppQRCode({ onConnected }: WhatsAppQRCodeProps) {
     try {
       setLoading(true);
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-      const response = await fetch(`${apiBaseUrl}/api/whatsapp/disconnect`, {
+      // Usar caminho relativo
+      const response = await fetch('/api/whatsapp/disconnect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
