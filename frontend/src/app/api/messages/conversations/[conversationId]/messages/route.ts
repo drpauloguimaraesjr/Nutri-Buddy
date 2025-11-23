@@ -123,21 +123,20 @@ export async function GET(
             .collection('conversations')
             .doc(conversationId)
             .collection('messages')
-            .orderBy('timestamp', 'asc') // Frontend espera ordem cronológica? ChatInterface faz map direto, então talvez precise inverter ou ordenar lá.
-            // O ChatInterface usa .map direto, então a ordem importa.
-            // Geralmente buscamos desc e invertemos, ou buscamos asc.
-            // Vamos buscar asc (mais antigas primeiro -> mais novas)
-            .limitToLast(limit)
+            // .orderBy('timestamp', 'asc') // Removido para evitar erro de índice no Firebase
+            .limit(limit) // Removido limitToLast pois sem orderBy ele não funciona bem, usando limit simples
             .get();
 
-        const messages = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                createdAt: data.timestamp?.toDate?.()?.toISOString() || new Date().toISOString()
-            };
-        });
+        const messages = snapshot.docs
+            .map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.timestamp?.toDate?.()?.toISOString() || new Date().toISOString()
+                };
+            })
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação em memória
 
         return NextResponse.json({ messages });
 
